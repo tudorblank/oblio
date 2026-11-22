@@ -15,7 +15,7 @@ config/       what an Oblio system is made of
 packages/     Oblio's own packages (oblio-hooks, oblio-settings)
 installer/    oblio-install (the step-by-step installer), engine.sh (install steps), oblio-repos (CPU detection)
 iso/          what the Oblio ISO adds on top of Arch's live ISO
-desktop/      desktop setups for an installed Oblio (hyprland/setup)
+desktop/      the Oblio desktop: hyprland/ (setup, oblio.lua window management), shell/ (Quickshell: dock)
 tools/        build-packages, build-iso, oblio-vm
 ```
 
@@ -59,4 +59,14 @@ oblio-main/desktop/hyprland/setup
 start-hyprland
 ```
 
-Minimal Hyprland with Alacritty (SUPER+Q), Dolphin (SUPER+E) and Hyprland's launcher (SUPER+R).
+Hyprland with Oblio's window management and dock, Alacritty (SUPER+Q), Dolphin (SUPER+E)
+and Hyprland's launcher (SUPER+R). In a VM the main key is Alt instead of Super.
+
+| Keys | |
+|---|---|
+| SUPER+H / SUPER+SHIFT+H | minimize / restore last minimized |
+| SUPER+D | show desktop (minimize all), again to bring them back |
+| SUPER+T | this workspace: tiling <-> floating (KDE-like, cascading windows) |
+
+Dock: click opens, focuses or restores; clicking the focused app minimizes it; right click
+minimizes or restores all of an app's windows; middle click opens a new window.

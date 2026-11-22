@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Minimal Hyprland desktop for an installed Oblio: Hyprland, Alacritty, Dolphin.
-# Run as your normal user; pacman runs through sudo.
+# Oblio's Hyprland desktop for an installed Oblio: Hyprland, Oblio's window
+# management (minimize, show desktop, tiling/floating per workspace), the Oblio
+# dock, Alacritty, Dolphin. Run as your normal user; pacman runs through sudo.
 #   desktop/hyprland/setup
 
 set -euo pipefail
 
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+shell_src="$here/../shell"
+shell_dir="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/oblio"
+
 packages=(
+    quickshell                   # runs the Oblio shell (dock)
     hyprland                     # compositor (pulls in XWayland)
     hyprlauncher                 # app launcher, SUPER+R
     hyprpolkitagent              # password prompts for admin actions
@@ -65,12 +71,26 @@ sed -e 's/^local terminal    = "kitty"$/local terminal    = "alacritty"/' \
 ---- OBLIO ----
 ---------------
 
+-- minimize, show desktop, tiling/floating per workspace (oblio.lua)
+require("oblio").setup({ mod = mainMod })
+
 -- Dolphin's "Open with" menus outside Plasma
 hl.env("XDG_MENU_PREFIX", "arch-")
 
 hl.on("hyprland.start", function()
     hl.exec_cmd("/usr/lib/hyprpolkitagent/hyprpolkitagent")
+    hl.exec_cmd("qs -c oblio")
 end)
+
+-- the dock gets the blurred-glass look
+hl.layer_rule({ match = { namespace = "oblio-dock" }, blur = true, ignore_alpha = 0.3 })
+
+hl.config({
+    ecosystem = {
+        no_update_news = true,
+        no_donation_nag = true,
+    },
+})
 EOF
 
     if lspci -k 2>/dev/null | grep -q "Kernel driver in use: nvidia"; then
@@ -96,6 +116,11 @@ EOF
     fi
 } >> "$config"
 
+msg "Installing Oblio's window management and shell"
+install -Dm644 "$here/oblio.lua" "${config%/*}/oblio.lua"
+mkdir -p "$shell_dir"
+install -m644 "$shell_src"/*.qml "$shell_dir/"
+
 msg "Building Dolphin's application menu"
 XDG_MENU_PREFIX=arch- kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
 
@@ -108,8 +133,14 @@ Start Hyprland from the console with:  ${bold}start-hyprland${off}
   $mod + E       files (Dolphin)
   $mod + R       app launcher
   $mod + C       close window
+  $mod + H       minimize window          $mod + SHIFT + H   restore last minimized
+  $mod + D       show desktop (minimize all, again to restore)
+  $mod + T       this workspace: tiling <-> floating
   $mod + 1..0    switch workspace
   $mod + M       exit Hyprland
+
+Dock: click = open / focus / restore, click the focused app = minimize,
+      right click = minimize or restore all its windows, middle click = new window
 
 Config: $config
 EOF

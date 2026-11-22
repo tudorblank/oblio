@@ -87,7 +87,8 @@ prepare_live() {
 
     # Only the keyring and mirrorlists, which are plain data files. Cachy's pacman
     # needs newer libraries than the ISO has, so it goes into Oblio, never here.
-    printf '\n[cachyos]\nServer = https://mirror.cachyos.org/repo/$arch/$repo\n' >> /etc/pacman.conf
+    grep -qx '\[cachyos\]' /etc/pacman.conf ||
+        printf '\n[cachyos]\nServer = https://mirror.cachyos.org/repo/$arch/$repo\n' >> /etc/pacman.conf
     pacman -Sy --noconfirm cachyos/cachyos-keyring cachyos/cachyos-mirrorlist \
         cachyos/cachyos-v3-mirrorlist cachyos/cachyos-v4-mirrorlist
 
@@ -241,26 +242,29 @@ install_packages() {
 
 install_aur() {
     msg "Building arch-update from the AUR"
+    local dir="/home/$user/.cache/arch-update"
+    rm -rf "$mnt$dir"
     as_user "git clone --depth 1 https://aur.archlinux.org/arch-update.git ~/.cache/arch-update"
 
-    local -a deps makedeps
+    # runtime + build dependencies; the test suite (and its checkdepends) is skipped
+    local -a deps
     mapfile -t deps < <(as_user "cd ~/.cache/arch-update && makepkg --printsrcinfo" |
         awk -F' = ' '/^\t(make)?depends = / {print $2}' | sed 's/[<>=].*//')
-    mapfile -t makedeps < <(as_user "cd ~/.cache/arch-update && makepkg --printsrcinfo" |
-        awk -F' = ' '/^\tmakedepends = / {print $2}' | sed 's/[<>=].*//')
 
+    local before
+    before="$(chroot_do pacman -Qq | sort)"
     chroot_do pacman -S --needed --noconfirm --asdeps "${deps[@]}"
-    as_user "cd ~/.cache/arch-update && makepkg -f --noconfirm"
+    as_user "cd ~/.cache/arch-update && CARGO_HOME=\$PWD/cargo makepkg -f --noconfirm --nocheck"
 
-    local -a built=("$mnt/home/$user/.cache/arch-update"/*.pkg.tar.zst)
+    local -a built=("$mnt$dir"/*.pkg.tar.zst)
     chroot_do pacman -U --noconfirm "${built[@]#"$mnt"}"
 
-    # drop build-only dependencies again
-    local -a orphans
-    mapfile -t orphans < <(comm -12 <(printf '%s\n' "${makedeps[@]}" | sort) \
-        <(chroot_do pacman -Qdtq | sort))
-    (( ${#orphans[@]} )) && chroot_do pacman -Rns --noconfirm "${orphans[@]}"
-    rm -rf "$mnt/home/$user/.cache/arch-update"
+    # remove build-only leftovers: compare against what was installed before,
+    # since names differ from what got installed (cargo is provided by rust)
+    local -a leftovers
+    mapfile -t leftovers < <(comm -13 <(echo "$before") <(chroot_do pacman -Qdtq | sort))
+    (( ${#leftovers[@]} )) && chroot_do pacman -Rns --noconfirm "${leftovers[@]}"
+    rm -rf "$mnt$dir"
 }
 
 finish() {

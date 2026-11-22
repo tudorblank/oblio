@@ -10,21 +10,22 @@
   - [x] `oblio-snapshot` command (`oblio-settings`)
   - [x] networkd wired + wireless `.network` files (`oblio-settings`)
   - [x] locale, timezone, keymap, hostname (`hosts/desktop.conf`)
-- [ ] Installer
-  - [ ] Partition, create subvolumes and mount from `system/btrfs.conf`, `genfstab`
-  - [ ] Install Cachy's `pacman` before switching to `Architecture = auto` (Arch's pacman only knows `x86_64`)
-  - [ ] Write `/etc/pacman.conf` with `scripts/oblio-repos conf`, add `scripts/oblio-repos packages`
-  - [ ] Build and install `packages/oblio-hooks` and `packages/oblio-settings`
-  - [ ] Apply `hosts/<name>.conf`: hostname, timezone, locales (`LC_FORMATS` → all `LC_*` except messages), `/etc/vconsole.conf`
-  - [ ] `/etc/default/limine`: `KERNEL_CMDLINE[default]+=root=UUID=… rw rootflags=subvol=/@` (the drop-in uses `+=`, which ignores `/etc/kernel/cmdline`)
-  - [ ] Write `system/limine.conf` to the ESP before the first `limine-update`, check the entry tool keeps it
-  - [ ] `limine-scan` once to add Windows Boot Manager
-  - [ ] `snapper -c root create-config -t oblio /`
-  - [ ] `/etc/nsswitch.conf` hosts: `mymachines mdns_minimal [NOTFOUND=return] resolve [!UNAVAIL=return] files myhostname dns`
-  - [ ] Replace `/etc/resolv.conf` with a symlink to `/run/systemd/resolve/stub-resolv.conf` (from outside the chroot)
-  - [ ] `arch-update` from the AUR with paru
-  - [ ] Enable/disable units from `services.txt` (USER section with `systemctl --global enable`)
-  - [ ] Run `chwd -a`
+- [ ] Installer: `install.sh` is written, needs a full run in a VM (`scripts/oblio-vm`)
+  - [x] Partition, create subvolumes and mount from `system/btrfs.conf`, `genfstab`
+  - [x] Install Cachy's `pacman` before switching to `Architecture = auto` (Arch's pacman only knows `x86_64`)
+  - [x] Write `/etc/pacman.conf` with `scripts/oblio-repos conf`, add `scripts/oblio-repos packages`
+  - [x] Build and install `packages/oblio-hooks` and `packages/oblio-settings`
+  - [x] Apply `hosts/<name>.conf`: hostname, timezone, locales (`LC_FORMATS` → all `LC_*` except messages), `/etc/vconsole.conf`
+  - [x] `/etc/default/limine`: `KERNEL_CMDLINE[default]+=root=UUID=… rw rootflags=subvol=/@` (the drop-in uses `+=`, which ignores `/etc/kernel/cmdline`)
+  - [x] Write `system/limine.conf` to the ESP before the first `limine-update`
+  - [ ] Verify in the VM: the entry tool keeps the timeout/branding header
+  - [ ] `limine-scan` once to add Windows Boot Manager (manual, after first boot on real hardware)
+  - [x] `snapper -c root create-config -t oblio /`
+  - [x] `/etc/nsswitch.conf` hosts: `mymachines mdns_minimal [NOTFOUND=return] resolve [!UNAVAIL=return] files myhostname dns`
+  - [x] Replace `/etc/resolv.conf` with a symlink to `/run/systemd/resolve/stub-resolv.conf` (from outside the chroot)
+  - [x] `arch-update` from the AUR (built with makepkg, build-only deps removed after)
+  - [x] Enable/disable units from `services.txt` (USER section with `systemctl --global enable`)
+  - [x] Run `chwd -a`
 - [x] Drivers and graphics
   - [x] GPU, Wi-Fi, laptop power, handhelds: `chwd -a` at install (scans every PCI and USB device)
   - [x] Audio (PipeWire) and Bluetooth

@@ -21,7 +21,6 @@
 # HARDWARE:
 
     chwd
-    hwdetect
     power-profiles-daemon
 
 # NETWORK:

@@ -46,9 +46,15 @@ if [[ -n $keymap ]] && localectl list-x11-keymap-layouts | grep -qx "$keymap"; t
     layout="$keymap"
 fi
 
+# In a VM the host desktop keeps Super for itself (KDE, GNOME, Windows), so the
+# VM gets Alt as its main key. On real hardware it stays Super.
+mod=SUPER
+if systemd-detect-virt -q; then mod=ALT; fi
+
 # start from Hyprland's own default config, then adjust it
 sed -e 's/^local terminal    = "kitty"$/local terminal    = "alacritty"/' \
     -e "s/^\(        kb_layout  = \)\"us\",$/\1\"$layout\",/" \
+    -e "s/^local mainMod = \"SUPER\"/local mainMod = \"$mod\"/" \
     "$default" > "$config"
 
 {
@@ -98,12 +104,15 @@ cat <<EOF
 
 Start Hyprland from the console with:  ${bold}start-hyprland${off}
 
-  SUPER + Q       terminal (Alacritty)
-  SUPER + E       files (Dolphin)
-  SUPER + R       app launcher
-  SUPER + C       close window
-  SUPER + 1..0    switch workspace
-  SUPER + M       exit Hyprland
+  $mod + Q       terminal (Alacritty)
+  $mod + E       files (Dolphin)
+  $mod + R       app launcher
+  $mod + C       close window
+  $mod + 1..0    switch workspace
+  $mod + M       exit Hyprland
 
 Config: $config
 EOF
+if [[ $mod == ALT ]]; then
+    echo "This is a virtual machine, so the main key is Alt instead of Super."
+fi

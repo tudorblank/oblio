@@ -177,8 +177,10 @@ mount_subvolumes() {
 
 install_base() {
     msg "Installing the base system"
-    local -a extra=()
-    # building Oblio's packages here needs the build tools
+    # oblio-hooks first: Limine's entry tool names the boot entry after os-release
+    # when the first kernel is installed, so the branding has to be in place by then
+    local -a extra=(oblio-hooks)
+    # without the ISO's repo, Oblio's packages are built here, which needs the build tools
     have_iso_repo || extra=(base-devel git)
     # shellcheck disable=SC2046
     pacstrap -C "$live_conf" "$mnt" base fish sudo cachyos-keyring cachyos-mirrorlist \
@@ -268,10 +270,12 @@ install_packages() {
     if ! have_iso_repo; then
         mapfile -t pkgs < <(printf '%s\n' "${pkgs[@]}" | grep -vxF -f <(printf '%s\n' "${local_packages[@]}"))
     fi
+    # before the kernels, for the same reason as oblio-hooks in install_base
+    have_iso_repo || build_local_packages
+
     pacstrap -C "$live_conf" "$mnt" "${pkgs[@]}"
 
     if ! have_iso_repo; then
-        build_local_packages
         build_arch_update
         if [[ " ${COMPONENTS[*]} " != *" 55-devtools.conf "* ]]; then
             # only needed for the builds above; the cleanup step removes them
@@ -349,7 +353,9 @@ finish() {
     chroot_do snapper --no-dbus -c root create-config -t oblio /
 
     msg "Detecting hardware (chwd)"
-    chroot_do chwd -a
+    # chwd rebuilds the initramfs with `mkinitcpio -P`, and limine-mkinitcpio-hook's
+    # wrapper asks "run limine-mkinitcpio now? [Y/n]" on stdin; no stdin = its default, yes
+    chroot_do chwd -a < /dev/null
 
     enable_services
 

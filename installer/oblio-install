@@ -355,9 +355,36 @@ confirm_erase() {
 
 # --- main ------------------------------------------------------------------
 
+# unattended: all choices from a file (same variable names as above), no questions
+#   oblio-install --answers FILE
+# COMPONENTS lists the optional components only; required ones are always added.
+load_answers() {
+    # shellcheck disable=SC1090
+    source "$1"
+    local f
+    local -a optional=("${COMPONENTS[@]}")
+    COMPONENTS=()
+    for f in "$OBLIO_ROOT"/config/components/*.conf; do
+        if [[ "$(field_of "$f" OPTIONAL)" == no ]] || printf '%s\n' "${optional[@]}" | grep -qxF "${f##*/}"; then
+            COMPONENTS+=("${f##*/}")
+        fi
+    done
+    [[ -n $DISK && -n $USERNAME && -n $USER_PASS ]] || die "answers file needs DISK, USERNAME and USER_PASS"
+}
+
 main() {
     [[ $EUID == 0 ]] || die "run as root"
     [[ -d /sys/firmware/efi ]] || die "not booted in UEFI mode"
+
+    if [[ ${1:-} == --answers ]]; then
+        load_answers "${2:?answers file missing}"
+        exec > >(tee -a "$log") 2>&1
+        trap 'echo; die "failed during: $step (log: $log)"' ERR
+        run_install
+        msg "Oblio is installed"
+        return
+    fi
+
     command -v gum >/dev/null || pacman -Sy --noconfirm gum >/dev/null
 
     trap 'echo; gum style --foreground "$red" "Installer stopped (nothing was changed)."; exit 1' ERR INT

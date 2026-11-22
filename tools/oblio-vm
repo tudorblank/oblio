@@ -64,11 +64,13 @@ boot() {
         -device virtio-rng-pci
         -device qemu-xhci -device usb-tablet
     )
-    # the installed system gets a 3D-accelerated GPU (virgl), which Hyprland needs
+    # the installed system gets a 3D-accelerated GPU (virgl), which Hyprland needs.
+    # grab-on-hover: while the mouse is over the window, the keyboard is grabbed, so the
+    # host desktop's shortcuts (Super+...) go to the VM instead
     if [[ $1 == run && ${OBLIO_VM_GL:-1} != 0 ]]; then
-        cmd+=(-device virtio-vga-gl -display gtk,gl=on)
+        cmd+=(-device virtio-vga-gl -display gtk,gl=on,grab-on-hover=on)
     else
-        cmd+=(-device virtio-vga -display gtk)
+        cmd+=(-device virtio-vga -display gtk,grab-on-hover=on)
     fi
     if [[ $1 == install ]]; then
         local boot_iso

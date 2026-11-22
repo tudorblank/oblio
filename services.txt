@@ -14,7 +14,6 @@
     paccache.timer
     cachyos-rate-mirrors.timer
 
-    snapper-cleanup.timer
     limine-snapper-sync.service
 
 # USER:

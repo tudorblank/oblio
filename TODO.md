@@ -6,7 +6,8 @@
   - [ ] mkinitcpio hooks (no plymouth)
   - [ ] Limine: kernel cmdline (`quiet nowatchdog`, no `splash`), menu timeout
   - [ ] btrfs subvolume layout, including `@docker`
-  - [ ] snapper config for `/`
+  - [ ] snapper config for `/`: manual snapshots only, no timeline, btrfs quotas off
+  - [ ] `oblio-snapshot` command: create / list / delete, snapshots show up in Limine
   - [ ] networkd `.network` files, `/etc/resolv.conf` → systemd-resolved stub
   - [ ] locale, timezone, keymap
 - [ ] Installer

@@ -34,7 +34,6 @@
     limine-mkinitcpio-hook
     limine-snapper-sync
     snapper
-    snap-pac
 
 # OBLIO:
 

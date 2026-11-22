@@ -22,6 +22,11 @@
 
     chwd
     hwdetect
+    power-profiles-daemon
+
+# NETWORK:
+
+    iwd
 
 # BOOT:
 
@@ -40,6 +45,7 @@
     base-devel
     git
     micro
+    paru
 
 # PACMAN:
 
@@ -48,4 +54,5 @@
     arch-update
     cachyos-keyring
     cachyos-mirrorlist
-    cachyos-v3-mirrorlist
+    cachyos-rate-mirrors
+    # v3/v4 mirrorlist: picked per CPU by scripts/oblio-repos

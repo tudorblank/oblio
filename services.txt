@@ -1,0 +1,27 @@
+# SYSTEM:
+
+    systemd-networkd.service
+    systemd-resolved.service
+    systemd-timesyncd.service
+    systemd-oomd.service
+    iwd.service
+    cachyos-iw-set-regdomain.path
+
+    ananicy-cpp.service
+    power-profiles-daemon.service
+
+    fstrim.timer
+    paccache.timer
+    cachyos-rate-mirrors.timer
+
+    snapper-cleanup.timer
+    limine-snapper-sync.service
+
+# USER:
+
+    arch-update.timer
+
+# DISABLE:
+
+    # enabled automatically with systemd-networkd, can stall boot when no cable is plugged in
+    systemd-networkd-wait-online.service

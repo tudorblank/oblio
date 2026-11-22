@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Repo selection follows cachyos-repo.sh from CachyOS.
+#
+# usage: oblio-repos level
+#        oblio-repos conf     [znver4|v4|v3|generic]
+#        oblio-repos packages [znver4|v4|v3|generic]
+
+set -euo pipefail
+
+cpuinfo="${OBLIO_CPUINFO:-/proc/cpuinfo}"
+ld_so="${OBLIO_LD_SO:-/lib/ld-linux-x86-64.so.2}"
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+template="${OBLIO_PACMAN_TEMPLATE:-$here/../system/pacman.conf}"
+
+isa_supported() {
+    "$ld_so" --help | grep -q "$1 (supported, searched)"
+}
+
+cpu_field() {
+    awk -F': ' -v key="$1" '$1 ~ "^"key"[[:space:]]*$" {print $2; exit}' "$cpuinfo"
+}
+
+# Zen 4 is AMD's first family with AVX-512, so this matches Zen 4 and newer
+# without needing gcc, and skips CPUs where AVX-512 is turned off.
+is_zen4_or_newer() {
+    [[ $(cpu_field vendor_id) == AuthenticAMD ]] || return 1
+    (( $(cpu_field 'cpu family') >= 25 )) || return 1
+    [[ " $(cpu_field flags) " == *" avx512f "* ]]
+}
+
+level() {
+    if isa_supported x86-64-v4 && is_zen4_or_newer; then
+        echo znver4
+    elif isa_supported x86-64-v4; then
+        echo v4
+    elif isa_supported x86-64-v3; then
+        echo v3
+    else
+        echo generic
+    fi
+}
+
+repo_block() {
+    printf '[%s]\nInclude = /etc/pacman.d/%s\n\n' "$1" "$2"
+}
+
+repos() {
+    case "$1" in
+        znver4)
+            repo_block cachyos-znver4       cachyos-v4-mirrorlist
+            repo_block cachyos-core-znver4  cachyos-v4-mirrorlist
+            repo_block cachyos-extra-znver4 cachyos-v4-mirrorlist ;;
+        v4)
+            repo_block cachyos-v4           cachyos-v4-mirrorlist
+            repo_block cachyos-core-v4      cachyos-v4-mirrorlist
+            repo_block cachyos-extra-v4     cachyos-v4-mirrorlist ;;
+        v3)
+            repo_block cachyos-v3           cachyos-v3-mirrorlist
+            repo_block cachyos-core-v3      cachyos-v3-mirrorlist
+            repo_block cachyos-extra-v3     cachyos-v3-mirrorlist ;;
+        generic) ;;
+    esac
+    printf '[cachyos]\nInclude = /etc/pacman.d/cachyos-mirrorlist\n'
+}
+
+packages() {
+    case "$1" in
+        znver4|v4) echo cachyos-v4-mirrorlist ;;
+        v3)        echo cachyos-v3-mirrorlist ;;
+        generic)   ;;
+    esac
+}
+
+conf() {
+    local lvl="$1" line
+    grep -qx '# @CACHYOS_REPOS@' "$template" || { echo "placeholder missing in $template" >&2; exit 1; }
+    while IFS= read -r line; do
+        if [[ $line == '# @CACHYOS_REPOS@' ]]; then
+            repos "$lvl"
+        else
+            printf '%s\n' "$line"
+        fi
+    done < "$template"
+}
+
+check_level() {
+    case "$1" in
+        znver4|v4|v3|generic) ;;
+        *) echo "unknown level: $1" >&2; exit 1 ;;
+    esac
+}
+
+cmd="${1:-}"
+lvl="${2:-}"
+
+case "$cmd" in
+    level)
+        level ;;
+    conf|packages)
+        [[ -n $lvl ]] || lvl="$(level)"
+        check_level "$lvl"
+        "$cmd" "$lvl" ;;
+    *)
+        echo "usage: ${0##*/} level | conf [level] | packages [level]" >&2
+        exit 1 ;;
+esac

@@ -1,0 +1,32 @@
+# Maintainer: tudorblank
+
+pkgname=oblio-settings
+pkgver=2026.11.22
+pkgrel=1
+pkgdesc='Oblio system configuration'
+arch=('any')
+license=('GPL-3.0-or-later')
+depends=('limine-mkinitcpio-hook' 'mkinitcpio' 'snapper' 'systemd')
+backup=('etc/mkinitcpio.conf.d/05-oblio.conf'
+        'etc/limine-entry-tool.d/oblio.conf')
+source=('mkinitcpio.conf'
+        'limine-entry-tool.conf'
+        'oblio-wired.network'
+        'oblio-wireless.network'
+        'snapper-template'
+        'oblio-snapshot')
+sha256sums=('7a4df2ccfa249f33c6269d84583639e80ea6fd6a3ead9f09c75fe6c87312367c'
+            'e87b465d89ca50a80db93e380b836d77924d1c7ef3d8e92ddece04449064f352'
+            'c7a5426644aeb65dcd705744f4bd8d1b0645e60e541541da5869dd7cc5948f79'
+            '82bfa968259404561a3f2fc9160e2470b428839010ec223827b2aa3992df3db9'
+            '923eef3dd6fcd5db00d457c9480c7037d6ec2de3995115cac3ce80b83d039b62'
+            'fcf5a7f33cb317af7b195299b7959eb248a88a36ed39e026aae9b29f4d7a584f')
+
+package() {
+    install -Dm644 mkinitcpio.conf "$pkgdir/etc/mkinitcpio.conf.d/05-oblio.conf"
+    install -Dm644 limine-entry-tool.conf "$pkgdir/etc/limine-entry-tool.d/oblio.conf"
+    install -Dm644 oblio-wired.network "$pkgdir/usr/lib/systemd/network/89-oblio-wired.network"
+    install -Dm644 oblio-wireless.network "$pkgdir/usr/lib/systemd/network/89-oblio-wireless.network"
+    install -Dm644 snapper-template "$pkgdir/usr/share/snapper/config-templates/oblio"
+    install -Dm755 oblio-snapshot "$pkgdir/usr/bin/oblio-snapshot"
+}

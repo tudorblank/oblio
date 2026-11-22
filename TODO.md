@@ -2,18 +2,25 @@
 
 ## Next
 
-- [ ] System config (`system/`)
-  - [ ] mkinitcpio hooks (no plymouth)
-  - [ ] Limine: kernel cmdline (`quiet nowatchdog`, no `splash`), menu timeout
-  - [ ] btrfs subvolume layout, including `@docker`
-  - [ ] snapper config for `/`: manual snapshots only, no timeline, btrfs quotas off
-  - [ ] `oblio-snapshot` command: create / list / delete, snapshots show up in Limine
-  - [ ] networkd `.network` files, `/etc/resolv.conf` → systemd-resolved stub
-  - [ ] locale, timezone, keymap
+- [x] System config
+  - [x] mkinitcpio hooks: no plymouth, `sd-btrfs-overlayfs` for booting snapshots (`oblio-settings`)
+  - [x] Limine: kernel cmdline (`oblio-settings`), menu timeout and branding (`system/limine.conf`)
+  - [x] btrfs subvolume layout, including `@docker` (`system/btrfs.conf`)
+  - [x] snapper template: manual snapshots only, no timeline, no quotas (`oblio-settings`)
+  - [x] `oblio-snapshot` command (`oblio-settings`)
+  - [x] networkd wired + wireless `.network` files (`oblio-settings`)
+  - [x] locale, timezone, keymap, hostname (`hosts/desktop.conf`)
 - [ ] Installer
+  - [ ] Partition, create subvolumes and mount from `system/btrfs.conf`, `genfstab`
   - [ ] Install Cachy's `pacman` before switching to `Architecture = auto` (Arch's pacman only knows `x86_64`)
   - [ ] Write `/etc/pacman.conf` with `scripts/oblio-repos conf`, add `scripts/oblio-repos packages`
-  - [ ] Build and install `packages/oblio-hooks`
+  - [ ] Build and install `packages/oblio-hooks` and `packages/oblio-settings`
+  - [ ] Apply `hosts/<name>.conf`: hostname, timezone, locales (`LC_FORMATS` → all `LC_*` except messages), `/etc/vconsole.conf`
+  - [ ] `/etc/default/limine`: `KERNEL_CMDLINE[default]+=root=UUID=… rw rootflags=subvol=/@` (the drop-in uses `+=`, which ignores `/etc/kernel/cmdline`)
+  - [ ] Write `system/limine.conf` to the ESP before the first `limine-update`, check the entry tool keeps it
+  - [ ] `limine-scan` once to add Windows Boot Manager
+  - [ ] `snapper -c root create-config -t oblio /`
+  - [ ] Replace `/etc/resolv.conf` with a symlink to `/run/systemd/resolve/stub-resolv.conf` (from outside the chroot)
   - [ ] `arch-update` from the AUR with paru
   - [ ] Enable/disable units from `services.txt` (USER section with `systemctl --global enable`)
   - [ ] Run `chwd -a`

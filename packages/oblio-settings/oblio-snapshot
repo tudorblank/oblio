@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -euo pipefail
+
+config=root
+
+usage() {
+    cat >&2 <<EOF
+usage: ${0##*/} create [description]
+       ${0##*/} list
+       ${0##*/} delete <number|from-to>...
+       ${0##*/} restore
+EOF
+    exit 1
+}
+
+case "${1:-}" in
+    create)
+        shift
+        desc="${*:-manual snapshot}"
+        # no cleanup algorithm: snapper never deletes it on its own
+        n="$(snapper -c "$config" create --type single --description "$desc" --print-number)"
+        echo "created snapshot $n: $desc"
+        ;;
+    list|ls)
+        snapper -c "$config" list --columns number,date,description
+        ;;
+    delete|rm)
+        shift
+        (( $# )) || usage
+        snapper -c "$config" delete --sync "$@"
+        ;;
+    restore)
+        exec limine-snapper-restore
+        ;;
+    *)
+        usage
+        ;;
+esac

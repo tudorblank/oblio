@@ -1,0 +1,11 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = filesystem
+Target = oblio-hooks
+
+[Action]
+Description = Applying Oblio branding to /etc/os-release...
+When = PostTransaction
+Exec = /usr/share/libalpm/scripts/oblio-branding os-release

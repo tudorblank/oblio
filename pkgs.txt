@@ -1,0 +1,51 @@
+# CORE:
+
+    base
+    linux-cachyos
+    linux-cachyos-lts
+    mkinitcpio
+
+    linux-firmware
+    amd-ucode
+    intel-ucode
+    cachyos-settings
+    ananicy-cpp
+    cachyos-ananicy-rules
+
+    btrfs-progs
+    dosfstools
+
+    fish
+    sudo
+
+# HARDWARE:
+
+    chwd
+    hwdetect
+
+# BOOT:
+
+    limine
+    limine-mkinitcpio-hook
+    limine-snapper-sync
+    snapper
+    snap-pac
+
+# OBLIO:
+
+    oblio-hooks
+
+# DEV:
+
+    base-devel
+    git
+    micro
+
+# PACMAN:
+
+    pacman-contrib
+    rebuild-detector
+    arch-update
+    cachyos-keyring
+    cachyos-mirrorlist
+    cachyos-v3-mirrorlist

@@ -1,0 +1,11 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = lsb-release
+Target = oblio-hooks
+
+[Action]
+Description = Applying Oblio branding to /etc/lsb-release...
+When = PostTransaction
+Exec = /usr/share/libalpm/scripts/oblio-branding lsb-release

@@ -1,0 +1,7 @@
+NAME="Oblio"
+PRETTY_NAME="Oblio"
+ID=oblio
+ID_LIKE="cachyos arch"
+BUILD_ID=rolling
+ANSI_COLOR="38;2;220;43;47"
+LOGO=oblio

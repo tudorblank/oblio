@@ -1,0 +1,9 @@
+[Trigger]
+Operation = Remove
+Type = Package
+Target = oblio-hooks
+
+[Action]
+Description = Removing Oblio branding from /etc/os-release...
+When = PreTransaction
+Exec = /usr/share/libalpm/scripts/oblio-branding unbrand

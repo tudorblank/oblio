@@ -1,0 +1,39 @@
+[Trigger]
+Operation = Upgrade
+Type = Package
+Target = amd-ucode
+Target = intel-ucode
+Target = btrfs-progs
+Target = e2fsprogs
+Target = xfsprogs
+Target = cryptsetup
+Target = linux
+Target = linux-lts
+Target = linux-zen
+Target = linux-hardened
+Target = linux-cachyos*
+Target = linux-firmware*
+Target = nvidia
+Target = nvidia-lts
+Target = nvidia-dkms
+Target = nvidia-open
+Target = nvidia-open-dkms
+Target = nvidia-*xx
+Target = nvidia-*xx-dkms
+Target = nvidia-utils
+Target = lib32-nvidia-utils
+Target = mesa
+Target = systemd*
+Target = wayland
+Target = egl-wayland
+Target = xf86-video-*
+Target = xorg-server*
+Target = mkinitcpio*
+Target = booster*
+Target = dracut*
+
+[Action]
+Description = Checking whether a reboot is needed...
+When = PostTransaction
+Exec = /usr/share/libalpm/scripts/oblio-reboot-required
+NeedsTargets

@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Based on cachyos-reboot-required from cachyos-hooks.
+
+running="$(grep -oP '\(\K[^@()]+(?=@)' /proc/version)"
+
+notify() {
+    echo "==> Reboot recommended: core system packages were upgraded." >&2
+
+    local user timeout
+    for user in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $2}' | sort -u); do
+        timeout=25
+        busctl --machine="${user}@.host" --user status org.freedesktop.Notifications &>/dev/null || timeout=2
+
+        busctl --machine="${user}@.host" --user --timeout="$timeout" call \
+            org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications \
+            Notify 'susssasa{sv}i' \
+            "Oblio" 0 system-reboot "Reboot recommended" "Core system packages were upgraded." \
+            0 1 urgency y 2 10000 &>/dev/null
+    done
+    exit 0
+}
+
+mounted() {
+    [[ -n "$(findmnt -rn -t "$1" -o TARGET)" ]]
+}
+
+while read -r pkg; do
+    case "$pkg" in
+        linux-firmware*|*-ucode)        notify ;;
+        "$running"|"$running"-nvidia*)  notify ;;
+        linux|linux-*)                  [[ -z $running ]] && notify ;;
+        nvidia)      [[ $running == linux ]]     && notify ;;
+        nvidia-lts)  [[ $running == linux-lts ]] && notify ;;
+        btrfs-progs) mounted btrfs               && notify ;;
+        xfsprogs)    mounted xfs                 && notify ;;
+        e2fsprogs)   mounted ext2,ext3,ext4      && notify ;;
+        *)                              notify ;;
+    esac
+done
+
+exit 0

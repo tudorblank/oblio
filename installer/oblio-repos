@@ -11,7 +11,7 @@ set -euo pipefail
 cpuinfo="${OBLIO_CPUINFO:-/proc/cpuinfo}"
 ld_so="${OBLIO_LD_SO:-/lib/ld-linux-x86-64.so.2}"
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-template="${OBLIO_PACMAN_TEMPLATE:-$here/../system/pacman.conf}"
+template="${OBLIO_PACMAN_TEMPLATE:-$here/../config/pacman.conf}"
 
 isa_supported() {
     "$ld_so" --help | grep -q "$1 (supported, searched)"

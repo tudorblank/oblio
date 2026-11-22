@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Builds Oblio's own packages and arch-update (AUR) into a local pacman repo: out/repo
+# Runs as your normal user; makepkg asks for sudo to install build dependencies.
+
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+out="$root/out"
+repo="$out/repo"
+build="$out/build"
+
+[[ $EUID != 0 ]] || { echo "error: run as your normal user, not root" >&2; exit 1; }
+
+rm -rf "$repo" "$build"
+mkdir -p "$repo" "$build"
+
+# Portable compiler flags: the ISO must run on any x86-64 CPU, so -march=native
+# from the host's makepkg.conf (and its makepkg.conf.d) must not leak in.
+conf="$build/makepkg.conf"
+sed -e 's/-march=native/-march=x86-64 -mtune=generic/' -e 's/-O3/-O2/' /etc/makepkg.conf > "$conf"
+echo 'RUSTFLAGS="-C opt-level=2"' >> "$conf"
+
+export PKGDEST="$repo" BUILDDIR="$build" SRCDEST="$build/sources"
+mkdir -p "$SRCDEST"
+
+for p in "$root"/packages/*/; do
+    echo "==> $(basename "$p")"
+    (cd "$p" && makepkg --config "$conf" -f --nodeps --noconfirm)
+done
+
+echo "==> arch-update (AUR)"
+git clone --depth 1 https://aur.archlinux.org/arch-update.git "$build/arch-update"
+# -s installs build dependencies, -r removes them again; the test suite is skipped
+(cd "$build/arch-update" && CARGO_HOME="$build/cargo" makepkg --config "$conf" -f -s -r --nocheck --noconfirm)
+
+repo-add -q "$repo/oblio.db.tar.gz" "$repo"/*.pkg.tar.zst
+rm -rf "$build"
+echo "==> packages in $repo:"
+ls "$repo"/*.pkg.tar.zst | xargs -n1 basename

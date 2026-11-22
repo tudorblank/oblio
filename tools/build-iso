@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Builds the Oblio ISO into out/: Arch's official live ISO (archiso releng profile)
+# plus the Oblio installer, its config and Oblio's prebuilt packages.
+#   tools/build-iso                     build packages, then the ISO
+#   tools/build-iso --reuse-packages    keep the packages already in out/repo
+#   tools/build-iso --profile-only      only assemble out/iso-profile, don't build
+
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+out="$root/out"
+profile="$out/iso-profile"
+work="$out/iso-work"
+releng="${OBLIO_RELENG:-/usr/share/archiso/configs/releng}"
+
+die() { echo "error: $*" >&2; exit 1; }
+
+reuse=no profile_only=no
+for arg in "$@"; do
+    case "$arg" in
+        --reuse-packages) reuse=yes ;;
+        --profile-only)   profile_only=yes ;;
+        *) die "unknown option: $arg" ;;
+    esac
+done
+
+[[ $EUID != 0 ]] || die "run as your normal user; sudo is only used for mkarchiso"
+[[ -d $releng ]] || die "install archiso first: sudo pacman -S archiso"
+
+if [[ $reuse == no || ! -f $out/repo/oblio.db ]]; then
+    "$root/tools/build-packages"
+fi
+
+echo "==> Assembling the ISO profile"
+rm -rf "$profile"
+cp -r "$releng" "$profile"
+cat "$root/iso/packages.x86_64" >> "$profile/packages.x86_64"
+cp -r "$root/iso/airootfs/." "$profile/airootfs/"
+
+dest="$profile/airootfs/usr/share/oblio"
+mkdir -p "$dest"
+cp -r "$root/installer" "$root/config" "$root/packages" "$root/branding" "$dest/"
+cp -r "$out/repo" "$dest/repo"
+
+# later assignments win: profiledef.sh is sourced by mkarchiso
+cat >> "$profile/profiledef.sh" <<'EOF'
+
+iso_name="oblio"
+iso_label="OBLIO_$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m)"
+iso_publisher="Oblio <https://github.com/tudorblank/oblio>"
+iso_application="Oblio installer"
+file_permissions+=(
+  ["/usr/local/bin/oblio-install"]="0:0:755"
+  ["/usr/share/oblio/installer/oblio-install"]="0:0:755"
+  ["/usr/share/oblio/installer/oblio-repos"]="0:0:755"
+)
+EOF
+
+# boot menu entries
+grep -rl "Arch Linux install medium" "$profile"/{efiboot,syslinux,grub} |
+    xargs -r sed -i 's/Arch Linux install medium/Oblio installer/g'
+
+if [[ $profile_only == yes ]]; then
+    echo "==> Profile ready: $profile"
+    exit 0
+fi
+
+echo "==> Building the ISO (sudo)"
+sudo rm -rf "$work"
+sudo mkarchiso -v -w "$work" -o "$out" "$profile"
+sudo rm -rf "$work"
+sudo chown "$(id -u):$(id -g)" "$out"/oblio-*.iso
+
+echo "==> Done:"
+ls -1t "$out"/oblio-*.iso | head -1

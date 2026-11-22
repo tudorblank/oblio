@@ -2,35 +2,24 @@
 
 ## Next
 
-- [x] System config
-  - [x] mkinitcpio hooks: no plymouth, `sd-btrfs-overlayfs` for booting snapshots (`oblio-settings`)
-  - [x] Limine: kernel cmdline (`oblio-settings`), menu timeout and branding (`system/limine.conf`)
-  - [x] btrfs subvolume layout, including `@docker` (`system/btrfs.conf`)
-  - [x] snapper template: manual snapshots only, no timeline, no quotas (`oblio-settings`)
-  - [x] `oblio-snapshot` command (`oblio-settings`)
-  - [x] networkd wired + wireless `.network` files (`oblio-settings`)
-  - [x] locale, timezone, keymap, hostname (`hosts/desktop.conf`)
-- [ ] Installer: `install.sh` is written, needs a full run in a VM (`scripts/oblio-vm`)
-  - [x] Partition, create subvolumes and mount from `system/btrfs.conf`, `genfstab`
-  - [x] Install Cachy's `pacman` before switching to `Architecture = auto` (Arch's pacman only knows `x86_64`)
-  - [x] Write `/etc/pacman.conf` with `scripts/oblio-repos conf`, add `scripts/oblio-repos packages`
-  - [x] Build and install `packages/oblio-hooks` and `packages/oblio-settings`
-  - [x] Apply `hosts/<name>.conf`: hostname, timezone, locales (`LC_FORMATS` → all `LC_*` except messages), `/etc/vconsole.conf`
-  - [x] `/etc/default/limine`: `KERNEL_CMDLINE[default]+=root=UUID=… rw rootflags=subvol=/@` (the drop-in uses `+=`, which ignores `/etc/kernel/cmdline`)
-  - [x] Write `system/limine.conf` to the ESP before the first `limine-update`
-  - [ ] Verify in the VM: the entry tool keeps the timeout/branding header
-  - [ ] `limine-scan` once to add Windows Boot Manager (manual, after first boot on real hardware)
-  - [x] `snapper -c root create-config -t oblio /`
-  - [x] `/etc/nsswitch.conf` hosts: `mymachines mdns_minimal [NOTFOUND=return] resolve [!UNAVAIL=return] files myhostname dns`
-  - [x] Replace `/etc/resolv.conf` with a symlink to `/run/systemd/resolve/stub-resolv.conf` (from outside the chroot)
-  - [x] `arch-update` from the AUR (built with makepkg, build-only deps removed after)
-  - [x] Enable/disable units from `services.txt` (USER section with `systemctl --global enable`)
-  - [x] Run `chwd -a`
-- [x] Drivers and graphics
-  - [x] GPU, Wi-Fi, laptop power, handhelds: `chwd -a` at install (scans every PCI and USB device)
-  - [x] Audio (PipeWire) and Bluetooth
-  - [x] Printing (CUPS, driverless network + USB printers), firmware updates (fwupd), controllers, tablets
+- [ ] Build the Oblio ISO and run a full install in the VM (`tools/build-iso`, `tools/oblio-vm install`)
+  - [ ] Erase mode, no encryption
+  - [ ] Encryption: passphrase prompt at boot, snapshot entries still boot
+  - [ ] Manual mode with a shared EFI partition
+  - [ ] Kernel choice: main kernel boots first, LTS second
 - [ ] Minimal Hyprland
+
+## Done
+
+- [x] System config: `oblio-settings`, `config/`
+- [x] Drivers: `chwd -a` at install, audio, Bluetooth, printing, firmware updates, controllers, tablets
+- [x] Installer: step by step, terminal only (`installer/oblio-install`)
+- [x] Oblio ISO: Arch's live ISO + installer + prebuilt Oblio packages (`tools/build-iso`)
+
+## Later
+
+- [ ] Host Oblio's packages in an online repo, so installed systems get `oblio-*` updates through pacman
+- [ ] `limine-scan` after first boot on machines that dual-boot Windows from another disk
 
 ## Optional improvements
 

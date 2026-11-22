@@ -1,4 +1,8 @@
+# makepkg build output
 src/
 pkg/
 *.pkg.tar.*
 *.log
+
+# ISO and package builds
+out/

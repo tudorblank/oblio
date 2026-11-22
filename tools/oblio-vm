@@ -2,12 +2,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # usage: oblio-vm iso       download and verify the latest Arch ISO
-#        oblio-vm install   boot the Arch ISO, with the VM disk attached
+#        oblio-vm install   boot the newest Oblio ISO from out/ (or the Arch ISO), with the VM disk attached
 #        oblio-vm run       boot the installed system
 #        oblio-vm reset     delete the VM disk and UEFI variables
 
 set -euo pipefail
 
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 dir="${OBLIO_VM_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/oblio-vm}"
 disk="$dir/oblio.qcow2"
 vars="$dir/OVMF_VARS.4m.fd"
@@ -65,8 +66,14 @@ boot() {
         -device virtio-vga -display gtk
     )
     if [[ $1 == install ]]; then
-        [[ -f $iso ]] || die "no ISO yet, run: ${0##*/} iso"
-        cmd+=(-drive "if=none,id=cd,file=$iso,media=cdrom,readonly=on" -device ide-cd,drive=cd,bootindex=0)
+        local boot_iso
+        boot_iso="$(ls -1t "$root"/out/oblio-*.iso 2>/dev/null | head -1)"
+        if [[ -z $boot_iso ]]; then
+            [[ -f $iso ]] || die "no ISO yet: build one with tools/build-iso, or download Arch's with: ${0##*/} iso"
+            boot_iso="$iso"
+        fi
+        echo "booting $boot_iso"
+        cmd+=(-drive "if=none,id=cd,file=$boot_iso,media=cdrom,readonly=on" -device ide-cd,drive=cd,bootindex=0)
     fi
     exec "${cmd[@]}"
 }

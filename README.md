@@ -15,6 +15,7 @@ config/       what an Oblio system is made of
 packages/     Oblio's own packages (oblio-hooks, oblio-settings)
 installer/    oblio-install (the step-by-step installer), engine.sh (install steps), oblio-repos (CPU detection)
 iso/          what the Oblio ISO adds on top of Arch's live ISO
+desktop/      desktop setups for an installed Oblio (hyprland/setup)
 tools/        build-packages, build-iso, oblio-vm
 ```
 
@@ -47,3 +48,15 @@ The installer also runs from a plain Arch ISO, building Oblio's packages on the 
 curl -L https://github.com/tudorblank/oblio/archive/refs/heads/main.tar.gz | tar xz
 oblio-main/installer/oblio-install
 ```
+
+## Desktop
+
+On an installed Oblio, as your user:
+
+```
+curl -L https://github.com/tudorblank/oblio/archive/refs/heads/main.tar.gz | tar xz
+oblio-main/desktop/hyprland/setup
+start-hyprland
+```
+
+Minimal Hyprland with Alacritty (SUPER+Q), Dolphin (SUPER+E) and Hyprland's launcher (SUPER+R).

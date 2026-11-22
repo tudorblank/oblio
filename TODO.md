@@ -7,7 +7,9 @@
   - [ ] Encryption: passphrase prompt at boot, snapshot entries still boot
   - [ ] Manual mode with a shared EFI partition
   - [ ] Kernel choice: main kernel boots first, LTS second
-- [ ] Minimal Hyprland
+- [ ] Minimal Hyprland: `desktop/hyprland/setup` is written, test it in the VM
+- [ ] Start Hyprland automatically after login on tty1
+- [ ] Make Hyprland an installer component once it settles
 
 ## Done
 

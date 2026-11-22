@@ -3,7 +3,7 @@
 #
 # usage: oblio-vm iso       download and verify the latest Arch ISO
 #        oblio-vm install   boot the newest Oblio ISO from out/ (or the Arch ISO), with the VM disk attached
-#        oblio-vm run       boot the installed system
+#        oblio-vm run       boot the installed system (3D accelerated; OBLIO_VM_GL=0 to turn that off)
 #        oblio-vm reset     delete the VM disk and UEFI variables
 
 set -euo pipefail
@@ -63,8 +63,13 @@ boot() {
         -nic user,model=virtio-net-pci
         -device virtio-rng-pci
         -device qemu-xhci -device usb-tablet
-        -device virtio-vga -display gtk
     )
+    # the installed system gets a 3D-accelerated GPU (virgl), which Hyprland needs
+    if [[ $1 == run && ${OBLIO_VM_GL:-1} != 0 ]]; then
+        cmd+=(-device virtio-vga-gl -display gtk,gl=on)
+    else
+        cmd+=(-device virtio-vga -display gtk)
+    fi
     if [[ $1 == install ]]; then
         local boot_iso
         boot_iso="$(ls -1t "$root"/out/oblio-*.iso 2>/dev/null | head -1)"

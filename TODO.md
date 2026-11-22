@@ -20,11 +20,15 @@
   - [ ] Write `system/limine.conf` to the ESP before the first `limine-update`, check the entry tool keeps it
   - [ ] `limine-scan` once to add Windows Boot Manager
   - [ ] `snapper -c root create-config -t oblio /`
+  - [ ] `/etc/nsswitch.conf` hosts: `mymachines mdns_minimal [NOTFOUND=return] resolve [!UNAVAIL=return] files myhostname dns`
   - [ ] Replace `/etc/resolv.conf` with a symlink to `/run/systemd/resolve/stub-resolv.conf` (from outside the chroot)
   - [ ] `arch-update` from the AUR with paru
   - [ ] Enable/disable units from `services.txt` (USER section with `systemctl --global enable`)
   - [ ] Run `chwd -a`
-- [ ] Drivers and graphics
+- [x] Drivers and graphics
+  - [x] GPU, Wi-Fi, laptop power, handhelds: `chwd -a` at install (scans every PCI and USB device)
+  - [x] Audio (PipeWire) and Bluetooth
+  - [x] Printing (CUPS, driverless network + USB printers), firmware updates (fwupd), controllers, tablets
 - [ ] Minimal Hyprland
 
 ## Optional improvements
@@ -34,7 +38,11 @@
 - [ ] Try `linux-cachyos-bore` next to the default kernel, compare in Limine
 - [ ] BBRv3 TCP congestion control (built into the kernel, off by default)
 - [ ] `ufw` firewall
-- [ ] `sof-firmware` (audio firmware for many laptops)
+- [ ] A/B test `ananicy-cpp` on vs off for games (reports from June 2026 suggest it can cause stutter)
+- [ ] Printer driver packs for old printers: `gutenprint`, `hplip`; scanning: `sane-airscan`
+- [ ] Xbox wireless: `xpadneo-dkms` (Bluetooth), `xone-dkms` (USB dongle). DKMS = kernel headers + rebuild on every kernel update
+- [ ] `opentabletdriver` for tablets the kernel doesn't support (needs .NET)
+- [ ] `fwupd-refresh.timer` for automatic firmware metadata refresh
 
 ## Current machine (CachyOS install)
 

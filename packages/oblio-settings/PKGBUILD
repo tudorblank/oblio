@@ -14,13 +14,15 @@ source=('mkinitcpio.conf'
         'oblio-wired.network'
         'oblio-wireless.network'
         'snapper-template'
-        'oblio-snapshot')
+        'oblio-snapshot'
+        'resolved.conf')
 sha256sums=('7a4df2ccfa249f33c6269d84583639e80ea6fd6a3ead9f09c75fe6c87312367c'
             'e87b465d89ca50a80db93e380b836d77924d1c7ef3d8e92ddece04449064f352'
             'c7a5426644aeb65dcd705744f4bd8d1b0645e60e541541da5869dd7cc5948f79'
             '82bfa968259404561a3f2fc9160e2470b428839010ec223827b2aa3992df3db9'
             '923eef3dd6fcd5db00d457c9480c7037d6ec2de3995115cac3ce80b83d039b62'
-            'fcf5a7f33cb317af7b195299b7959eb248a88a36ed39e026aae9b29f4d7a584f')
+            'fcf5a7f33cb317af7b195299b7959eb248a88a36ed39e026aae9b29f4d7a584f'
+            'dc5a6fd4d4ec5da98fccfd30d2965c1c5dbb6734b43dc2ea38f6c3aa43758a97')
 
 package() {
     install -Dm644 mkinitcpio.conf "$pkgdir/etc/mkinitcpio.conf.d/05-oblio.conf"
@@ -29,4 +31,5 @@ package() {
     install -Dm644 oblio-wireless.network "$pkgdir/usr/lib/systemd/network/89-oblio-wireless.network"
     install -Dm644 snapper-template "$pkgdir/usr/share/snapper/config-templates/oblio"
     install -Dm755 oblio-snapshot "$pkgdir/usr/bin/oblio-snapshot"
+    install -Dm644 resolved.conf "$pkgdir/usr/lib/systemd/resolved.conf.d/oblio.conf"
 }

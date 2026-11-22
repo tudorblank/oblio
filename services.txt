@@ -9,6 +9,9 @@
 
     ananicy-cpp.service
     power-profiles-daemon.service
+    bluetooth.service
+    cups.socket
+    avahi-daemon.socket
 
     fstrim.timer
     paccache.timer

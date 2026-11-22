@@ -27,6 +27,36 @@
 
     iwd
 
+# AUDIO:
+
+    pipewire
+    pipewire-audio
+    pipewire-alsa
+    pipewire-pulse
+    pipewire-jack
+    wireplumber
+    rtkit
+    sof-firmware
+    alsa-firmware
+
+# BLUETOOTH:
+
+    bluez
+    bluez-utils
+
+# PRINTING:
+
+    cups
+    ipp-usb
+    avahi
+    nss-mdns
+
+# PERIPHERALS:
+
+    fwupd
+    steam-devices
+    libwacom
+
 # BOOT:
 
     limine

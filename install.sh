@@ -267,6 +267,24 @@ install_aur() {
     rm -rf "$mnt$dir"
 }
 
+cleanup() {
+    msg "Cleaning up"
+    local -a orphans
+    mapfile -t orphans < <(chroot_do pacman -Qdtq)
+    (( ${#orphans[@]} )) && chroot_do pacman -Rns --noconfirm "${orphans[@]}"
+
+    # everything downloaded during install; a fresh system has nothing to roll back to
+    chroot_do paccache -rk0
+    chroot_do paccache -ruk0
+
+    # build leftovers in the user's copy of the repo
+    rm -rf "$mnt/home/$user/oblio/packages"/*/{src,pkg}
+    rm -f "$mnt/home/$user/oblio/packages"/*/*.pkg.tar.zst
+
+    # paru: delete untracked build files after each AUR install
+    sed -i 's/^#CleanAfter$/CleanAfter/' "$mnt/etc/paru.conf"
+}
+
 finish() {
     msg "Configuring snapshots"
     chroot_do snapper --no-dbus -c root create-config -t oblio /
@@ -282,6 +300,8 @@ finish() {
     (( ${#units[@]} )) && systemctl --root="$mnt" --global enable "${units[@]}"
     mapfile -t units < <(section "$repo/services.txt" DISABLE)
     (( ${#units[@]} )) && systemctl --root="$mnt" disable "${units[@]}"
+
+    cleanup
 
     msg "Installing Limine"
     chroot_do limine-install

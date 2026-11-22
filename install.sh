@@ -11,6 +11,8 @@ repo="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 mnt=/mnt
 cachyos_key=F3B607488DB35A47
 log=/tmp/oblio-install.log
+live_conf=/tmp/oblio-pacman.conf
+live_mirrors=/tmp/oblio-pacman.d
 
 disk=""
 user=""
@@ -83,15 +85,36 @@ prepare_live() {
         pacman-key --recv-keys "$cachyos_key" --keyserver hkps://keys.openpgp.org
     pacman-key --lsign-key "$cachyos_key"
 
-    # Cachy's pacman understands Architecture = auto and the $arch_v3/$arch_v4 mirrorlists
+    # Only the keyring and mirrorlists, which are plain data files. Cachy's pacman
+    # needs newer libraries than the ISO has, so it goes into Oblio, never here.
     printf '\n[cachyos]\nServer = https://mirror.cachyos.org/repo/$arch/$repo\n' >> /etc/pacman.conf
     pacman -Sy --noconfirm cachyos/cachyos-keyring cachyos/cachyos-mirrorlist \
-        cachyos/cachyos-v3-mirrorlist cachyos/cachyos-v4-mirrorlist cachyos/pacman
+        cachyos/cachyos-v3-mirrorlist cachyos/cachyos-v4-mirrorlist
 
     level="$("$repo/scripts/oblio-repos" level)"
     msg "CPU level: $level"
-    "$repo/scripts/oblio-repos" conf "$level" > /etc/pacman.conf
-    pacman -Sy
+    write_live_conf
+}
+
+# pacman.conf for pacstrap, readable by the ISO's own (Arch) pacman: it knows
+# neither Architecture = auto for v3/v4 nor the $arch_v3/$arch_v4 mirror variables
+write_live_conf() {
+    local archs f
+    case "$level" in
+        generic)   archs="x86_64" ;;
+        v3)        archs="x86_64 x86_64_v2 x86_64_v3" ;;
+        v4|znver4) archs="x86_64 x86_64_v2 x86_64_v3 x86_64_v4" ;;
+    esac
+
+    mkdir -p "$live_mirrors"
+    for f in /etc/pacman.d/cachyos*-mirrorlist; do
+        sed -e 's/\$arch_v3/x86_64_v3/g' -e 's/\$arch_v4/x86_64_v4/g' "$f" > "$live_mirrors/${f##*/}"
+    done
+
+    "$repo/scripts/oblio-repos" conf "$level" |
+        sed -e "s|^Architecture = auto$|Architecture = $archs|" \
+            -e "s|/etc/pacman.d/cachyos|$live_mirrors/cachyos|" > "$live_conf"
+    pacman-conf --config "$live_conf" --repo-list >/dev/null
 }
 
 partition() {
@@ -131,7 +154,7 @@ mount_subvolumes() {
 install_base() {
     msg "Installing the base system"
     # shellcheck disable=SC2046
-    pacstrap "$mnt" base base-devel git fish \
+    pacstrap -C "$live_conf" "$mnt" base base-devel git fish \
         cachyos-keyring cachyos-mirrorlist $("$repo/scripts/oblio-repos" packages "$level")
 
     "$repo/scripts/oblio-repos" conf "$level" > "$mnt/etc/pacman.conf"

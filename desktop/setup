@@ -64,8 +64,10 @@ packages=(
     inter-font                   # the login screen's font, and the fallback UI font
     ttf-nerd-fonts-symbols       # icons in the shell
 )
-# browser: Zen comes from the CachyOS repos
-if pacman -Si zen-browser-bin &>/dev/null; then packages+=(zen-browser-bin); fi
+# browser: Zen comes from the CachyOS repos; Oblio's GTK module from [oblio] (not on other systems)
+for p in zen-browser-bin oblio-gtk-module; do
+    if pacman -Si "$p" &>/dev/null; then packages+=("$p"); fi
+done
 
 mapfile -t missing < <(pacman -T "${packages[@]}" || true)
 if (( ${#missing[@]} )); then

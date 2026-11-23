@@ -129,8 +129,8 @@ Dock: click opens an app; on a running app it focuses its window if it isn't foc
 if it is, and brings minimized windows back (to their workspace, place and size, focused); middle
 click opens a new window; right click opens a menu: the app's windows, New window, Pin to dock /
 Unpin from dock, Quit. Drag an icon to move it; dropping it left of the divider pins it there,
-right of it unpins it (the first app is pinned from the right-click menu). A small number on an icon
-shows how many windows the app has open. The dock never moves the pointer. It can always show,
+right of it unpins it (the first app is pinned from the right-click menu). The dots under an icon
+show how many windows the app has open (up to four), in the accent color while it has focus. The dock never moves the pointer. It can always show,
 auto-hide (the bottom edge brings it back) or hide smartly (only while a window reaches into it),
 and it disappears when it has nothing to show (SUPER+I, Dock).
 
@@ -155,7 +155,8 @@ The look:
 - Icons: WhiteSur (GPL-3.0), also downloaded at a pinned version and checked; setup copies its files
   itself instead of running its installer, and falls back to Papirus.
 - Thunar is styled close to GNOME Files: header bar, no menu bar (Ctrl+M shows it), the sidebar as a
-  rounded card, soft accent selections. Apps can have a look of their own: a stylesheet per app in
+  rounded card with its entries close under the headings, soft accent selections. What a stylesheet
+  can't reach is done by `oblio-gtk-module`, a small GTK 3 module from `[oblio]`. Apps can have a look of their own: a stylesheet per app in
   `desktop/oblio-shell/theme/gtk-3.0/` (Thunar's is there) goes on top of the theme.
 - Your own terminal settings go in `~/.config/alacritty/local.toml`; Oblio's never touch it.
 
@@ -197,6 +198,7 @@ base/         what an installed Oblio is made of
                 in the installer), pacman.conf (Cachy repos filled in per CPU), btrfs.conf, limine.conf
   packages/     Oblio's own packages: oblio-keyring, oblio-hooks, oblio-settings
 desktop/      the Oblio desktop
+  packages/     the desktop's own packages: oblio-gtk-module
   setup         installs it (packages, files, login screen)
   config/       Hyprland's config, lands in ~/.config/hypr
   oblio-shell/  Oblio's shell (dock, settings panel), lands in ~/.config/oblio-shell
@@ -208,7 +210,7 @@ iso/          the Oblio ISO: build-iso, and what it adds on top of Arch's live I
 .github/      workflows/packages.yml: builds, signs and publishes Oblio's packages
 ```
 
-Oblio's packages: every push that changes `base/packages/` makes GitHub Actions build them
+Oblio's packages: every push that changes `base/packages/` or `desktop/packages/` makes GitHub Actions build them
 (`tools/build-packages`), sign them with Oblio's key and publish them as the `repo` release, which is
 the `[oblio]` pacman repository. Versions come from git (`tools/package-version`: the date of the
 package's last change and how many changes it has had), so nobody edits `pkgver`; after changing a

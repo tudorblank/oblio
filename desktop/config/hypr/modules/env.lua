@@ -31,6 +31,11 @@ oblio.nvidia_only = oblio.nvidia and output("cat /sys/class/drm/card*/device/ven
 -- (Settings > Appearance), and follow it live
 hl.env("QT_QPA_PLATFORMTHEME", "gtk3")
 
+-- oblio-gtk-module: fixes for GTK 3 apps that a stylesheet can't reach (Thunar's sidebar)
+if exists("/usr/lib/gtk-3.0/modules/liboblio-gtk.so") then
+    hl.env("GTK3_MODULES", "oblio-gtk")
+end
+
 hl.env("XCURSOR_THEME", "capitaine-cursors")
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")

@@ -41,55 +41,38 @@ Item {
         scale: item.dock.dragging ? 1 : mouse.pressed ? 0.92 : mouse.containsMouse && Settings.opts.dockMagnify ? 1.15 : 1
 
         Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
-
-        // how many windows it has, from two up: a small accent pill on the corner, ringed in the
-        // dock's own color so it reads as cut out of the icon
-        Rectangle {
-            readonly property int n: item.app.windows.length
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: -Math.round(height * 0.3)
-            anchors.topMargin: -Math.round(height * 0.3)
-            height: Math.max(14, Math.round(item.dock.iconSize * 0.4))
-            width: Math.max(height, count.implicitWidth + Math.round(height * 0.6))
-            radius: height / 2
-            color: Theme.accent
-            border.width: Math.max(1.5, height * 0.12)
-            border.color: Theme.glass
-            antialiasing: true
-            opacity: n > 1 ? 1 : 0
-            scale: n > 1 ? 1 : 0.5
-            visible: opacity > 0
-
-            Behavior on opacity { NumberAnimation { duration: 160 } }
-            Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutBack } }
-
-            Text {
-                id: count
-                anchors.centerIn: parent
-                anchors.verticalCenterOffset: 0.5
-                text: parent.n > 9 ? "9+" : parent.n
-                color: Theme.onAccent
-                font.family: Theme.fontUi
-                font.pixelSize: Math.round(parent.height * 0.6)
-                font.weight: Font.DemiBold
-                font.features: { "tnum": 1 }
-            }
-        }
     }
 
-    Rectangle {
+    // one dot per window (up to 4) under the icon: accent when the app has focus, soft white
+    // in the background, faint when all its windows are minimized
+    Row {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.bottom
-        anchors.topMargin: 2
-        height: 3
-        radius: 1.5
-        width: item.active ? 12 : 3
-        color: Theme.text
-        opacity: !item.running ? 0 : item.allMinimized ? 0.35 : item.active ? 0.95 : 0.7
+        anchors.topMargin: 3
+        spacing: 3
+        opacity: item.allMinimized ? 0.35 : 1
 
-        Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
         Behavior on opacity { NumberAnimation { duration: 200 } }
+
+        Repeater {
+            model: 4
+
+            Rectangle {
+                required property int index
+                readonly property bool shown: index < item.app.windows.length
+                width: shown ? 4 : 0
+                height: 4
+                radius: 2
+                color: item.active ? Theme.accent : Theme.tint(Theme.text, 0.75)
+                opacity: shown ? 1 : 0
+                scale: shown ? 1 : 0.3
+
+                Behavior on width { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: 180 } }
+                Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutBack } }
+                Behavior on color { ColorAnimation { duration: 200 } }
+            }
+        }
     }
 
     // app name above the icon

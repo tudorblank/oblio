@@ -40,12 +40,13 @@
       version tracking
 - [x] Hyprland: window management (minimize, show desktop, tiling/floating per workspace)
 - [x] NVIDIA on hybrid laptops: NVIDIA's GLX/VA-API variables only when NVIDIA is the only GPU
-- [x] Dock: pinning, right-click menu, drag to rearrange and pin, window counts
+- [x] Dock: pinning, right-click menu, drag to rearrange and pin, one dot per window
 - [x] Settings panel (SUPER+I): display, dock, windows, appearance, input
 - [x] Display settings: resolution, refresh rate, scale, rotation, arrangement, mirroring, keep-or-go-back
 - [x] Theme: light/dark, accent, fonts (SF Pro, JetBrains Mono) for the shell, GTK 3/4, Qt, browsers,
       icons (WhiteSur), terminal, Hyprland
-- [x] Thunar instead of Dolphin, styled like GNOME Files; USB drives mount when plugged in
+- [x] Thunar instead of Dolphin, styled like GNOME Files (oblio-gtk-module for its sidebar indent); USB
+      drives mount when plugged in
 - [x] Login screen: greetd + Quickshell greeter, session picker, remembers user and session
 - [x] Home folders on a fresh install (xdg-user-dirs)
 

@@ -1,5 +1,5 @@
 name: Packages
-# Builds Oblio's own packages (base/packages) after every change to them and publishes them,
+# Builds Oblio's own packages (base/packages, desktop/packages) after every change to them and publishes them,
 # signed, as the pacman repository [oblio]: the "repo" release. Installed systems get them with
 # pacman -Syu (oblio-update).
 
@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - 'base/packages/**'
+      - 'desktop/packages/**'
       - 'tools/build-packages'
       - 'tools/package-version'
       - '.github/workflows/packages.yml'

@@ -1,0 +1,19 @@
+# Maintainer: tudorblank
+
+pkgname=oblio-gtk-module
+pkgver=2026.11.24
+pkgrel=1
+pkgdesc="GTK 3 module for Oblio's desktop: fixes stylesheets can't reach (Thunar's sidebar indent)"
+arch=('x86_64')
+license=('GPL-3.0-or-later')
+depends=('gtk3')
+source=('oblio-gtk.c')
+sha256sums=('51122451881dc9cd32cf1a238b4d3d847eea35c79768fc604500ba9408e1dd1d')
+
+build() {
+    gcc $CFLAGS $LDFLAGS -shared -fPIC -o liboblio-gtk.so oblio-gtk.c $(pkg-config --cflags --libs gtk+-3.0)
+}
+
+package() {
+    install -Dm755 liboblio-gtk.so "$pkgdir/usr/lib/gtk-3.0/modules/liboblio-gtk.so"
+}

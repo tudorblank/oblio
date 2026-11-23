@@ -7,6 +7,7 @@ pkgdesc="GTK 3 module for Oblio's desktop: fixes stylesheets can't reach (Thunar
 arch=('x86_64')
 license=('GPL-3.0-or-later')
 depends=('gtk3')
+options=('!debug')
 source=('oblio-gtk.c')
 sha256sums=('51122451881dc9cd32cf1a238b4d3d847eea35c79768fc604500ba9408e1dd1d')
 

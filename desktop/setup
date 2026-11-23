@@ -2,11 +2,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Oblio's desktop on any Arch-based system: Hyprland, Oblio's window management,
-# keybinds and dock, Alacritty, Dolphin, Zen. Run as your normal user; pacman
-# runs through sudo.
+# keybinds, dock and login screen, Alacritty, Dolphin, Zen. Run as your normal
+# user; pacman and the system files go through sudo.
 #   desktop/setup            install packages, copy desktop/config/ into ~/.config
 #   desktop/setup --link     symlink instead of copying: edits in the repo apply live
 #   desktop/setup --fresh    also rewrite hyprland.lua (the old one is backed up)
+#   desktop/setup --greeter  make Oblio's login screen the login manager even when
+#                            another one (SDDM, GDM, ...) is already set up
 #
 # Every file in desktop/config/ lands at the same path under ~/.config.
 # hyprland.lua is yours: only the first run writes it, reruns leave it alone.
@@ -22,16 +24,48 @@ red=$'\e[1;31m' bold=$'\e[1m' off=$'\e[0m'
 msg() { printf '%s==>%s %s%s%s\n' "$red" "$off" "$bold" "$*" "$off"; }
 die() { printf '%serror:%s %s\n' "$red" "$off" "$*" >&2; exit 1; }
 
-link=0 fresh=0
+link=0 fresh=0 greeter=0
 for arg; do
     case $arg in
-        --link)  link=1 ;;
-        --fresh) fresh=1 ;;
+        --link)    link=1 ;;
+        --fresh)   fresh=1 ;;
+        --greeter) greeter=1 ;;
         *) die "unknown option: $arg" ;;
     esac
 done
 
 [[ $EUID != 0 ]] || die "run as your normal user, not root"
+
+# console keymap -> keyboard layout, when it is also a valid XKB layout
+layout=us
+keymap="$(sed -n 's/^KEYMAP=//p' /etc/vconsole.conf 2>/dev/null)"
+if [[ -n $keymap ]] && localectl list-x11-keymap-layouts | grep -qx "$keymap"; then
+    layout="$keymap"
+fi
+
+# Hyprland settings for this machine's hardware, shared by your config and the login screen's
+machine_lua() {
+    if lspci -k 2>/dev/null | grep -q "Kernel driver in use: nvidia"; then
+        cat <<'EOF'
+
+-- Nvidia: video decoding and OpenGL go through Nvidia's driver
+hl.env("LIBVA_DRIVER_NAME", "nvidia")
+hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
+hl.env("NVD_BACKEND", "direct")
+EOF
+    fi
+    if systemd-detect-virt -q; then
+        cat <<'EOF'
+
+-- virtual machine: the virtual GPU has no hardware cursor
+hl.config({
+    cursor = {
+        no_hardware_cursors = true,
+    },
+})
+EOF
+    fi
+}
 
 packages=(
     quickshell                   # runs the Oblio shell (dock)
@@ -46,6 +80,8 @@ packages=(
     archlinux-xdg-menu           # Dolphin's "Open with" menus outside Plasma
     ttf-dejavu                   # a font, the base system has none
     ttf-nerd-fonts-symbols       # icons in the shell
+    inter-font                   # the login screen's font
+    greetd                       # runs the login screen, then your session
 )
 # browser: Zen comes from the CachyOS repos
 if pacman -Si zen-browser-bin &>/dev/null; then packages+=(zen-browser-bin); fi
@@ -90,13 +126,6 @@ if [[ ! -e $config ]] || ((fresh)); then
         echo "existing config backed up"
     fi
 
-    # console keymap -> keyboard layout, when it is also a valid XKB layout
-    layout=us
-    keymap="$(sed -n 's/^KEYMAP=//p' /etc/vconsole.conf 2>/dev/null)"
-    if [[ -n $keymap ]] && localectl list-x11-keymap-layouts | grep -qx "$keymap"; then
-        layout="$keymap"
-    fi
-
     # In a VM the host desktop keeps Super for itself (KDE, GNOME, Windows), so the
     # VM gets Alt as its main key. On real hardware it stays Super.
     mod=SUPER
@@ -136,28 +165,7 @@ require("oblio-keys")({\
 -- window management, dock, autostart (oblio-desktop.lua, oblio.lua)
 require("oblio-desktop")
 EOF
-
-        if lspci -k 2>/dev/null | grep -q "Kernel driver in use: nvidia"; then
-            cat <<'EOF'
-
--- Nvidia: video decoding and OpenGL go through Nvidia's driver
-hl.env("LIBVA_DRIVER_NAME", "nvidia")
-hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
-hl.env("NVD_BACKEND", "direct")
-EOF
-        fi
-
-        if systemd-detect-virt -q; then
-            cat <<'EOF'
-
--- virtual machine: the virtual GPU has no hardware cursor
-hl.config({
-    cursor = {
-        no_hardware_cursors = true,
-    },
-})
-EOF
-        fi
+        machine_lua
     } > "$config"
     rm -f "$tmp"
 fi
@@ -165,13 +173,59 @@ fi
 msg "Building Dolphin's application menu"
 XDG_MENU_PREFIX=arch- kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
 
-mod="$(sed -n 's/^local mainMod = "\(.*\)".*/\1/p' "$config")"
+msg "Installing the login screen"
+sudo install -Dm644 -t /usr/share/oblio/greeter "$here"/greeter/*.qml
+{
+    cat "$here/greeter/hyprland.lua"
+    cat <<EOF
+
+hl.config({
+    input = {
+        kb_layout = "$layout",
+    },
+})
+EOF
+    machine_lua
+} | sudo install -Dm644 /dev/stdin /etc/greetd/oblio-hyprland.lua
+sudo install -d -o greeter -g greeter -m755 /var/lib/oblio-greeter
+if ! grep -q oblio-hyprland /etc/greetd/config.toml 2>/dev/null; then
+    [[ -e /etc/greetd/config.toml ]] && sudo cp /etc/greetd/config.toml "/etc/greetd/config.toml.bak.$stamp"
+    sudo install -Dm644 /dev/stdin /etc/greetd/config.toml <<'EOF'
+[terminal]
+vt = 1
+
+[default_session]
+command = "start-hyprland -- --config /etc/greetd/oblio-hyprland.lua"
+user = "greeter"
+EOF
+fi
+
+# login managers own display-manager.service; don't take it from another one unless asked
+dm="$(readlink /etc/systemd/system/display-manager.service 2>/dev/null || true)"
+dm="${dm##*/}"
+if [[ -z $dm || $dm == greetd.service ]]; then
+    sudo systemctl enable greetd.service >/dev/null 2>&1
+    login=greetd
+elif ((greeter)); then
+    sudo systemctl disable "$dm" >/dev/null 2>&1
+    sudo systemctl enable greetd.service >/dev/null 2>&1
+    login=greetd
+else
+    login="$dm"
+fi
+
+mod="$(sed -n 's/^local mainMod = "\([^"]*\)".*/\1/p' "$config")"
 mod="${mod:-SUPER}"
 
 msg "Done"
 cat <<EOF
 
-Start Hyprland from the console with:  ${bold}start-hyprland${off}
+$(if [[ $login == greetd ]]; then
+    echo "Reboot to get Oblio's login screen. Pick the session at the bottom left."
+else
+    echo "Your login manager stays ${login%.service}; it lists Hyprland as a session."
+    echo "Run desktop/setup --greeter to switch to Oblio's login screen."
+fi)
 
   $mod + Enter     terminal (Alacritty)
   $mod + E         files (Dolphin)

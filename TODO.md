@@ -14,7 +14,9 @@
 - [ ] Shell: top bar (workspaces, clock, tray, volume, network), notifications, launcher, lock screen
 - [ ] Dock: tooltips with window titles, right-click menu, pinning from the dock
 - [ ] Animations and look, using `hypr-config-temp` as inspiration
-- [ ] Start Hyprland automatically after login on tty1
+- [x] Login screen: greetd + Quickshell greeter, session picker, remembers user and session
+- [ ] Lock screen in the same style as the login screen
+- [ ] Build the ISO yourself and write it to a USB stick (documented, tested)
 - [ ] Make Hyprland an installer component once it settles
 
 ## Done

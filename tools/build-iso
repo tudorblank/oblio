@@ -41,7 +41,7 @@ cp -r "$root/iso/airootfs/." "$profile/airootfs/"
 
 dest="$profile/airootfs/usr/share/oblio"
 mkdir -p "$dest"
-cp -r "$root/installer" "$root/config" "$root/packages" "$root/branding" "$dest/"
+cp -r "$root/installer" "$root/config" "$root/packages" "$root/assets" "$dest/"
 cp -r "$out/repo" "$dest/repo"
 
 # later assignments win: profiledef.sh is sourced by mkarchiso

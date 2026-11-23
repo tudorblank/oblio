@@ -6,7 +6,7 @@ Terminal installer, btrfs with bootable snapshots, Limine.
 ## Layout
 
 ```
-branding/     logo and icon
+assets/       logo and icon
 config/       what an Oblio system is made of
   components/   one file per component: packages + services (optional ones show up in the installer)
   pacman.conf   template, Cachy repos are filled in per CPU
@@ -56,8 +56,12 @@ On an installed Oblio, as your user:
 ```
 curl -L https://github.com/tudorblank/oblio/archive/refs/heads/main.tar.gz | tar xz
 oblio-main/desktop/setup
-start-hyprland
+reboot
 ```
+
+After the reboot you get Oblio's login screen (greetd + a Quickshell greeter): pick the user and
+the session (Hyprland, or anything else installed) and log in. If another login manager is already
+set up (SDDM, GDM...), setup leaves it alone unless you run `desktop/setup --greeter`.
 
 Hyprland with Oblio's window management and dock, Alacritty, Dolphin, Zen and Hyprland's
 launcher. In a VM the main key is Alt instead of Super.

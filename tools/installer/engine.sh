@@ -310,10 +310,28 @@ build_local_packages() {
 
 # Desktop, Documents, Downloads, Music, Pictures, Public, Videos: no Templates or Projects.
 # user-dirs.defaults is meant to be edited, so pacman keeps this across updates.
+# The account was made before the packages, so what they put in /etc/skel (micro's
+# settings) is copied in now, without overwriting anything.
 home_folders() {
-    msg "Creating home folders"
+    msg "Setting up the home folder"
     sed -i -E '/^(TEMPLATES|PROJECTS)=/d' "$mnt/etc/xdg/user-dirs.defaults"
     as_user "LANG=$LOCALE xdg-user-dirs-update"
+    cp -rn "$mnt/etc/skel/." "$mnt/home/$USERNAME/"
+    chroot_do chown -R "$USERNAME:$USERNAME" "/home/$USERNAME"
+}
+
+# the lists pkgfile and tldr work from; without network now they fill on the next update
+tool_data() {
+    msg "Downloading command lists (pkgfile, tldr)"
+    chroot_do pkgfile -u >/dev/null || warn "pkgfile's list will be filled by its daily timer"
+    as_user "tldr --update >/dev/null" || warn "run 'tldr --update' once to get its examples"
+}
+
+# ufw: incoming blocked (except DHCP and mDNS replies), outgoing allowed. It can't be
+# switched on in the chroot (no live netfilter), so it's marked enabled for the next boot.
+firewall() {
+    msg "Turning on the firewall"
+    sed -i 's/^ENABLED=no$/ENABLED=yes/' "$mnt/etc/ufw/ufw.conf"
 }
 
 enable_services() {
@@ -381,5 +399,7 @@ run_install() {
     create_user
     install_packages
     home_folders
+    tool_data
+    firewall
     finish
 }

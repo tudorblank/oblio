@@ -26,15 +26,17 @@ What it installs:
 
 | Component | Packages | Running |
 |---|---|---|
-| Core system | `base` `mkinitcpio` `linux-firmware` `amd-ucode` `intel-ucode` `btrfs-progs` `dosfstools` `fish` `sudo` `micro` (the editor) `less` `man-db` `man-pages` `xdg-user-dirs` `terminus-font` (the console font, sized to your screen) | systemd-oomd, fstrim (weekly) |
+| Core system | `base` `mkinitcpio` `linux-firmware` `amd-ucode` `intel-ucode` `fish` `sudo` `micro` (the editor) `less` `man-db` `man-pages` `xdg-user-dirs` `terminus-font` (the console font, sized to your screen) | systemd-oomd, fstrim (weekly) |
 | Kernel | your choice of CachyOS kernel (`linux-cachyos`, `-bore`, `-eevdf`, `-bmq`, `-rt-bore`, `-hardened`, `-server`, `-deckify`), plus `linux-cachyos-lts` as a fallback if you want it | |
 | CachyOS optimizations | `cachyos-settings` `ananicy-cpp` `cachyos-ananicy-rules` `cachyos-keyring` `cachyos-mirrorlist` `cachyos-rate-mirrors`, and `cachyos-v3-mirrorlist` or `cachyos-v4-mirrorlist` to match your CPU | ananicy-cpp, mirror ranking |
-| Hardware detection | `chwd` (picks and installs the right GPU drivers for your machine) `power-profiles-daemon` | power-profiles-daemon |
-| Network | `iwd` (Wi-Fi), with systemd-networkd and systemd-resolved | networkd, resolved, timesyncd, iwd |
-| Audio | `pipewire` `pipewire-audio` `pipewire-alsa` `pipewire-pulse` `pipewire-jack` `wireplumber` `rtkit` `sof-firmware` `alsa-firmware` | |
+| Hardware | `chwd` (picks and installs the right GPU drivers for your machine) `power-profiles-daemon` `usbutils` `smartmontools` `nvme-cli` `hdparm` `ethtool` `dmidecode` `hwinfo` | power-profiles-daemon |
+| Network | `iwd` (Wi-Fi) with systemd-networkd and systemd-resolved, `ufw` (firewall: incoming blocked, outgoing allowed), `openssh` `inetutils` `bind` (dig) `modemmanager` `usb_modeswitch` (mobile data modems) | ufw, networkd, resolved, timesyncd, iwd |
+| Audio | `pipewire` `pipewire-audio` `pipewire-alsa` `pipewire-pulse` `pipewire-jack` `wireplumber` `rtkit` `sof-firmware` `alsa-firmware` `alsa-utils` | |
+| Filesystems | `btrfs-progs` `dosfstools` `exfatprogs` `ntfs-3g` `xfsprogs` `f2fs-tools` `jfsutils` `nilfs-utils` `mtools` `lvm2` `mdadm` `dmraid` `fsarchiver` | |
+| Command-line tools | `nano` `vim` `cachyos-micro-settings` `unzip` `zip` `7zip` `wget` `rsync` `ripgrep` `plocate` `pkgfile` (tells you which package has a missing command) `duf` `pv` `btop` `fastfetch` `tealdeer` (`tldr`: short command examples) | pkgfile list update |
 | Boot and snapshots | `limine` `limine-mkinitcpio-hook` `limine-snapper-sync` `snapper` `snap-pac` (a btrfs snapshot before and after every update; boot any of them from the Limine menu) | old snapshot cleanup |
 | Maintenance | `pacman-contrib` (paccache, checkupdates, pactree) | old package cache cleanup |
-| Oblio | `oblio-hooks` (Oblio's name in os-release, reboot-required notices), `oblio-settings` (system configuration, the fish prompt, the `oblio-desktop` and `oblio-snapshot` commands) | |
+| Oblio | `oblio-hooks` (Oblio's name in os-release, reboot-required notices), `oblio-settings` (system configuration, the fish prompt and welcome, the `oblio-desktop` and `oblio-snapshot` commands) | |
 
 Optional, picked in the installer (all on by default):
 
@@ -87,8 +89,8 @@ What it provides:
 | Compositor | `hyprland` with Oblio's config (Lua modules in `~/.config/hypr/modules/`) |
 | Shell | `quickshell` running Oblio's dock and settings panel |
 | Login screen | `greetd` with Oblio's greeter (session picker, remembers your choice) |
-| Apps | `alacritty` (terminal), `dolphin` (files), `zen-browser-bin` (browser), `hyprlauncher` (app launcher), `btop` (task manager) |
-| Desktop plumbing | `hyprpolkitagent` (password prompts), `xdg-desktop-portal-hyprland` (screen sharing, file pickers), `qt6-wayland`, `archlinux-xdg-menu`, `xorg-xhost` |
+| Apps | `alacritty` (terminal), `dolphin` (files), `zen-browser-bin` (browser), `hyprlauncher` (app launcher) |
+| Desktop plumbing | `hyprpolkitagent` (password prompts), `xdg-desktop-portal-hyprland` (screen sharing, file pickers), `xdg-utils` (opening links and files), `fuse2` (AppImages), `qt6-wayland`, `archlinux-xdg-menu`, `xorg-xhost` |
 | Tools | `grim` `slurp` `wl-clipboard` (screenshots), `hyprpicker` (color picker), `brightnessctl` `playerctl` (brightness and media keys) |
 | Look | `breeze-icons`, `capitaine-cursors`, `inter-font`, `ttf-dejavu`, `ttf-nerd-fonts-symbols` |
 

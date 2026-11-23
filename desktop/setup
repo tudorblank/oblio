@@ -43,13 +43,14 @@ packages=(
     xdg-desktop-portal-hyprland  # screen sharing, portals
     qt6-wayland                  # Qt apps (Dolphin) run natively on Wayland
     alacritty                    # terminal
+    xdg-utils                    # xdg-open: apps open links and files in the right program
+    fuse2                        # AppImages
     dolphin                      # file manager
     archlinux-xdg-menu           # Dolphin's "Open with" menus outside Plasma
     breeze-icons                 # icons for Dolphin and the dock
     grim slurp wl-clipboard      # screenshots
     hyprpicker                   # color picker
     brightnessctl playerctl      # brightness and media keys
-    btop                         # task manager (CTRL+SHIFT+Escape)
     xorg-xhost                   # lets admin apps (GParted, ...) open windows
     capitaine-cursors            # mouse cursor
     ttf-dejavu                   # a font, the base system has none

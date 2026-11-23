@@ -58,7 +58,7 @@ kernel_packages() {
 
 # Oblio's own packages come prebuilt on the Oblio ISO; on a plain Arch ISO they are built here
 have_iso_repo() { [[ -f $iso_repo/oblio.db ]]; }
-local_packages=(oblio-hooks oblio-settings arch-update)
+local_packages=(oblio-hooks oblio-settings)
 
 root_device() {
     if [[ $ENCRYPT == yes ]]; then echo "/dev/mapper/$luks_name"; else echo "$ROOT_PART"; fi
@@ -213,11 +213,22 @@ configure_host() {
         fi
     } > "$mnt/etc/locale.conf"
 
-    echo "KEYMAP=$KEYMAP" > "$mnt/etc/vconsole.conf"
+    printf 'KEYMAP=%s\nFONT=%s\n' "$KEYMAP" "$(console_font)" > "$mnt/etc/vconsole.conf"
     echo "$HOST_NAME" > "$mnt/etc/hostname"
 
     sed -i 's/^hosts:.*/hosts: mymachines mdns_minimal [NOTFOUND=return] resolve [!UNAVAIL=return] files myhostname dns/' \
         "$mnt/etc/nsswitch.conf"
+}
+
+# Terminus for the text console, sized for this screen (the live system shows the same screen)
+console_font() {
+    local h
+    h="$(cut -d, -f2 /sys/class/graphics/fb0/virtual_size 2>/dev/null || echo 1080)"
+    if   (( h <= 1080 )); then echo ter-v16n
+    elif (( h <= 1440 )); then echo ter-v20n
+    elif (( h <= 2160 )); then echo ter-v28n
+    else echo ter-v32n
+    fi
 }
 
 kernel_cmdline() {
@@ -258,7 +269,8 @@ create_user() {
         locked)   chroot_do passwd -l root >/dev/null ;;
     esac
 
-    echo '%wheel ALL=(ALL:ALL) ALL' > "$mnt/etc/sudoers.d/10-wheel"
+    # keep the user's editor, so `sudo systemctl edit` and friends open micro
+    printf '%s\n' 'Defaults env_keep += "EDITOR VISUAL"' '%wheel ALL=(ALL:ALL) ALL' > "$mnt/etc/sudoers.d/10-wheel"
     chmod 440 "$mnt/etc/sudoers.d/10-wheel"
     chroot_do visudo -cq
 }
@@ -275,12 +287,9 @@ install_packages() {
 
     pacstrap -C "$live_conf" "$mnt" "${pkgs[@]}"
 
-    if ! have_iso_repo; then
-        build_arch_update
-        if [[ " ${COMPONENTS[*]} " != *" devtools.conf "* ]]; then
-            # only needed for the builds above; the cleanup step removes them
-            chroot_do pacman -D --asdeps base-devel git >/dev/null
-        fi
+    if ! have_iso_repo && [[ " ${COMPONENTS[*]} " != *" devtools.conf "* ]]; then
+        # only needed to build Oblio's packages; the cleanup step removes them
+        chroot_do pacman -D --asdeps base-devel git >/dev/null
     fi
 }
 
@@ -297,24 +306,6 @@ build_local_packages() {
     local -a built=("$mnt$src"/*/*.pkg.tar.zst)
     chroot_do pacman -U --noconfirm "${built[@]#"$mnt"}"
     rm -rf "$mnt$src"
-}
-
-build_arch_update() {
-    msg "Building arch-update from the AUR"
-    local dir="/home/$USERNAME/.cache/arch-update"
-    rm -rf "$mnt$dir"
-    as_user "git clone --depth 1 https://aur.archlinux.org/arch-update.git ~/.cache/arch-update"
-
-    # runtime + build dependencies; the test suite (and its checkdepends) is skipped
-    local -a deps
-    mapfile -t deps < <(as_user "cd ~/.cache/arch-update && makepkg --printsrcinfo" |
-        awk -F' = ' '/^\t(make)?depends = / {print $2}' | sed 's/[<>=].*//')
-    chroot_do pacman -S --needed --noconfirm --asdeps "${deps[@]}"
-    as_user "cd ~/.cache/arch-update && CARGO_HOME=\$PWD/cargo makepkg -f --noconfirm --nocheck"
-
-    local -a built=("$mnt$dir"/*.pkg.tar.zst)
-    chroot_do pacman -U --noconfirm "${built[@]#"$mnt"}"
-    rm -rf "$mnt$dir"
 }
 
 # Desktop, Documents, Downloads, Music, Pictures, Public, Videos: no Templates or Projects.
@@ -347,10 +338,6 @@ cleanup() {
     chroot_do paccache -rk0
     chroot_do paccache -ruk0
 
-    # build leftovers, when Oblio's packages were built during install
-    rm -rf "$mnt/home/$USERNAME/oblio/packages"/*/{src,pkg}
-    rm -f "$mnt/home/$USERNAME/oblio/packages"/*/*.pkg.tar.zst
-
     # paru: delete untracked build files after each AUR install
     if [[ -f $mnt/etc/paru.conf ]]; then
         sed -i 's/^#CleanAfter$/CleanAfter/' "$mnt/etc/paru.conf"
@@ -358,9 +345,6 @@ cleanup() {
 }
 
 finish() {
-    msg "Configuring snapshots"
-    chroot_do snapper --no-dbus -c root create-config -t oblio /
-
     msg "Detecting hardware (chwd)"
     # chwd rebuilds the initramfs with `mkinitcpio -P`, and limine-mkinitcpio-hook's
     # wrapper asks "run limine-mkinitcpio now? [Y/n]" on stdin; no stdin = its default, yes
@@ -375,10 +359,14 @@ finish() {
     # tidying up is optional: a problem here must not stop a bootable install
     cleanup || warn "cleanup did not finish, the system is installed anyway (see the log)"
 
+    # last, so the installer's own pacman runs don't leave update snapshots (snap-pac)
+    msg "Configuring snapshots"
+    chroot_do snapper --no-dbus -c root create-config -t oblio /
+
     # last: arch-chroot bind-mounts the live resolv.conf while chrooted
     ln -sf ../run/systemd/resolve/stub-resolv.conf "$mnt/etc/resolv.conf"
 
-    install -Dm644 "$log" "$mnt/var/log/oblio-install.log"
+    install -Dm600 "$log" "$mnt/var/log/oblio-install.log"
     umount -R "$mnt"
     if [[ $ENCRYPT == yes ]]; then cryptsetup close "$luks_name"; fi
 }

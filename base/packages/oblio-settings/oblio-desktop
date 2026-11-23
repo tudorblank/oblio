@@ -14,6 +14,29 @@ for arg; do
 done
 [[ $EUID != 0 ]] || { echo "error: run as your normal user, not root" >&2; exit 1; }
 
+# desktop sessions already installed (the ones a login screen would offer)
+sessions() {
+    local f exe
+    for f in /usr/share/wayland-sessions/*.desktop /usr/share/xsessions/*.desktop; do
+        [[ -e $f ]] || continue
+        grep -qE '^(Hidden|NoDisplay)=true' "$f" && continue
+        exe="$(sed -n 's/^TryExec=//p' "$f" | head -n1)"
+        [[ -n $exe ]] || exe="$(sed -n 's/^Exec=//p' "$f" | head -n1 | cut -d' ' -f1)"
+        command -v "$exe" >/dev/null 2>&1 || continue
+        sed -n 's/^Name=//p' "$f" | head -n1
+    done | sort -u | paste -sd, - | sed 's/,/, /g'
+}
+
+red=$'\e[1;31m' bold=$'\e[1m' off=$'\e[0m'
+current="$(sessions)"
+echo
+echo "${red}WARNING!${off} This installs the latest Oblio desktop on this Oblio system."
+echo "It's best installed on a fresh Oblio setup."
+echo "Desktop sessions you have now: ${bold}${current:-none}${off}"
+echo
+read -rp "Proceed? [Y/n] " answer
+[[ -z $answer || $answer == [yY]* ]] || { echo "Nothing was changed."; exit 0; }
+
 dir="$(mktemp -d)"
 trap 'rm -rf "$dir"' EXIT
 echo "Downloading Oblio's desktop..."

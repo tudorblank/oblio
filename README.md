@@ -9,25 +9,31 @@ It installs in two parts:
 
 ## Part 1: the base
 
+**Before you install:** turn off **Secure Boot** in your computer's firmware settings (often under
+Boot or Security, opened with F2, F10, F12 or Del while it starts). Oblio's ISO isn't signed for
+Secure Boot, so with it on the computer refuses to start it. Also make sure the firmware boots in
+UEFI mode (not "Legacy" or "CSM").
+
 Boot the Oblio ISO and follow the steps: keyboard, language, time zone, disk (erase it, or pick
 partitions for dual boot), encryption, kernel, components, user. Nothing touches the disk before
 the summary is confirmed. Esc goes back a step, Ctrl+C quits.
 
-After the reboot you log in on a text console, with fish as the shell and these folders in your
-home: Desktop, Documents, Downloads, Music, Pictures, Public, Videos.
+After the reboot you log in on a text console, with fish as the shell. The first login greets you
+and points at the desktop install; your home already has Desktop, Documents, Downloads, Music,
+Pictures, Public and Videos.
 
 What it installs:
 
 | Component | Packages | Running |
 |---|---|---|
-| Core system | `base` `mkinitcpio` `linux-firmware` `amd-ucode` `intel-ucode` `btrfs-progs` `dosfstools` `fish` `sudo` `micro` `xdg-user-dirs` | systemd-oomd, fstrim (weekly) |
+| Core system | `base` `mkinitcpio` `linux-firmware` `amd-ucode` `intel-ucode` `btrfs-progs` `dosfstools` `fish` `sudo` `micro` (the editor) `less` `man-db` `man-pages` `xdg-user-dirs` `terminus-font` (the console font, sized to your screen) | systemd-oomd, fstrim (weekly) |
 | Kernel | your choice of CachyOS kernel (`linux-cachyos`, `-bore`, `-eevdf`, `-bmq`, `-rt-bore`, `-hardened`, `-server`, `-deckify`), plus `linux-cachyos-lts` as a fallback if you want it | |
 | CachyOS optimizations | `cachyos-settings` `ananicy-cpp` `cachyos-ananicy-rules` `cachyos-keyring` `cachyos-mirrorlist` `cachyos-rate-mirrors`, and `cachyos-v3-mirrorlist` or `cachyos-v4-mirrorlist` to match your CPU | ananicy-cpp, mirror ranking |
 | Hardware detection | `chwd` (picks and installs the right GPU drivers for your machine) `power-profiles-daemon` | power-profiles-daemon |
 | Network | `iwd` (Wi-Fi), with systemd-networkd and systemd-resolved | networkd, resolved, timesyncd, iwd |
 | Audio | `pipewire` `pipewire-audio` `pipewire-alsa` `pipewire-pulse` `pipewire-jack` `wireplumber` `rtkit` `sof-firmware` `alsa-firmware` | |
-| Boot and snapshots | `limine` `limine-mkinitcpio-hook` `limine-snapper-sync` `snapper` (btrfs snapshots you can boot from the Limine menu) | |
-| Maintenance | `pacman-contrib` `arch-update` | old package cache cleanup, update notifier |
+| Boot and snapshots | `limine` `limine-mkinitcpio-hook` `limine-snapper-sync` `snapper` `snap-pac` (a btrfs snapshot before and after every update; boot any of them from the Limine menu) | old snapshot cleanup |
+| Maintenance | `pacman-contrib` (paccache, checkupdates, pactree) | old package cache cleanup |
 | Oblio | `oblio-hooks` (Oblio's name in os-release, reboot-required notices), `oblio-settings` (system configuration, the fish prompt, the `oblio-desktop` and `oblio-snapshot` commands) | |
 
 Optional, picked in the installer (all on by default):
@@ -40,6 +46,17 @@ Optional, picked in the installer (all on by default):
 | Game controllers | `steam-devices` |
 | Drawing tablets | `libwacom` |
 | Development tools | `base-devel` `git` `paru` `rebuild-detector` (needed for the AUR) |
+
+**Dual boot with Windows:** Windows keeps the computer's hardware clock in local time, Linux keeps
+it in UTC, so after switching from one to the other the clock is off by your time zone's offset.
+Fix it once, on the Windows side: open a terminal as administrator and run
+
+```
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\TimeZoneInformation" /v RealTimeIsUniversal /d 1 /t REG_DWORD /f
+```
+
+then restart Windows and let it sync the time (Settings, Time & language, Sync now). If Windows sits
+on another drive and doesn't show up in Oblio's boot menu, run `sudo limine-scan` once in Oblio.
 
 The installer also runs from a plain Arch ISO, building Oblio's packages on the fly:
 
@@ -57,8 +74,9 @@ oblio-desktop
 reboot
 ```
 
-`oblio-desktop` downloads the desktop from this repository and sets it up; run it again later to
-update. After the reboot you get Oblio's login screen: pick the user and the session at the bottom
+`oblio-desktop` is part of every Oblio install. It shows which desktop sessions you already have,
+asks before changing anything, then downloads the desktop from this repository and sets it up; run
+it again later to update. After the reboot you get Oblio's login screen: pick the user and the session at the bottom
 left (Hyprland, or anything else installed) and log in. If another login manager is already set up
 (SDDM, GDM...), it's left alone unless you run `oblio-desktop --greeter`.
 

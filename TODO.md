@@ -30,7 +30,11 @@
 
 ## Later
 
-- [ ] Host Oblio's packages in an online repo, so installed systems get `oblio-*` updates through pacman
+- [ ] Firewall in the base install
+- [ ] Go through the CachyOS install on this PC: pick packages worth adding to the base
+
+- [ ] Oblio package repo: signed packages (oblio-keyring), built by GitHub Actions, served from GitHub Releases;
+      installed systems get `oblio-*` updates through pacman, and the installer stops building them
 - [ ] `limine-scan` after first boot on machines that dual-boot Windows from another disk
 
 ## Optional improvements

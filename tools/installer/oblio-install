@@ -498,6 +498,16 @@ confirm_erase() {
     fi
 }
 
+done_message() {
+    echo
+    gum style --foreground "$red" --border rounded --border-foreground "$red" --padding "1 3" --bold \
+        "Done! Oblio is installed." "" \
+        "Reboot and take out the USB stick. If Oblio doesn't start by itself," \
+        "open your computer's boot menu and pick the drive you installed it on."
+    echo "Dual boot with Windows on another drive? After the first boot, run: sudo limine-scan"
+    echo
+}
+
 quit() {
     clear
     gum style --foreground "$red" "Installer stopped. Nothing was changed."
@@ -533,7 +543,7 @@ main() {
         set -Ee
         trap 'echo; die "failed during: $step (log: $log)"' ERR
         run_install
-        msg "Oblio is installed"
+        command -v gum >/dev/null && done_message || msg "Oblio is installed"
         return
     fi
 
@@ -563,9 +573,7 @@ main() {
     set +Ee
     trap - ERR
 
-    echo
-    gum style --foreground "$red" --bold "Oblio is installed."
-    echo "On a machine that dual-boots Windows from another disk, run 'sudo limine-scan' after the first boot."
+    done_message
     if [[ "$(choose "Reboot now?" "Reboot|yes" "Stay in the live system|no")" == yes ]]; then
         reboot
     fi

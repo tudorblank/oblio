@@ -1,0 +1,576 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Oblio installer. Run as root from the Oblio ISO (or an Arch ISO), booted in UEFI mode.
+# Walks through each choice, shows a summary, and only touches disks after you confirm
+# (partitions you edit and save yourself in cfdisk are saved right away).
+# Esc goes back, Ctrl+C quits.
+
+set -uo pipefail
+
+OBLIO_ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../.." && pwd)"
+# shellcheck source=engine.sh
+source "$OBLIO_ROOT/tools/installer/engine.sh"
+
+red="#dc2b2f"
+gib=$((1024 * 1024 * 1024))
+min_esp=1        # GiB
+min_root=20
+min_disk=24      # erase mode: 2 GiB EFI + root
+
+# --- defaults --------------------------------------------------------------
+
+KEYMAP=us
+LOCALE=en_US.UTF-8
+FORMATS=en_US.UTF-8
+TIMEZONE=UTC
+HOST_NAME=oblio
+USERNAME=""
+USER_PASS=""
+ROOT_MODE=same
+ROOT_PASS=""
+DISK=""
+DISK_MODE=erase
+ESP_PART=""
+ESP_FORMAT=yes
+ROOT_PART=""
+ENCRYPT=no
+LUKS_PASS=""
+KERNEL=linux-cachyos
+LTS=yes
+COMPONENTS=()
+components_visited=no
+components_picked=()
+
+# --- ui helpers ------------------------------------------------------------
+
+screen() {
+    clear
+    gum style --foreground "$red" --border rounded --border-foreground "$red" \
+        --padding "0 2" --bold "Oblio installer"
+    gum style --bold "$1"
+    if [[ -n ${2:-} ]]; then gum style --faint "$2"; fi
+    echo
+}
+
+note()  { gum style --faint "$@"; }
+alert() { gum style --foreground "$red" "$@"; }
+
+# gum with Esc = back (non-zero status) and Ctrl+C = quit the installer
+ui() {
+    local rc=0
+    gum "$@" || rc=$?
+    if (( rc == 130 )); then kill -INT $$; fi
+    return "$rc"
+}
+
+# pick one item; the default goes first so Enter keeps it
+pick_from() {
+    local default="$1" placeholder="$2"
+    { echo "$default"; grep -vxF "$default"; } | ui filter --height 15 --placeholder "$placeholder" --strict
+}
+
+# choose "label|value" entries; prints the value
+choose() {
+    local header="$1"; shift
+    ui choose --header "$header" --label-delimiter "|" "$@"
+}
+
+# waits for Enter (or Esc)
+pause() {
+    ui choose --header "" "${1:-OK}" >/dev/null || true
+}
+
+ask_password() {
+    local what="$1" a b
+    while true; do
+        a="$(ui input --password --placeholder "$what")" || return 1
+        b="$(ui input --password --placeholder "Repeat $what")" || return 1
+        if [[ -n $a && $a == "$b" ]]; then break; fi
+        alert "Empty or not matching, try again."
+    done
+    printf '%s' "$a"
+}
+
+size_of()  { lsblk -dno SIZE "$1" | tr -d ' '; }
+bytes_of() { lsblk -bdno SIZE "$1" | tr -d ' '; }
+
+# lsblk -P line -> associative array "kv" (lsblk escapes quotes, so no eval needed)
+declare -A kv
+parse_pairs() {
+    local line="$1" re='^([A-Z0-9_:-]+)="([^"]*)" ?(.*)$'
+    kv=()
+    while [[ $line =~ $re ]]; do
+        kv[${BASH_REMATCH[1]}]="${BASH_REMATCH[2]}"
+        line="${BASH_REMATCH[3]}"
+    done
+}
+
+# --- steps -----------------------------------------------------------------
+# Each step returns non-zero when you go back (Esc), and only changes the
+# settings once it is complete.
+
+step_network() {
+    while ! curl -fsI --max-time 8 https://mirror.cachyos.org >/dev/null 2>&1; do
+        screen "No internet connection" "Oblio downloads its packages during install. Plug in a cable, or connect to Wi-Fi."
+        case "$(choose "What now?" "Connect to Wi-Fi (iwctl)|wifi" "Check again|retry" "Quit|quit")" in
+            wifi)
+                note "In iwctl: 'station wlan0 scan', 'station wlan0 get-networks'," \
+                    "'station wlan0 connect <name>', then 'exit'."
+                iwctl || true ;;
+            quit) exit 1 ;;
+        esac
+    done
+}
+
+step_keymap() {
+    local v
+    screen "Keyboard layout" "Type to search. Used in the console and for the encryption passphrase."
+    v="$(localectl list-keymaps | pick_from "$KEYMAP" "Search keyboard layouts…")" || return 1
+    KEYMAP="$v"
+    loadkeys "$KEYMAP" || true
+}
+
+step_locale() {
+    local all lang fmt
+    all="$(awk '/UTF-8$/ {print $1}' /usr/share/i18n/SUPPORTED)"
+    while true; do
+        screen "Language" "The system language."
+        lang="$(pick_from "$LOCALE" "Search languages (e.g. en_US, de_DE)…" <<< "$all")" || return 1
+
+        screen "Formats" "Dates, numbers, currency, paper size and units."
+        case "$(choose "Formats" "Same as the language ($lang)|same" "Choose a different region|other")" in
+            same)  fmt="$lang" ;;
+            other) fmt="$(pick_from "$FORMATS" "Search regions (e.g. ro_RO, en_GB)…" <<< "$all")" || continue ;;
+            *)     continue ;;
+        esac
+        LOCALE="$lang" FORMATS="$fmt"
+        return 0
+    done
+}
+
+step_timezone() {
+    local v
+    screen "Time zone" "Type to search, e.g. Bucharest, Berlin, New_York."
+    v="$(timedatectl list-timezones | pick_from "$TIMEZONE" "Search time zones…")" || return 1
+    TIMEZONE="$v"
+}
+
+list_disks() {
+    # skip the drive the installer itself runs from, and RAM disks (zram)
+    local boot="" line
+    boot="$(lsblk -no PKNAME "$(findmnt -no SOURCE /run/archiso/bootmnt 2>/dev/null)" 2>/dev/null || true)"
+    while read -r line; do
+        parse_pairs "$line"
+        [[ ${kv[TYPE]} == disk && ${kv[NAME]##*/} != "$boot" && ${kv[NAME]} != /dev/zram* ]] || continue
+        printf '%s  %s  %s|%s\n' "${kv[NAME]}" "${kv[SIZE]}" "${kv[MODEL]:-unknown model}" "${kv[NAME]}"
+    done < <(lsblk -dpnP -o NAME,SIZE,MODEL,TYPE)
+}
+
+# partitions of a disk as "label|device", minus one to skip
+list_partitions() {
+    local skip="${2:-}" line
+    while read -r line; do
+        parse_pairs "$line"
+        [[ ${kv[TYPE]} == part && ${kv[NAME]} != "$skip" ]] || continue
+        printf '%s  %s  %s  %s  %s|%s\n' "${kv[NAME]}" "${kv[SIZE]}" "${kv[FSTYPE]:-empty}" \
+            "${kv[PARTTYPENAME]}" "${kv[LABEL]}" "${kv[NAME]}"
+    done < <(lsblk -pnP -o NAME,SIZE,FSTYPE,PARTTYPENAME,LABEL,TYPE "$1")
+}
+
+show_layout() {
+    lsblk -o NAME,SIZE,FSTYPE,PARTTYPENAME,LABEL,MOUNTPOINTS "$1"
+    echo
+}
+
+reread() {
+    partprobe "$1" 2>/dev/null || true
+    udevadm settle 2>/dev/null || true
+}
+
+in_use() {
+    [[ -n "$(lsblk -no MOUNTPOINTS "$1" | tr -d '[:space:]')" ]] || swapon --show=NAME --noheadings | grep -qxF "$1"
+}
+
+step_disk() {
+    local disk mode
+    local -a disks
+    while true; do
+        mapfile -t disks < <(list_disks)
+        if (( ! ${#disks[@]} )); then
+            screen "Disk" "No disks found. Is the drive connected? NVMe drives behind Intel RST/VMD need AHCI mode in the firmware settings."
+            [[ "$(choose "What now?" "Look again|again" "Back|back")" == again ]] && continue
+            return 1
+        fi
+
+        screen "Disk" "Where Oblio goes. Nothing is changed until you confirm at the end."
+        disk="$(choose "Disk" "${disks[@]}")" || return 1
+
+        while true; do
+            screen "Disk: $disk ($(size_of "$disk"))" "What's on it now:"
+            show_layout "$disk"
+            mode="$(choose "How should Oblio use it?" \
+                "Erase this disk (2 GB EFI + btrfs)|erase" \
+                "Use partitions on it (dual boot, custom layout)|manual" \
+                "Pick another disk|back")" || mode=back
+            case $mode in
+                back) continue 2 ;;
+                erase)
+                    if (( $(bytes_of "$disk") < min_disk * gib )); then
+                        alert "$disk is $(size_of "$disk"). Erasing needs at least $min_disk GB."
+                        pause "Back"
+                        continue
+                    fi
+                    DISK="$disk" DISK_MODE=erase
+                    return 0 ;;
+                manual)
+                    if pick_partitions "$disk"; then
+                        DISK="$disk" DISK_MODE=manual
+                        return 0
+                    fi ;;
+            esac
+        done
+    done
+}
+
+edit_partitions() {
+    cfdisk "$1" || true
+    reread "$1"
+}
+
+# sets ESP_PART, ESP_FORMAT, ROOT_PART; non-zero = back
+pick_partitions() {
+    local disk="$1" act esp fmt root fs pttype
+    local -a parts rest opts
+    while true; do
+        reread "$disk"
+        pttype="$(lsblk -dno PTTYPE "$disk" | tr -d ' ')"
+        mapfile -t parts < <(list_partitions "$disk")
+
+        screen "Partitions on $disk" "Oblio needs an EFI partition ($min_esp GB+, FAT32; Windows' can be shared) and a root partition ($min_root GB+, gets erased)."
+        show_layout "$disk"
+        note "In cfdisk: [ New ] on free space, [ Type ] 'EFI System' for the EFI partition, then [ Write ] and" \
+            "type yes (saved right away). [ Quit ] leaves without saving."
+        echo
+        opts=()
+        if [[ -z $pttype ]]; then
+            alert "No partition table yet: when cfdisk asks for a label type, pick gpt."
+            echo
+        elif [[ $pttype != gpt ]]; then
+            alert "This disk uses an old MBR ($pttype) partition table. UEFI installs need GPT:" \
+                "erase the disk instead, or back up and convert it."
+            echo
+        elif (( ${#parts[@]} < 2 )); then
+            alert "This disk has ${#parts[@]} partition(s). Make room for Oblio in the partition editor."
+            echo
+        else
+            opts+=("Pick the EFI and root partitions|pick")
+        fi
+        opts+=("Edit partitions (cfdisk)|edit" "Back|back")
+        act="$(choose "What now?" "${opts[@]}")" || return 1
+        case $act in
+            back) return 1 ;;
+            edit) edit_partitions "$disk"; continue ;;
+        esac
+
+        screen "EFI partition" "Holds the bootloader and kernels. An existing one (e.g. from Windows) can be shared."
+        esp="$(choose "EFI partition" "${parts[@]}")" || continue
+        if (( $(bytes_of "$esp") < min_esp * gib )); then
+            alert "$esp is $(size_of "$esp"). Oblio needs at least $min_esp GB for kernels and snapshots."
+            pause "Back"
+            continue
+        fi
+        if in_use "$esp"; then
+            alert "$esp is in use (mounted or swap). Pick another one, or unmount it first."
+            pause "Back"
+            continue
+        fi
+        fs="$(lsblk -no FSTYPE "$esp" | tr -d ' ')"
+        if [[ $fs == vfat ]]; then
+            fmt="$(choose "$esp already holds a FAT32 filesystem" \
+                "Keep it, share it with other systems|no" "Format it (erases its contents)|yes" "Back|back")" || continue
+            [[ $fmt == back ]] && continue
+        else
+            fmt=yes
+            if [[ -n $fs ]]; then
+                alert "$esp holds $fs data. It will be erased and formatted as FAT32."
+                [[ "$(choose "Use it?" "No, pick again|no" "Yes, erase it|yes")" == yes ]] || continue
+            fi
+        fi
+
+        mapfile -t rest < <(list_partitions "$disk" "$esp")
+        screen "Root partition" "Oblio's system and your files. It will be erased and formatted as btrfs."
+        root="$(choose "Root partition" "${rest[@]}")" || continue
+        if (( $(bytes_of "$root") < min_root * gib )); then
+            alert "$root is $(size_of "$root"). Oblio needs at least $min_root GB."
+            pause "Back"
+            continue
+        fi
+        if in_use "$root"; then
+            alert "$root is in use (mounted or swap). Pick another one, or unmount it first."
+            pause "Back"
+            continue
+        fi
+        fs="$(lsblk -no FSTYPE "$root" | tr -d ' ')"
+        if [[ -n $fs ]]; then
+            case $fs in
+                ntfs|BitLocker) alert "$root holds $fs data. That is usually Windows! Everything on it will be erased." ;;
+                *)              alert "$root holds $fs data. Everything on it will be erased." ;;
+            esac
+            [[ "$(choose "Use it?" "No, pick again|no" "Yes, erase it|yes")" == yes ]] || continue
+        fi
+
+        ESP_PART="$esp" ESP_FORMAT="$fmt" ROOT_PART="$root"
+        return 0
+    done
+}
+
+step_encryption() {
+    local enc pass=""
+    screen "Encryption" "Encrypts the whole system with LUKS2. You type a passphrase at every boot. Protects your data if the disk is stolen."
+    enc="$(choose "Encrypt the system?" "No|no" "Yes|yes")" || return 1
+    if [[ $enc == yes ]]; then
+        note "The passphrase uses the '$KEYMAP' keyboard layout. If you lose it, the data is gone."
+        pass="$(ask_password "encryption passphrase")" || return 1
+    fi
+    ENCRYPT="$enc" LUKS_PASS="$pass"
+}
+
+step_kernel() {
+    local k lts
+    while true; do
+        screen "Kernel" "All of them are CachyOS kernels with Cachy's optimizations."
+        k="$(choose "Main kernel" \
+            "linux-cachyos           default: EEVDF + Cachy tweaks|linux-cachyos" \
+            "linux-cachyos-bore      BORE scheduler, snappy desktop|linux-cachyos-bore" \
+            "linux-cachyos-eevdf     plain EEVDF scheduler|linux-cachyos-eevdf" \
+            "linux-cachyos-bmq       BMQ scheduler|linux-cachyos-bmq" \
+            "linux-cachyos-rt-bore   realtime, for audio production|linux-cachyos-rt-bore" \
+            "linux-cachyos-hardened  security hardening|linux-cachyos-hardened" \
+            "linux-cachyos-server    throughput over latency|linux-cachyos-server" \
+            "linux-cachyos-deckify   handhelds (Steam Deck, ROG Ally)|linux-cachyos-deckify")" || return 1
+        lts="$(choose "Also install the LTS kernel as a fallback? It boots second, for when the main kernel has a problem." \
+            "Yes|yes" "No|no")" || continue
+        KERNEL="$k" LTS="$lts"
+        return 0
+    done
+}
+
+# a scalar field of a component file
+field_of() {
+    (
+        # shellcheck disable=SC1090
+        source "$1"
+        declare -n v="$2"
+        printf '%s' "$v"
+    )
+}
+
+step_components() {
+    local f selected
+    local -a req=() opt=() opt_names=() picked=()
+    for f in "$OBLIO_ROOT"/base/config/components/*.conf; do
+        if [[ "$(field_of "$f" OPTIONAL)" == yes ]]; then
+            opt+=("$f")
+            opt_names+=("$(field_of "$f" NAME)")
+        else
+            req+=("$f")
+        fi
+    done
+
+    screen "Components"
+    gum style --bold "Always installed"
+    for f in "${req[@]}"; do printf '  %-24s %s\n' "$(field_of "$f" NAME)" "$(field_of "$f" INFO)"; done
+    echo
+    gum style --bold "Optional"
+    for f in "${opt[@]}"; do printf '  %-24s %s\n' "$(field_of "$f" NAME)" "$(field_of "$f" INFO)"; done
+    echo
+
+    # everything on the first visit, the previous picks after that
+    if [[ $components_visited == no ]]; then
+        selected="$(IFS=,; printf '%s' "${opt_names[*]}")"
+    else
+        selected="$(IFS=,; printf '%s' "${components_picked[*]}")"
+    fi
+    local out
+    out="$(ui choose --no-limit --header "Optional components (space toggles, enter confirms)" \
+        --selected "$selected" "${opt_names[@]}")" || return 1
+    mapfile -t picked <<< "$out"
+    [[ -n $out ]] || picked=()
+    components_picked=("${picked[@]}")
+    components_visited=yes
+
+    COMPONENTS=()
+    for f in "${req[@]}"; do COMPONENTS+=("${f##*/}"); done
+    for f in "${opt[@]}"; do
+        if printf '%s\n' "${picked[@]}" | grep -qxF "$(field_of "$f" NAME)"; then
+            COMPONENTS+=("${f##*/}")
+        fi
+    done
+}
+
+step_user() {
+    local name host pass mode rpass=""
+    screen "User" "Your account. It can use sudo."
+    name="$USERNAME"
+    while true; do
+        name="$(ui input --header "Username" --placeholder "lowercase, e.g. tudor" --value "$name")" || return 1
+        [[ $name =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] && break
+        alert "Use lowercase letters, digits, - and _, starting with a letter."
+    done
+    host="$HOST_NAME"
+    while true; do
+        host="$(ui input --header "Computer name" --value "$host")" || return 1
+        [[ $host =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]] && break
+        alert "Letters, digits and -, not starting or ending with -."
+    done
+    pass="$(ask_password "password for $name")" || return 1
+
+    mode="$(choose "Administrator (root) password" \
+        "Same as $name's|same" "A separate password|separate" "No root login, sudo only|locked")" || return 1
+    if [[ $mode == separate ]]; then
+        rpass="$(ask_password "root password")" || return 1
+    fi
+    USERNAME="$name" HOST_NAME="$host" USER_PASS="$pass" ROOT_MODE="$mode" ROOT_PASS="$rpass"
+}
+
+component_names() {
+    if (( ${#components_picked[@]} )); then
+        (IFS=,; printf '%s' "${components_picked[*]}") | sed 's/,/, /g'
+    else
+        printf 'none'
+    fi
+}
+
+summary() {
+    local target
+    if [[ $DISK_MODE == erase ]]; then
+        target="erase $DISK ($(size_of "$DISK")): 2 GB EFI + btrfs"
+    else
+        target="EFI $ESP_PART ($([[ $ESP_FORMAT == yes ]] && echo format || echo keep)), root $ROOT_PART ($(size_of "$ROOT_PART"), erase)"
+    fi
+    screen "Summary" "Nothing has been changed yet."
+    printf '%s\n' \
+        "Keyboard|$KEYMAP" \
+        "Language|$LOCALE" \
+        "Formats|$FORMATS" \
+        "Time zone|$TIMEZONE" \
+        "Disk|$target" \
+        "Encryption|$([[ $ENCRYPT == yes ]] && echo "LUKS2" || echo "none")" \
+        "Kernel|$KERNEL$([[ $LTS == yes ]] && echo " + linux-cachyos-lts")" \
+        "Optional|$(component_names)" \
+        "User|$USERNAME on $HOST_NAME, root: $ROOT_MODE" \
+        | gum table --separator "|" --columns "Setting,Choice" --print
+    echo
+}
+
+# the summary; "Change ..." reruns one step (Esc there keeps the old choice)
+review() {
+    local c
+    while true; do
+        summary
+        c="$(choose "Ready?" \
+            "Install Oblio|install" \
+            "Change keyboard|keymap" "Change language / formats|locale" "Change time zone|timezone" \
+            "Change disk|disk" "Change encryption|encryption" "Change kernel|kernel" \
+            "Change components|components" "Change user|user" "Quit without changes|quit")" || continue
+        case $c in
+            install) return 0 ;;
+            quit)    quit ;;
+            *)       "step_$c" || true ;;
+        esac
+    done
+}
+
+confirm_erase() {
+    local what="$DISK" erased="everything on $DISK" answer
+    if [[ $DISK_MODE == manual ]]; then
+        what="$ROOT_PART"
+        erased="$ROOT_PART"
+        if [[ $ESP_FORMAT == yes ]]; then erased="$ROOT_PART and $ESP_PART"; fi
+    fi
+    screen "Last check" "This erases $erased. Esc goes back to the summary."
+    answer="$(ui input --header "Type $what to install" --placeholder "$what")" || return 1
+    if [[ $answer != "$what" ]]; then
+        alert "Not confirmed, back to the summary."
+        sleep 1
+        return 1
+    fi
+}
+
+quit() {
+    clear
+    gum style --foreground "$red" "Installer stopped. Nothing was changed."
+    exit 1
+}
+
+# --- main ------------------------------------------------------------------
+
+# unattended: all choices from a file (same variable names as above), no questions
+#   oblio-install --answers FILE
+# COMPONENTS lists the optional components only; required ones are always added.
+load_answers() {
+    # shellcheck disable=SC1090
+    source "$1"
+    local f
+    local -a optional=("${COMPONENTS[@]}")
+    COMPONENTS=()
+    for f in "$OBLIO_ROOT"/base/config/components/*.conf; do
+        if [[ "$(field_of "$f" OPTIONAL)" == no ]] || printf '%s\n' "${optional[@]}" | grep -qxF "${f##*/}"; then
+            COMPONENTS+=("${f##*/}")
+        fi
+    done
+    [[ -n $DISK && -n $USERNAME && -n $USER_PASS ]] || die "answers file needs DISK, USERNAME and USER_PASS"
+}
+
+main() {
+    [[ $EUID == 0 ]] || die "run as root"
+    [[ -d /sys/firmware/efi ]] || die "not booted in UEFI mode"
+
+    if [[ ${1:-} == --answers ]]; then
+        load_answers "${2:?answers file missing}"
+        exec > >(tee -a "$log") 2>&1
+        set -Ee
+        trap 'echo; die "failed during: $step (log: $log)"' ERR
+        run_install
+        msg "Oblio is installed"
+        return
+    fi
+
+    command -v gum >/dev/null || pacman -Sy --noconfirm gum >/dev/null
+    trap quit INT
+
+    step_network
+
+    # Enter moves forward, Esc goes back a step
+    local -a steps=(keymap locale timezone disk encryption kernel components user)
+    local i=0
+    while (( i < ${#steps[@]} )); do
+        if "step_${steps[i]}"; then
+            i=$((i + 1))
+        elif (( i > 0 )); then
+            i=$((i - 1))
+        fi
+    done
+    until review && confirm_erase; do :; done
+
+    clear
+    exec > >(tee -a "$log") 2>&1
+    trap - INT
+    set -Ee
+    trap 'echo; die "failed during: $step (log: $log)"' ERR
+    run_install
+    set +Ee
+    trap - ERR
+
+    echo
+    gum style --foreground "$red" --bold "Oblio is installed."
+    echo "On a machine that dual-boots Windows from another disk, run 'sudo limine-scan' after the first boot."
+    if [[ "$(choose "Reboot now?" "Reboot|yes" "Stay in the live system|no")" == yes ]]; then
+        reboot
+    fi
+}
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+    main "$@"
+fi

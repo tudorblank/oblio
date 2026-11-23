@@ -2,17 +2,17 @@
 
 ## Next
 
-- [ ] Build the Oblio ISO and run a full install in the VM (`tools/build-iso`, `tools/oblio-vm install`)
+- [ ] Build the Oblio ISO and run a full install in the VM (`iso/build-iso`, `tools/oblio-vm install`)
   - [ ] Erase mode, no encryption
   - [ ] Encryption: passphrase prompt at boot, snapshot entries still boot
   - [ ] Manual mode with a shared EFI partition
   - [ ] Kernel choice: main kernel boots first, LTS second
 - [x] Minimal Hyprland (`desktop/setup`, `--link` for live editing)
-- [x] Window management: minimize, show desktop, tiling/floating per workspace (`oblio.lua`)
+- [x] Window management: minimize, show desktop, tiling/floating per workspace (`hypr/modules/windows.lua`)
 - [x] Dock (`desktop/config/quickshell/oblio`, Quickshell)
 - [x] Settings panel (SUPER+I): dock, windows, appearance, input
 - [ ] Shell: top bar (workspaces, clock, tray, volume, network), notifications, launcher, lock screen
-- [ ] Dock: tooltips with window titles, right-click menu, pinning from the dock
+- [x] Dock: right-click menu (windows, new window, pin to dock, quit), pinning from the dock
 - [ ] Animations and look, using `hypr-config-temp` as inspiration
 - [x] Login screen: greetd + Quickshell greeter, session picker, remembers user and session
 - [ ] Lock screen in the same style as the login screen
@@ -23,8 +23,8 @@
 
 - [x] System config: `oblio-settings`, `config/`
 - [x] Drivers: `chwd -a` at install, audio, Bluetooth, printing, firmware updates, controllers, tablets
-- [x] Installer: step by step, terminal only (`installer/oblio-install`)
-- [x] Oblio ISO: Arch's live ISO + installer + prebuilt Oblio packages (`tools/build-iso`)
+- [x] Installer: step by step, terminal only (`tools/installer/oblio-install`)
+- [x] Oblio ISO: Arch's live ISO + installer + prebuilt Oblio packages (`iso/build-iso`)
 
 ## Later
 
@@ -50,6 +50,6 @@
 - [ ] Merge `/etc/pacman.conf.pacnew` and `/etc/resolv.conf.pacnew`
 - [ ] BIOS: Fast Boot, CSM off (firmware takes 9.2 s of the 18 s boot)
 
-## Branding
+## Assets
 
-- [ ] Light version of the wordmark for dark backgrounds
+- [ ] Decide what Oblio's assets are, then wire them in (os-release LOGO, login screen)

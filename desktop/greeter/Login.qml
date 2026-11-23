@@ -380,16 +380,4 @@ Item {
             }
         }
     }
-
-    // Oblio mark, bottom center
-    Image {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 32
-        source: "file:///usr/share/pixmaps/oblio.svg"
-        sourceSize: Qt.size(56, 56)
-        width: 28
-        height: 28
-        opacity: 0.9
-    }
 }

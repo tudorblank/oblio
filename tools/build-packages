@@ -25,7 +25,7 @@ echo 'RUSTFLAGS="-C opt-level=2"' >> "$conf"
 export PKGDEST="$repo" BUILDDIR="$build" SRCDEST="$build/sources"
 mkdir -p "$SRCDEST"
 
-for p in "$root"/packages/*/; do
+for p in "$root"/base/packages/*/; do
     echo "==> $(basename "$p")"
     (cd "$p" && makepkg --config "$conf" -f --nodeps --noconfirm)
 done

@@ -9,6 +9,7 @@ Item {
 
     implicitWidth: 42
     implicitHeight: 24
+    opacity: enabled ? 1 : 0.4
 
     Rectangle {
         anchors.fill: parent

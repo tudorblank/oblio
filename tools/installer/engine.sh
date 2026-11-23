@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Oblio install steps. Sourced by oblio-install, which sets:
-#   OBLIO_ROOT                      the Oblio source tree
+#   OBLIO_ROOT                      the Oblio source tree (base/, tools/installer/)
 #   KEYMAP LOCALE FORMATS TIMEZONE  console keymap, language, formats, timezone
 #   HOST_NAME USERNAME USER_PASS    machine name, user
 #   ROOT_MODE ROOT_PASS             root: same | separate | locked
@@ -47,7 +47,7 @@ component_field() {
 collect() {
     local c
     for c in "${COMPONENTS[@]}"; do
-        component_field "$OBLIO_ROOT/config/components/$c" "$1"
+        component_field "$OBLIO_ROOT/base/config/components/$c" "$1"
     done
 }
 
@@ -78,7 +78,7 @@ prepare_live() {
     pacman -Sy --noconfirm cachyos/cachyos-keyring cachyos/cachyos-mirrorlist \
         cachyos/cachyos-v3-mirrorlist cachyos/cachyos-v4-mirrorlist
 
-    level="$("$OBLIO_ROOT/installer/oblio-repos" level)"
+    level="$("$OBLIO_ROOT/tools/installer/oblio-repos" level)"
     msg "CPU level: $level"
     write_live_conf
 }
@@ -98,7 +98,7 @@ write_live_conf() {
         sed -e 's/\$arch_v3/x86_64_v3/g' -e 's/\$arch_v4/x86_64_v4/g' "$f" > "$live_mirrors/${f##*/}"
     done
 
-    "$OBLIO_ROOT/installer/oblio-repos" conf "$level" |
+    "$OBLIO_ROOT/tools/installer/oblio-repos" conf "$level" |
         sed -e "s|^Architecture = auto$|Architecture = $archs|" \
             -e "s|/etc/pacman.d/cachyos|$live_mirrors/cachyos|" > "$live_conf"
 
@@ -158,8 +158,8 @@ partition() {
 
 mount_subvolumes() {
     msg "Creating btrfs subvolumes"
-    # shellcheck source=../config/btrfs.conf
-    source "$OBLIO_ROOT/config/btrfs.conf"
+    # shellcheck source=../../base/config/btrfs.conf
+    source "$OBLIO_ROOT/base/config/btrfs.conf"
     local root s
     root="$(root_device)"
 
@@ -184,9 +184,9 @@ install_base() {
     have_iso_repo || extra=(base-devel git)
     # shellcheck disable=SC2046
     pacstrap -C "$live_conf" "$mnt" base fish sudo cachyos-keyring cachyos-mirrorlist \
-        $("$OBLIO_ROOT/installer/oblio-repos" packages "$level") "${extra[@]}"
+        $("$OBLIO_ROOT/tools/installer/oblio-repos" packages "$level") "${extra[@]}"
 
-    "$OBLIO_ROOT/installer/oblio-repos" conf "$level" > "$mnt/etc/pacman.conf"
+    "$OBLIO_ROOT/tools/installer/oblio-repos" conf "$level" > "$mnt/etc/pacman.conf"
 
     # subvolid= would point at the old subvolume after a snapshot restore
     genfstab -U "$mnt" | sed -E 's/,?subvolid=[0-9]+//' >> "$mnt/etc/fstab"
@@ -236,7 +236,7 @@ configure_boot() {
 ESP_PATH="/boot"
 KERNEL_CMDLINE[default]+=$(kernel_cmdline)
 EOF
-    install -m644 "$OBLIO_ROOT/config/limine.conf" "$mnt/boot/limine.conf"
+    install -m644 "$OBLIO_ROOT/base/config/limine.conf" "$mnt/boot/limine.conf"
 
     if [[ $ENCRYPT == yes ]]; then
         # unlock right after block devices are up, before filesystems are mounted
@@ -277,7 +277,7 @@ install_packages() {
 
     if ! have_iso_repo; then
         build_arch_update
-        if [[ " ${COMPONENTS[*]} " != *" 55-devtools.conf "* ]]; then
+        if [[ " ${COMPONENTS[*]} " != *" devtools.conf "* ]]; then
             # only needed for the builds above; the cleanup step removes them
             chroot_do pacman -D --asdeps base-devel git >/dev/null
         fi
@@ -286,16 +286,17 @@ install_packages() {
 
 build_local_packages() {
     msg "Building Oblio packages"
-    local src="/home/$USERNAME/oblio" p
+    local src="/home/$USERNAME/oblio-packages" p
     rm -rf "$mnt$src"
-    cp -a "$OBLIO_ROOT" "$mnt$src"
+    cp -a "$OBLIO_ROOT/base/packages" "$mnt$src"
     chroot_do chown -R "$USERNAME:$USERNAME" "$src"
 
     for p in oblio-hooks oblio-settings; do
-        as_user "cd ~/oblio/packages/$p && makepkg -f --noconfirm --nodeps"
+        as_user "cd ~/oblio-packages/$p && makepkg -f --noconfirm --nodeps"
     done
-    local -a built=("$mnt$src"/packages/*/*.pkg.tar.zst)
+    local -a built=("$mnt$src"/*/*.pkg.tar.zst)
     chroot_do pacman -U --noconfirm "${built[@]#"$mnt"}"
+    rm -rf "$mnt$src"
 }
 
 build_arch_update() {

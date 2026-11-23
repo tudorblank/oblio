@@ -6,24 +6,22 @@ Terminal installer, btrfs with bootable snapshots, Limine.
 ## Layout
 
 ```
-assets/       logo and icon
-config/       what an Oblio system is made of
-  components/   one file per component: packages + services (optional ones show up in the installer)
-  pacman.conf   template, Cachy repos are filled in per CPU
-  btrfs.conf    subvolume layout and mount options
-  limine.conf   boot menu settings
-packages/     Oblio's own packages (oblio-hooks, oblio-settings)
-installer/    oblio-install (the step-by-step installer), engine.sh (install steps), oblio-repos (CPU detection)
-iso/          what the Oblio ISO adds on top of Arch's live ISO
-desktop/      the Oblio desktop: hyprland/ (setup, oblio.lua window management), shell/ (Quickshell: dock)
-tools/        build-packages, build-iso, oblio-vm
+base/         what an Oblio system is made of
+  config/       components/ (one file per component: packages + services; optional ones show up
+                in the installer), pacman.conf (Cachy repos filled in per CPU), btrfs.conf, limine.conf
+  packages/     Oblio's own packages: oblio-hooks (branding, pacman hooks), oblio-settings (system config)
+desktop/      the Oblio desktop: setup, config/ (lands in ~/.config: hypr/, quickshell/), greeter/ (login screen)
+tools/        installing and tooling
+  installer/    oblio-install (the step-by-step installer), engine.sh (install steps), oblio-repos (CPU detection)
+  build-packages, oblio-vm (test VM)
+iso/          the Oblio ISO: build-iso, and what it adds on top of Arch's live ISO
 ```
 
 ## Build the ISO
 
 ```
 sudo pacman -S archiso
-tools/build-iso
+iso/build-iso
 ```
 
 The ISO lands in `out/`. It boots straight into the installer.
@@ -46,7 +44,7 @@ The installer also runs from a plain Arch ISO, building Oblio's packages on the 
 
 ```
 curl -L https://github.com/tudorblank/oblio/archive/refs/heads/main.tar.gz | tar xz
-oblio-main/installer/oblio-install
+oblio-main/tools/installer/oblio-install
 ```
 
 ## Desktop
@@ -72,13 +70,25 @@ launcher. In a VM the main key is Alt instead of Super.
 | SUPER+I | settings: dock, windows, appearance, input |
 | SUPER+Q | close window |
 | SUPER+D / SUPER+F | maximize / fullscreen |
-| SUPER+C / SUPER+SHIFT+C | minimize / restore last minimized |
+| SUPER+C / SUPER+ALT+C | minimize / restore last minimized (back where it was, same place and size) |
 | SUPER+SHIFT+D | show desktop (minimize all), again to bring them back |
 | SUPER+T | this workspace: tiling <-> floating (KDE-like, cascading windows) |
+| SUPER+S / Print | screenshot of an area / the screen (saved to ~/Pictures/Screenshots, copied) |
+| SUPER+P / SUPER+SHIFT+P | scratchpad / move the window there |
+| SUPER+Escape | click a frozen window to kill it |
+| SUPER+CTRL+SHIFT+arrows | resize the window (or drag its edge, or SUPER+right-drag) |
+| SUPER+SHIFT+I / CTRL+SHIFT+Escape | color picker / task manager (btop) |
 
-Everything in `desktop/config/` lands at the same path in `~/.config`. `desktop/setup --link`
-symlinks instead of copying, so edits in the repo apply live. `hyprland.lua` is written on the
-first run only (`--fresh` rewrites it); Oblio's parts live in the `oblio*.lua` files next to it.
+All keys: `~/.config/hypr/modules/binds.lua`.
 
-Dock: click opens, focuses or restores; clicking the focused app minimizes it; right click
-minimizes or restores all of an app's windows; middle click opens a new window.
+Everything in `desktop/config/` lands at the same path in `~/.config` (a file it replaces is kept
+as `NAME.bak.DATE`); `desktop/setup --link` symlinks instead of copying, so edits in the repo apply
+live. Hyprland: `hyprland.lua` loads `modules/` (monitors, env, input, layout, decorations,
+animations, misc, windowrules, windows, binds, autostart); what you change in the settings panel is
+saved to `settings.lua` next to it and wins over the modules.
+
+Dock: click opens an app; on a running app it focuses its window if it isn't focused, minimizes it
+if it is, and brings minimized windows back (to their workspace, place and size, focused); middle click opens a new window; right click opens
+a menu: the app's windows, New window, Pin to dock / Unpin from dock, Quit. The dock never moves
+the pointer. It can always show, auto-hide (the bottom edge brings it back) or hide smartly (only
+while a window reaches into it), and it disappears when it has nothing to show (SUPER+I, Dock).

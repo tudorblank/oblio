@@ -8,8 +8,10 @@ import Quickshell
 Item {
     id: item
 
-    property var app
+    property string key
     property var dock
+    // looked up by key, so this icon lives on while the dock's app list is recomputed
+    readonly property var app: dock.apps[key] ?? { id: key, pinned: false, windows: [] }
 
     // desktop entries load in the background after startup; touching the list
     // re-runs the lookup once they arrive (byId alone never updates)
@@ -37,7 +39,7 @@ Item {
         transformOrigin: Item.Bottom
         scale: mouse.pressed ? 0.92 : mouse.containsMouse && Settings.opts.dockMagnify ? 1.15 : 1
 
-        Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutBack; easing.overshoot: 2 } }
+        Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
     }
 
     Rectangle {
@@ -64,7 +66,7 @@ Item {
         color: "#d9141417"
         border.width: 1
         border.color: "#24ffffff"
-        opacity: mouse.containsMouse && !mouse.pressed ? 1 : 0
+        opacity: mouse.containsMouse && !mouse.pressed && !item.dock.menuOpen ? 1 : 0
         visible: opacity > 0
 
         Behavior on opacity { NumberAnimation { duration: 150 } }
@@ -89,9 +91,9 @@ Item {
             if (event.button === Qt.MiddleButton) {
                 if (item.entry) item.entry.execute()
             } else if (event.button === Qt.RightButton) {
-                item.dock.toggleAll(item.app)
+                item.dock.openMenu(item)
             } else {
-                item.dock.activate(item.app, item.entry)
+                item.dock.click(item.app, item.entry)
             }
         }
     }

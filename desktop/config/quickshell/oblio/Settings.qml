@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Oblio's settings: ~/.config/oblio/settings.json. Hyprland choices are applied
-// live and also written to ~/.config/oblio/hyprland.lua, which oblio-desktop.lua
-// loads at startup.
+// Oblio's settings, saved in Quickshell's state folder (~/.local/state/quickshell/...).
+// Hyprland choices are applied live and also written to ~/.config/hypr/settings.lua,
+// which hyprland.lua loads last.
 pragma Singleton
 
 import QtQuick
@@ -11,12 +11,12 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    readonly property string dir: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/oblio"
+    readonly property string hyprDir: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/hypr"
     readonly property alias opts: adapter
     readonly property color accent: adapter.accent === "hyprland" ? "#33ccff" : adapter.accent
 
     readonly property var hyprKeys: [
-        "layout", "gapsIn", "gapsOut", "borderSize", "rounding", "inactiveOpacity", "focusFollowsMouse",
+        "layout", "gapsIn", "gapsOut", "borderSize", "rounding", "inactiveOpacity", "focusKeyboard", "focusScroll",
         "accent", "blur", "blurSize", "animations",
         "sensitivity", "naturalScroll", "touchpadNaturalScroll", "repeatRate", "repeatDelay",
     ]
@@ -48,7 +48,7 @@ Singleton {
     },
     animations = { enabled = ${o.animations} },
     input = {
-        follow_mouse = ${o.focusFollowsMouse ? 1 : 0},
+        follow_mouse = ${o.focusKeyboard ? 1 : o.focusScroll ? 2 : 0},
         sensitivity = ${o.sensitivity.toFixed(2)},
         natural_scroll = ${o.naturalScroll},
         repeat_rate = ${o.repeatRate},
@@ -74,28 +74,29 @@ Singleton {
         }
     }
 
-    Component.onCompleted: Quickshell.execDetached(["mkdir", "-p", dir])
+    Component.onCompleted: Quickshell.execDetached(["mkdir", "-p", Quickshell.stateDir])
 
     FileView {
         id: hyprFile
-        path: root.dir + "/hyprland.lua"
+        path: root.hyprDir + "/settings.lua"
         blockLoading: false
         preload: false
     }
 
     FileView {
         id: settingsFile
-        path: root.dir + "/settings.json"
+        path: Quickshell.statePath("settings.json")
         watchChanges: true
         onFileChanged: reload()
 
         JsonAdapter {
             id: adapter
 
-            // dock
+            // dock: pinned apps are desktop file ids (without .desktop)
+            property var dockPinned: ["Alacritty", "org.kde.dolphin"]
             property int dockSize: 56
             property bool dockMagnify: true
-            property bool dockAutoHide: false
+            property string dockMode: "always"   // always | autohide | smart
             property bool dockDivider: true
             property int dockOpacity: 35
 
@@ -106,7 +107,10 @@ Singleton {
             property int borderSize: 2
             property int rounding: 10
             property int inactiveOpacity: 100
-            property bool focusFollowsMouse: true
+            // keyboard focus follows the pointer (follow_mouse 1); otherwise click to focus,
+            // with scrolling still going to the window under the pointer (2) or not (0)
+            property bool focusKeyboard: true
+            property bool focusScroll: true
 
             // look
             property string accent: "hyprland"

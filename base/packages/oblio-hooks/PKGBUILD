@@ -2,7 +2,7 @@
 
 pkgname=oblio-hooks
 pkgver=2026.11.22
-pkgrel=1
+pkgrel=3
 pkgdesc='Oblio branding and pacman hooks'
 arch=('any')
 license=('GPL-3.0-or-later')
@@ -15,24 +15,18 @@ source=('os-release'
         'oblio-os-release.hook'
         'oblio-lsb-release.hook'
         'oblio-unbrand.hook'
-        'oblio-reboot-required.hook'
-        'oblio.svg'
-        'oblio-logo.svg')
-sha256sums=('00dc339ed81c0fb16370a424c656bcd9d34c49d230351c015973be48cc3fe655'
+        'oblio-reboot-required.hook')
+sha256sums=('0df6ef22fa0475c62d0efdc2971fd32defe88b4e2f146f0c83ccfb94a53f5b98'
             '0cb4d2b38f8b90a38619b59ebbb895b765dd63f6b5b91b9d800c65aeef10b372'
             '5c970fe6aee85f1f9991553e6d6bddd61e499ae626112395837fc0e69a15061a'
             '972842b620affb732ecd7995c1e846fbd52e92342859b4f3d3b21f2a6383e8a6'
             'fa940fefcd708d22ab846006edf2407aafdfa5ecf20d982007e8e82a3581f578'
             'f1f3cd7386d3a9dd6e960d82709e62db48560c141ca8fc67655084035d231b97'
             '0fdcd371de60df29444ae93c914277807e5724f99915c6d9e20123dd8ace2844'
-            'c2a1358892a68a5f4cc1e112e6a60d25b9c42f08b6b03059c88df1f703659703'
-            '09fc2983896e0b0aa614965666865f56a946570faaac70bcb9e3b3a84be9d882'
-            'e4e04ca1411e56bbaaf18336807aa5d4c4ffb876a813f9ac2b1ce85c355dc2cf')
+            'c2a1358892a68a5f4cc1e112e6a60d25b9c42f08b6b03059c88df1f703659703')
 
 package() {
-    install -Dm644 os-release lsb-release oblio-logo.svg -t "$pkgdir/usr/share/oblio/"
+    install -Dm644 os-release lsb-release -t "$pkgdir/usr/share/oblio/"
     install -Dm755 oblio-branding oblio-reboot-required -t "$pkgdir/usr/share/libalpm/scripts/"
     install -Dm644 oblio-*.hook -t "$pkgdir/usr/share/libalpm/hooks/"
-    install -Dm644 oblio.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/oblio.svg"
-    install -Dm644 oblio.svg "$pkgdir/usr/share/pixmaps/oblio.svg"
 }

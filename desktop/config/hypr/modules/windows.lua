@@ -1,21 +1,18 @@
--- SPDX-License-Identifier: GPL-3.0-or-later
---
--- Oblio window management for Hyprland:
---   minimize / restore (any number of windows), show desktop,
---   per-workspace tiling <-> floating mode.
--- Minimized windows live on the hidden workspace "special:minimized".
--- Keys: oblio-keys.lua. Everything is reachable from outside (the dock) through
---   hyprctl dispatch 'function() oblio.restore("0x...") end'
+-- Oblio window management: minimize / restore (any number of windows), show
+-- desktop, per-workspace tiling <-> floating mode. Keys are in binds.lua.
+-- Minimized windows live on the hidden workspace "special:minimized" and come back
+-- where they were: same workspace, and for floating windows the same place and size.
+-- Nothing here moves the pointer. The dock calls these through
+--   hyprctl dispatch 'function() oblio.toggle_app({ "0x..." }) end'
 
 oblio = oblio or {}
 
 local MINIMIZED = "special:minimized"
 
--- kept on the global table so a config reload doesn't forget minimized windows
 local s = oblio.state or {
     floating = {},    -- workspace id -> true when the workspace is in floating mode
     floated = {},     -- address -> true for windows floated by floating mode
-    origin = {},      -- address -> workspace id it was minimized from
+    saved = {},       -- address -> where it was when minimized: workspace, floating, place, size
     order = {},       -- minimized addresses, oldest first
     desktop = nil,    -- addresses hidden by show_desktop, to bring back together
 }
@@ -28,8 +25,16 @@ local function notify(text)
     hl.notification.create({ text = text, duration = 1200, font_size = 14 })
 end
 
+-- runs fn without Hyprland moving the pointer onto the windows it focuses
+local function quietly(fn)
+    local before = hl.get_config("cursor:no_warps")
+    hl.config({ cursor = { no_warps = true } })
+    fn()
+    hl.config({ cursor = { no_warps = before } })
+end
+
 local function forget(address)
-    s.origin[address] = nil
+    s.saved[address] = nil
     for i = #s.order, 1, -1 do
         if s.order[i] == address then table.remove(s.order, i) end
     end
@@ -48,20 +53,39 @@ function oblio.minimize(w)
     w = w or hl.get_active_window()
     if not w or not w.workspace or w.workspace.special then return end
     forget(w.address)
-    s.origin[w.address] = w.workspace.id
+    local m = w.monitor
+    s.saved[w.address] = {
+        workspace = w.workspace.id,
+        floating  = w.floating,
+        -- relative to the monitor: the workspace may come back on another one
+        x = w.at.x - (m and m.x or 0), y = w.at.y - (m and m.y or 0),
+        width = w.size.x, height = w.size.y,
+    }
     table.insert(s.order, w.address)
     hl.dispatch(hl.dsp.window.move({ workspace = MINIMIZED, follow = false, window = sel(w.address) }))
 end
 
--- brings a minimized window back to the workspace you're on, and focuses it
+-- puts a minimized window back where it was and focuses it (switching to its workspace)
 function oblio.restore(w)
     if type(w) == "string" then w = win(w) end
     if not is_minimized(w) then return end
+    local address = w.address
+    local saved = s.saved[address]
     local here = hl.get_active_workspace()
-    local target = (here and here.id) or s.origin[w.address] or 1
-    forget(w.address)
-    hl.dispatch(hl.dsp.window.move({ workspace = target, follow = false, window = sel(w.address) }))
-    hl.dispatch(hl.dsp.focus({ window = sel(w.address) }))
+    local target = (saved and saved.workspace) or (here and here.id) or 1
+    forget(address)
+    quietly(function()
+        hl.dispatch(hl.dsp.window.move({ workspace = target, follow = false, window = sel(address) }))
+        if saved and saved.floating then
+            hl.dispatch(hl.dsp.window.float({ action = "enable", window = sel(address) }))
+            hl.dispatch(hl.dsp.window.resize({ x = saved.width, y = saved.height, window = sel(address) }))
+            local m = (win(address) or {}).monitor
+            hl.dispatch(hl.dsp.window.move({
+                x = saved.x + (m and m.x or 0), y = saved.y + (m and m.y or 0), window = sel(address),
+            }))
+        end
+        hl.dispatch(hl.dsp.focus({ window = sel(address) }))
+    end)
 end
 
 function oblio.restore_last()
@@ -71,6 +95,54 @@ end
 
 function oblio.restore_all()
     for i = #s.order, 1, -1 do oblio.restore(s.order[i]) end
+end
+
+-- focuses a window without moving the pointer; a minimized one is restored first
+function oblio.focus(address)
+    local w = win(address)
+    if not w then return end
+    if is_minimized(w) then return oblio.restore(w) end
+    quietly(function() hl.dispatch(hl.dsp.focus({ window = sel(address) })) end)
+end
+
+-- the most recently focused of some windows
+local function latest(list)
+    table.sort(list, function(a, b) return a.focus_history_id < b.focus_history_id end)
+    return list[1]
+end
+
+-- the dock's click on an app: if one of its windows on screen has focus, minimizes them
+-- all; if they're on screen but not focused, focuses the last used one; if they're all
+-- minimized, brings them back; if it only has windows on other workspaces, goes there
+function oblio.toggle_app(addresses)
+    local shown, minimized, elsewhere = {}, {}, {}
+    for _, address in ipairs(addresses) do
+        local w = win(address)
+        if w then
+            if is_minimized(w) then table.insert(minimized, w)
+            elseif w.workspace and w.workspace.visible then table.insert(shown, w)
+            else table.insert(elsewhere, w) end
+        end
+    end
+    if #shown > 0 then
+        local focused = false
+        for _, w in ipairs(shown) do focused = focused or w.active end
+        if focused then
+            for _, w in ipairs(shown) do oblio.minimize(w) end
+        else
+            oblio.focus(latest(shown).address)
+        end
+    elseif #minimized > 0 then
+        for _, w in ipairs(minimized) do oblio.restore(w) end
+    elseif #elsewhere > 0 then
+        oblio.focus(latest(elsewhere).address)
+    end
+end
+
+function oblio.close(addresses)
+    for _, address in ipairs(addresses) do
+        hl.dispatch(hl.dsp.window.close({ window = sel(address) }))
+    end
 end
 
 -- minimize every window on this workspace; run again to bring them all back

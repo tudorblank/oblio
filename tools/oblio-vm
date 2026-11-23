@@ -76,7 +76,7 @@ boot() {
         local boot_iso
         boot_iso="$(ls -1t "$root"/out/oblio-*.iso 2>/dev/null | head -1)"
         if [[ -z $boot_iso ]]; then
-            [[ -f $iso ]] || die "no ISO yet: build one with tools/build-iso, or download Arch's with: ${0##*/} iso"
+            [[ -f $iso ]] || die "no ISO yet: build one with iso/build-iso, or download Arch's with: ${0##*/} iso"
             boot_iso="$iso"
         fi
         echo "booting $boot_iso"

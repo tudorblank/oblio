@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-exec /usr/share/oblio/installer/oblio-install "$@"
+exec /usr/share/oblio/tools/installer/oblio-install "$@"

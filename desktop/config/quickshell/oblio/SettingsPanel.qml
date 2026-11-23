@@ -213,6 +213,7 @@ Scope {
                 }
 
                 Flickable {
+                    id: flick
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: header.bottom
@@ -228,6 +229,18 @@ Scope {
                         width: parent.width - 56
                         sourceComponent: root.pages[root.page].content
                     }
+                }
+
+                // scroll bar, when the page is taller than the panel
+                Rectangle {
+                    visible: flick.contentHeight > flick.height
+                    anchors.right: flick.right
+                    anchors.rightMargin: 8
+                    y: flick.y + flick.visibleArea.yPosition * flick.height
+                    width: 4
+                    height: flick.visibleArea.heightRatio * flick.height
+                    radius: 2
+                    color: "#40ffffff"
                 }
             }
         }
@@ -273,11 +286,14 @@ Scope {
                     }
                 }
                 SettingRow {
-                    title: "Auto-hide"
-                    description: "Slides away until the pointer touches the bottom edge"
-                    Toggle {
-                        checked: Settings.opts.dockAutoHide
-                        onToggled: v => Settings.set("dockAutoHide", v)
+                    title: "Show"
+                    description: Settings.opts.dockMode === "autohide" ? "Hidden until the pointer touches the bottom edge"
+                        : Settings.opts.dockMode === "smart" ? "Hides while a window reaches into it; the bottom edge brings it back"
+                        : "Always on screen; windows stay clear of it"
+                    Segmented {
+                        options: [{ value: "always", label: "Always" }, { value: "autohide", label: "Auto-hide" }, { value: "smart", label: "Smart" }]
+                        value: Settings.opts.dockMode
+                        onPicked: v => Settings.set("dockMode", v)
                     }
                 }
                 SettingRow {
@@ -297,6 +313,28 @@ Scope {
 
         Column {
             spacing: 22
+
+            SettingGroup {
+                title: "FOCUS"
+
+                SettingRow {
+                    title: "Typing follows the mouse"
+                    description: "Hovering a window focuses it for the keyboard. Off: click a window to type in it"
+                    Toggle {
+                        checked: Settings.opts.focusKeyboard
+                        onToggled: v => Settings.set("focusKeyboard", v)
+                    }
+                }
+                SettingRow {
+                    title: "Scrolling follows the mouse"
+                    description: "Scroll the window under the pointer without clicking it first"
+                    Toggle {
+                        enabled: !Settings.opts.focusKeyboard
+                        checked: Settings.opts.focusKeyboard || Settings.opts.focusScroll
+                        onToggled: v => Settings.set("focusScroll", v)
+                    }
+                }
+            }
 
             SettingGroup {
                 title: "TILING"
@@ -353,14 +391,6 @@ Scope {
                         from: 50; to: 100; unit: "%"
                         value: Settings.opts.inactiveOpacity
                         onMoved: v => Settings.set("inactiveOpacity", v)
-                    }
-                }
-                SettingRow {
-                    title: "Focus follows mouse"
-                    description: "Hovering a window focuses it, no click needed"
-                    Toggle {
-                        checked: Settings.opts.focusFollowsMouse
-                        onToggled: v => Settings.set("focusFollowsMouse", v)
                     }
                 }
             }

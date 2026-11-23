@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Bottom dock: pinned apps, a divider, then other running apps. Window actions
-// go through oblio.lua in Hyprland, so minimized windows land on special:minimized.
+// Bottom dock: pinned apps, a divider, then other running apps. Window actions go
+// through Hyprland (modules/windows.lua), which never moves the pointer.
+// Left click: open, focus, minimize when focused, or bring back. Middle click: new
+// window. Right click: menu (its windows, new window, pin to dock, quit).
+// Modes: always shown, auto-hide (shows when the pointer touches the bottom edge),
+// smart (hides while a window reaches into its area). Gone when it has no apps.
 
 import QtQuick
 import Quickshell
@@ -10,30 +14,31 @@ import Quickshell.Hyprland
 PanelWindow {
     id: root
 
-    // desktop file ids (without .desktop)
-    property var pinned: ["Alacritty", "org.kde.dolphin"]
-
+    readonly property var pinned: Settings.opts.dockPinned
+    readonly property string mode: Settings.opts.dockMode
     readonly property string minimizedWorkspace: "special:minimized"
     // proportions of the macOS dock: icons ~60% of its height, gaps ~30% of an icon
     readonly property int size: Settings.opts.dockSize
     readonly property int iconSize: Math.round(size * 0.6)
     readonly property int pad: Math.round((size - iconSize) / 2)
     readonly property int margin: 8
-    readonly property bool autoHide: Settings.opts.dockAutoHide
-    property bool revealed: true
 
-    anchors.bottom: true
-    implicitWidth: background.width + 200
-    implicitHeight: background.height + margin + 48   // room above for labels
-    exclusiveZone: autoHide ? 0 : background.height + margin
+    readonly property bool menuOpen: menu.visible
+    DockMenu { id: menu; dock: root }
+
+    readonly property bool empty: appKeys.length === 0
+    property bool hovering: false
+    readonly property bool shown: !empty && (mode === "always" || hovering || menuOpen || (mode === "smart" && !covered))
+
+    // the window spans the whole bottom edge and never resizes; only the dock itself takes input
+    anchors { bottom: true; left: true; right: true }
+    implicitHeight: size + margin + 48   // room above for labels
+    exclusiveZone: mode === "always" && !empty ? size + margin : 0
     color: "transparent"
     WlrLayershell.namespace: "oblio-dock"
-
-    // only the dock takes clicks; when hidden, a thin strip at the bottom edge
-    mask: Region { item: root.revealed ? background : edge }
+    mask: Region { item: root.empty ? nothing : root.shown ? area : edge }
 
     Component.onCompleted: Hyprland.refreshToplevels()
-    onAutoHideChanged: revealed = !autoHide
 
     function appIdOf(t) {
         if (t.wayland && t.wayland.appId) return t.wayland.appId
@@ -49,67 +54,99 @@ PanelWindow {
         return t.address.startsWith("0x") ? t.address : "0x" + t.address
     }
 
-    function hypr(lua) {
-        Quickshell.execDetached(["hyprctl", "dispatch", lua])
+    function hypr(code) {
+        Quickshell.execDetached(["hyprctl", "dispatch", code])
     }
 
-    function minimize(t) { hypr(`function() oblio.minimize("${address(t)}") end`) }
-    function restore(t)  { hypr(`function() oblio.restore("${address(t)}") end`) }
-    function focus(t)    { hypr(`hl.dsp.focus({ window = "address:${address(t)}" })`) }
+    function lua(list) {
+        return "{ " + list.map(t => `"${address(t)}"`).join(", ") + " }"
+    }
 
-    // pinned apps first, then everything else that has a window, grouped by app
+    // apps by key: pinned first, then everything else that has a window
     readonly property var apps: {
         const groups = {}
-        const order = []
-        for (const id of pinned) {
+        for (const id of pinned)
             groups[id.toLowerCase()] = { id: id, pinned: true, windows: [] }
-            order.push(id.toLowerCase())
-        }
         for (const t of Hyprland.toplevels.values) {
             const id = appIdOf(t)
             if (!id) continue
             const key = id.toLowerCase()
-            if (!groups[key]) {
-                groups[key] = { id: id, pinned: false, windows: [] }
-                order.push(key)
-            }
+            if (!groups[key]) groups[key] = { id: id, pinned: false, windows: [] }
             groups[key].windows.push(t)
         }
-        return order.map(k => groups[k])
+        return groups
     }
-    readonly property var pinnedApps: apps.filter(a => a.pinned)
-    readonly property var otherApps: apps.filter(a => !a.pinned)
+    // the icons are keyed by app, so a window opening elsewhere doesn't rebuild them
+    readonly property var appKeys: Object.keys(apps)
+    readonly property var pinnedKeys: appKeys.filter(k => apps[k].pinned)
+    readonly property var otherKeys: appKeys.filter(k => !apps[k].pinned)
 
-    function activate(app, entry) {
-        const wins = app.windows
-        if (wins.length === 0) {
+    function click(app, entry) {
+        if (app.windows.length === 0) {
             if (entry) entry.execute()
-            return
+        } else {
+            hypr(`function() oblio.toggle_app(${lua(app.windows)}) end`)
         }
-        const minimized = wins.filter(isMinimized)
-        if (minimized.length > 0) {
-            restore(minimized[minimized.length - 1])
-            return
-        }
-        const active = wins.find(t => t.activated)
-        if (active) minimize(active)
-        else focus(wins[0])
     }
 
-    // right click: minimize all of the app's windows, or bring them all back
-    function toggleAll(app) {
-        const visible = app.windows.filter(t => !isMinimized(t))
-        if (visible.length > 0) visible.forEach(minimize)
-        else app.windows.forEach(restore)
+    function focusWindow(t) { hypr(`function() oblio.focus("${address(t)}") end`) }
+    function quit(app)      { hypr(`function() oblio.close(${lua(app.windows)}) end`) }
+
+    function togglePin(app) {
+        const list = pinned.slice()
+        const i = list.findIndex(id => id.toLowerCase() === app.id.toLowerCase())
+        if (i >= 0) list.splice(i, 1)
+        else list.push(app.id)
+        Settings.set("dockPinned", list)
+    }
+
+    function openMenu(item) {
+        menu.item = item
+        menu.visible = true
+    }
+
+    // smart mode: is any window on this screen's workspace reaching into the dock's area?
+    readonly property var monitor: Hyprland.monitorFor(screen)
+    readonly property bool covered: {
+        if (mode !== "smart" || !monitor || !monitor.activeWorkspace) return false
+        const ws = monitor.activeWorkspace
+        const left = screen.x + (screen.width - background.width) / 2
+        const right = left + background.width
+        const top = screen.y + screen.height - size - margin
+        for (const t of Hyprland.toplevels.values) {
+            if (t.workspace !== ws) continue
+            const o = t.lastIpcObject
+            if (!o || !o.at || !o.size) continue
+            if (o.at[0] < right && o.at[0] + o.size[0] > left && o.at[1] + o.size[1] > top) return true
+        }
+        return false
+    }
+
+    // Hyprland has no event for windows being moved or resized, so smart mode asks it
+    // for window positions: right after any event, and twice a second for drags
+    Timer {
+        running: root.mode === "smart" && !root.empty
+        interval: 500
+        repeat: true
+        onTriggered: Hyprland.refreshToplevels()
+    }
+    Timer {
+        id: soon
+        interval: 60
+        onTriggered: Hyprland.refreshToplevels()
+    }
+    Connections {
+        target: Hyprland
+        enabled: root.mode === "smart"
+        function onRawEvent(event) { soon.restart() }
     }
 
     HoverHandler {
-        id: hover
         onHoveredChanged: {
             if (hovered) {
                 hideTimer.stop()
-                root.revealed = true
-            } else if (root.autoHide) {
+                root.hovering = true
+            } else {
                 hideTimer.restart()
             }
         }
@@ -117,10 +154,22 @@ PanelWindow {
 
     Timer {
         id: hideTimer
-        interval: 450
-        onTriggered: root.revealed = false
+        interval: 400
+        onTriggered: root.hovering = false
     }
 
+    Item { id: nothing }
+
+    // the dock and the gap below it, so the pointer resting on the screen edge keeps it open
+    Item {
+        id: area
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: background.width
+        height: root.size + root.margin
+    }
+
+    // a thin strip at the bottom edge that brings a hidden dock back
     Item {
         id: edge
         anchors.bottom: parent.bottom
@@ -129,11 +178,11 @@ PanelWindow {
         height: 3
     }
 
-    // frosted glass: Hyprland blurs what's behind (layer rule in oblio-desktop.lua)
+    // frosted glass: Hyprland blurs what's behind (layer rule in windowrules.lua)
     Rectangle {
         id: background
         anchors.horizontalCenter: parent.horizontalCenter
-        y: root.revealed ? parent.height - height - root.margin : parent.height + 2
+        y: root.shown ? parent.height - height - root.margin : parent.height + 2
         width: row.implicitWidth + root.pad * 2
         height: root.size
         radius: Math.round(height * 0.32)
@@ -142,7 +191,7 @@ PanelWindow {
         border.color: "#24ffffff"
 
         Behavior on width { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
-        Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+        Behavior on y { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
         Row {
             id: row
@@ -154,12 +203,12 @@ PanelWindow {
             spacing: Math.round(root.iconSize * 0.3)
 
             Repeater {
-                model: root.pinnedApps
-                DockItem { required property var modelData; app: modelData; dock: root }
+                model: ScriptModel { values: root.pinnedKeys }
+                DockItem { required property string modelData; key: modelData; dock: root }
             }
 
             Item {
-                visible: Settings.opts.dockDivider && root.pinnedApps.length > 0 && root.otherApps.length > 0
+                visible: Settings.opts.dockDivider && root.pinnedKeys.length > 0 && root.otherKeys.length > 0
                 width: 1
                 height: root.iconSize
                 Rectangle {
@@ -171,8 +220,8 @@ PanelWindow {
             }
 
             Repeater {
-                model: root.otherApps
-                DockItem { required property var modelData; app: modelData; dock: root }
+                model: ScriptModel { values: root.otherKeys }
+                DockItem { required property string modelData; key: modelData; dock: root }
             }
         }
     }

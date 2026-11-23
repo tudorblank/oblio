@@ -6,29 +6,27 @@
 # user; pacman and the system files go through sudo.
 #   desktop/setup            install packages, copy desktop/config/ into ~/.config
 #   desktop/setup --link     symlink instead of copying: edits in the repo apply live
-#   desktop/setup --fresh    also rewrite hyprland.lua (the old one is backed up)
 #   desktop/setup --greeter  make Oblio's login screen the login manager even when
 #                            another one (SDDM, GDM, ...) is already set up
 #
-# Every file in desktop/config/ lands at the same path under ~/.config.
-# hyprland.lua is yours: only the first run writes it, reruns leave it alone.
+# Every file in desktop/config/ lands at the same path under ~/.config; a file it
+# replaces is kept as NAME.bak.DATE. Your own changes from the settings panel
+# (SUPER+I) live in ~/.config/hypr/settings.lua, which setup never touches.
 
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
-config="$cfg/hypr/hyprland.lua"
-default="${OBLIO_HYPR_DEFAULT:-/usr/share/hypr/hyprland.lua}"
+stamp="$(date +%Y%m%d-%H%M%S)"
 red=$'\e[1;31m' bold=$'\e[1m' off=$'\e[0m'
 
 msg() { printf '%s==>%s %s%s%s\n' "$red" "$off" "$bold" "$*" "$off"; }
 die() { printf '%serror:%s %s\n' "$red" "$off" "$*" >&2; exit 1; }
 
-link=0 fresh=0 greeter=0
+link=0 greeter=0
 for arg; do
     case $arg in
         --link)    link=1 ;;
-        --fresh)   fresh=1 ;;
         --greeter) greeter=1 ;;
         *) die "unknown option: $arg" ;;
     esac
@@ -36,52 +34,27 @@ done
 
 [[ $EUID != 0 ]] || die "run as your normal user, not root"
 
-# console keymap -> keyboard layout, when it is also a valid XKB layout
-layout=us
-keymap="$(sed -n 's/^KEYMAP=//p' /etc/vconsole.conf 2>/dev/null)"
-if [[ -n $keymap ]] && localectl list-x11-keymap-layouts | grep -qx "$keymap"; then
-    layout="$keymap"
-fi
-
-# Hyprland settings for this machine's hardware, shared by your config and the login screen's
-machine_lua() {
-    if lspci -k 2>/dev/null | grep -q "Kernel driver in use: nvidia"; then
-        cat <<'EOF'
-
--- Nvidia: video decoding and OpenGL go through Nvidia's driver
-hl.env("LIBVA_DRIVER_NAME", "nvidia")
-hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
-hl.env("NVD_BACKEND", "direct")
-EOF
-    fi
-    if systemd-detect-virt -q; then
-        cat <<'EOF'
-
--- virtual machine: the virtual GPU has no hardware cursor
-hl.config({
-    cursor = {
-        no_hardware_cursors = true,
-    },
-})
-EOF
-    fi
-}
-
 packages=(
-    quickshell                   # runs the Oblio shell (dock)
     hyprland                     # compositor (pulls in XWayland)
+    quickshell                   # runs Oblio's shell (dock, settings) and login screen
+    greetd                       # runs the login screen, then your session
     hyprlauncher                 # app launcher
     hyprpolkitagent              # password prompts for admin actions
     xdg-desktop-portal-hyprland  # screen sharing, portals
     qt6-wayland                  # Qt apps (Dolphin) run natively on Wayland
     alacritty                    # terminal
     dolphin                      # file manager
-    breeze-icons                 # icons for Dolphin and the dock
     archlinux-xdg-menu           # Dolphin's "Open with" menus outside Plasma
+    breeze-icons                 # icons for Dolphin and the dock
+    grim slurp wl-clipboard      # screenshots
+    hyprpicker                   # color picker
+    brightnessctl playerctl      # brightness and media keys
+    btop                         # task manager (CTRL+SHIFT+Escape)
+    xorg-xhost                   # lets admin apps (GParted, ...) open windows
+    capitaine-cursors            # mouse cursor
     ttf-dejavu                   # a font, the base system has none
-    ttf-nerd-fonts-symbols       # icons in the shell
     inter-font                   # the login screen's font
-    greetd                       # runs the login screen, then your session
+    ttf-nerd-fonts-symbols       # icons in the shell
 )
 # browser: Zen comes from the CachyOS repos
 if pacman -Si zen-browser-bin &>/dev/null; then packages+=(zen-browser-bin); fi
@@ -92,101 +65,39 @@ if (( ${#missing[@]} )); then
     sudo pacman -S --needed --noconfirm "${missing[@]}"
 fi
 
-msg "$( ((link)) && echo Linking || echo Copying ) Oblio's desktop files into $cfg"
-# folders named "oblio" belong to Oblio whole: --link links the folder itself,
-# so files added to it later show up without rerunning setup
-stamp="$(date +%Y%m%d-%H%M%S)"
-while IFS= read -r -d '' dir; do
-    dst="$cfg/${dir#"$here/config/"}"
+# puts SRC at DST: a link or a copy; an existing different file is kept as DST.bak.DATE
+place() {
+    local src="$1" dst="$2"
     mkdir -p "${dst%/*}"
-    if ((link)); then
-        if [[ -e $dst && ! -L $dst ]]; then mv "$dst" "$dst.bak.$stamp"; fi
-        ln -sfn "$dir" "$dst"
-    elif [[ -L $dst ]]; then
-        rm "$dst"
+    if [[ -e $dst && ! -L $dst ]] && ! diff -rq "$src" "$dst" >/dev/null 2>&1; then
+        mv "$dst" "$dst.bak.$stamp"
     fi
-done < <(find "$here/config" -type d -name oblio -prune -print0)
-
-if ((link)); then skip=(-type d -name oblio -prune -o); else skip=(); fi
-while IFS= read -r -d '' src; do
-    dst="$cfg/${src#"$here/config/"}"
-    mkdir -p "${dst%/*}"
     if ((link)); then
         ln -sfn "$src" "$dst"
+    elif [[ -d $src ]]; then
+        rm -rf "$dst"
+        cp -r "$src" "$dst"
     else
         rm -f "$dst"
         install -m644 "$src" "$dst"
     fi
-done < <(find "$here/config" "${skip[@]}" -type f -print0)
+}
 
-if [[ ! -e $config ]] || ((fresh)); then
-    msg "Writing $config"
-    if [[ -e $config ]]; then
-        cp "$config" "$config.bak.$(date +%Y%m%d-%H%M%S)"
-        echo "existing config backed up"
-    fi
-
-    # In a VM the host desktop keeps Super for itself (KDE, GNOME, Windows), so the
-    # VM gets Alt as its main key. On real hardware it stays Super.
-    mod=SUPER
-    if systemd-detect-virt -q; then mod=ALT; fi
-
-    # Hyprland's own default config, with Oblio's programs and its keybinds
-    # (from "-- Example binds" to the last media key) swapped for oblio-keys.lua
-    tmp="$(mktemp)"
-    sed -e 's/^local terminal    = "kitty"$/local terminal    = "alacritty"/' \
-        -e 's/^local menu        = "hyprlauncher"$/&\nlocal browser     = "zen-browser"/' \
-        -e "s/^\(        kb_layout  = \)\"us\",$/\1\"$layout\",/" \
-        -e "s/^local mainMod = \"SUPER\"/local mainMod = \"$mod\"/" \
-        -e '/^-- Example binds, see/,/^hl.bind("XF86AudioPrev"/c\
--- Oblio'"'"'s keybinds: oblio-keys.lua\
-require("oblio-keys")({\
-    mod      = mainMod,\
-    terminal = terminal,\
-    files    = fileManager,\
-    browser  = browser,\
-    launcher = menu,\
-})' \
-        "$default" > "$tmp"
-    if grep -q '^hl.bind(' "$tmp" || ! grep -q '^local browser' "$tmp"; then
-        rm -f "$tmp"
-        die "Hyprland's default config changed, desktop/setup needs updating"
-    fi
-
-    {
-        cat "$tmp"
-        cat <<'EOF'
-
-
----------------
----- OBLIO ----
----------------
-
--- window management, dock, autostart (oblio-desktop.lua, oblio.lua)
-require("oblio-desktop")
-EOF
-        machine_lua
-    } > "$config"
-    rm -f "$tmp"
-fi
+msg "$( ((link)) && echo Linking || echo Copying ) Oblio's desktop files into $cfg"
+# Quickshell's config folder goes as a whole, so new files in it show up by themselves
+place "$here/config/quickshell/oblio" "$cfg/quickshell/oblio"
+while IFS= read -r -d '' src; do
+    place "$src" "$cfg/${src#"$here/config/"}"
+done < <(find "$here/config" -path "$here/config/quickshell" -prune -o -type f -print0)
+# links left behind by files that moved or were removed in the repo
+find "$cfg/hypr" -xtype l -lname "$here/*" -delete 2>/dev/null || true
 
 msg "Building Dolphin's application menu"
 XDG_MENU_PREFIX=arch- kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
 
 msg "Installing the login screen"
 sudo install -Dm644 -t /usr/share/oblio/greeter "$here"/greeter/*.qml
-{
-    cat "$here/greeter/hyprland.lua"
-    cat <<EOF
-
-hl.config({
-    input = {
-        kb_layout = "$layout",
-    },
-})
-EOF
-    machine_lua
-} | sudo install -Dm644 /dev/stdin /etc/greetd/oblio-hyprland.lua
+sudo install -Dm644 "$here/greeter/hyprland.lua" /etc/greetd/oblio-hyprland.lua
 sudo install -d -o greeter -g greeter -m755 /var/lib/oblio-greeter
 if ! grep -q oblio-hyprland /etc/greetd/config.toml 2>/dev/null; then
     [[ -e /etc/greetd/config.toml ]] && sudo cp /etc/greetd/config.toml "/etc/greetd/config.toml.bak.$stamp"
@@ -214,8 +125,8 @@ else
     login="$dm"
 fi
 
-mod="$(sed -n 's/^local mainMod = "\([^"]*\)".*/\1/p' "$config")"
-mod="${mod:-SUPER}"
+mod=SUPER
+if systemd-detect-virt -q --vm; then mod=ALT; fi
 
 msg "Done"
 cat <<EOF
@@ -227,23 +138,19 @@ else
     echo "Run desktop/setup --greeter to switch to Oblio's login screen."
 fi)
 
-  $mod + Enter     terminal (Alacritty)
-  $mod + E         files (Dolphin)
-  $mod + W         browser (Zen)
-  $mod + R         app launcher
-  $mod + I         settings
-  $mod + Q         close window
-  $mod + D         maximize                 $mod + F           fullscreen
-  $mod + C         minimize                 $mod + SHIFT + C   restore last minimized
-  $mod + SHIFT + D show desktop (minimize all, again to restore)
-  $mod + T         this workspace: tiling <-> floating
-  $mod + 1..0      switch workspace
-  $mod + M         exit Hyprland
+  $mod + Enter     terminal (Alacritty)      $mod + E   files (Dolphin)
+  $mod + W         browser (Zen)             $mod + R   app launcher
+  $mod + I         settings                  $mod + Q   close window
+  $mod + D         maximize                  $mod + F   fullscreen
+  $mod + C         minimize                  $mod + ALT + C     restore last minimized
+  $mod + SHIFT + D show desktop              $mod + T   this workspace: tiling <-> floating
+  $mod + S         screenshot of an area     Print      screenshot of the screen
+  $mod + 1..0      switch workspace          $mod + M   exit Hyprland
 
-Dock: click = open / focus / restore, click the focused app = minimize,
-      right click = minimize or restore all its windows, middle click = new window
+Dock: click = open / focus / minimize / bring back; middle click = new window;
+      right click = menu (its windows, new window, pin to dock, quit)
 
-Config: $config  (keys: oblio-keys.lua)
+Config: $cfg/hypr/hyprland.lua and $cfg/hypr/modules/ (keys: binds.lua)
 EOF
 if [[ $mod == ALT ]]; then
     echo "This is a virtual machine, so the main key is Alt instead of Super."

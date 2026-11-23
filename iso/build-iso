@@ -3,9 +3,9 @@
 #
 # Builds the Oblio ISO into out/: Arch's official live ISO (archiso releng profile)
 # plus the Oblio installer, its config and Oblio's prebuilt packages.
-#   tools/build-iso                     build packages, then the ISO
-#   tools/build-iso --reuse-packages    keep the packages already in out/repo
-#   tools/build-iso --profile-only      only assemble out/iso-profile, don't build
+#   iso/build-iso                     build packages, then the ISO
+#   iso/build-iso --reuse-packages    keep the packages already in out/repo
+#   iso/build-iso --profile-only      only assemble out/iso-profile, don't build
 
 set -euo pipefail
 
@@ -39,9 +39,11 @@ cp -r "$releng" "$profile"
 cat "$root/iso/packages.x86_64" >> "$profile/packages.x86_64"
 cp -r "$root/iso/airootfs/." "$profile/airootfs/"
 
+# same layout as the repo, so the installer finds base/ next to tools/installer/
 dest="$profile/airootfs/usr/share/oblio"
-mkdir -p "$dest"
-cp -r "$root/installer" "$root/config" "$root/packages" "$root/assets" "$dest/"
+mkdir -p "$dest/tools"
+cp -r "$root/base" "$dest/"
+cp -r "$root/tools/installer" "$dest/tools/"
 cp -r "$out/repo" "$dest/repo"
 
 # later assignments win: profiledef.sh is sourced by mkarchiso
@@ -53,8 +55,8 @@ iso_publisher="Oblio <https://github.com/tudorblank/oblio>"
 iso_application="Oblio installer"
 file_permissions+=(
   ["/usr/local/bin/oblio-install"]="0:0:755"
-  ["/usr/share/oblio/installer/oblio-install"]="0:0:755"
-  ["/usr/share/oblio/installer/oblio-repos"]="0:0:755"
+  ["/usr/share/oblio/tools/installer/oblio-install"]="0:0:755"
+  ["/usr/share/oblio/tools/installer/oblio-repos"]="0:0:755"
 )
 EOF
 

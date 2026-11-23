@@ -327,6 +327,19 @@ tool_data() {
     as_user "tldr --update >/dev/null" || warn "run 'tldr --update' once to get its examples"
 }
 
+# Wi-Fi networks joined in the live system (iwd keeps them in /var/lib/iwd), so the first boot is online
+wifi_networks_copy() {
+    local f
+    local -a nets=()
+    for f in /var/lib/iwd/*.psk /var/lib/iwd/*.open; do
+        if [[ -f $f ]]; then nets+=("$f"); fi
+    done
+    (( ${#nets[@]} )) || return 0
+    msg "Copying Wi-Fi networks"
+    install -d -m700 "$mnt/var/lib/iwd"
+    install -m600 -t "$mnt/var/lib/iwd" "${nets[@]}"
+}
+
 # ufw: incoming blocked (except DHCP and mDNS replies), outgoing allowed. It can't be
 # switched on in the chroot (no live netfilter), so it's marked enabled for the next boot.
 firewall() {
@@ -400,6 +413,7 @@ run_install() {
     install_packages
     home_folders
     tool_data
+    wifi_networks_copy
     firewall
     finish
 }

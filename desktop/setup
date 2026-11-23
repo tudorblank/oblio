@@ -126,33 +126,10 @@ else
     login="$dm"
 fi
 
-mod=SUPER
-if systemd-detect-virt -q --vm; then mod=ALT; fi
-
 msg "Done"
-cat <<EOF
-
-$(if [[ $login == greetd ]]; then
+if [[ $login == greetd ]]; then
     echo "Reboot to get Oblio's login screen. Pick the session at the bottom left."
 else
     echo "Your login manager stays ${login%.service}; it lists Hyprland as a session."
     echo "Run desktop/setup --greeter to switch to Oblio's login screen."
-fi)
-
-  $mod + Enter     terminal (Alacritty)      $mod + E   files (Dolphin)
-  $mod + W         browser (Zen)             $mod + R   app launcher
-  $mod + I         settings                  $mod + Q   close window
-  $mod + D         maximize                  $mod + F   fullscreen
-  $mod + C         minimize                  $mod + ALT + C     restore last minimized
-  $mod + SHIFT + D show desktop              $mod + T   this workspace: tiling <-> floating
-  $mod + S         screenshot of an area     Print      screenshot of the screen
-  $mod + 1..0      switch workspace          $mod + M   exit Hyprland
-
-Dock: click = open / focus / minimize / bring back; middle click = new window;
-      right click = menu (its windows, new window, pin to dock, quit)
-
-Config: $cfg/hypr/hyprland.lua and $cfg/hypr/modules/ (keys: binds.lua)
-EOF
-if [[ $mod == ALT ]]; then
-    echo "This is a virtual machine, so the main key is Alt instead of Super."
 fi

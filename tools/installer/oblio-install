@@ -4,7 +4,7 @@
 # Oblio installer. Run as root from the Oblio ISO (or an Arch ISO), booted in UEFI mode.
 # Walks through each choice, shows a summary, and only touches disks after you confirm
 # (partitions you edit and save yourself in cfdisk are saved right away).
-# Esc goes back, Ctrl+C quits.
+# Esc goes back, Ctrl+C asks whether to quit.
 
 set -uo pipefail
 
@@ -110,15 +110,115 @@ parse_pairs() {
 # Each step returns non-zero when you go back (Esc), and only changes the
 # settings once it is complete.
 
+online() {
+    curl -fsI --max-time 6 "${OBLIO_NET_CHECK:-https://mirror.cachyos.org}" >/dev/null 2>&1
+}
+
+wifi_devices() {
+    local d
+    for d in /sys/class/net/*; do
+        [[ -e $d/phy80211 ]] && echo "${d##*/}"
+    done
+}
+
+# "security:name" per line, as iwctl lists them (strongest first)
+wifi_networks() {
+    local line re=$'^[[:space:]]*(>[[:space:]]+)?(.*[^[:space:]])[[:space:]]{2,}(open|psk|8021x|wep|owe)[[:space:]]+[*]+'
+    while IFS= read -r line; do
+        line="$(sed -E 's/\x1b\[[0-9;]*m//g' <<< "$line")"
+        [[ $line =~ $re ]] && echo "${BASH_REMATCH[3]}:${BASH_REMATCH[2]}"
+    done < <(iwctl station "$1" get-networks 2>/dev/null)
+}
+
+# up to ~20 s for DHCP and the first answer after connecting
+wait_online() {
+    local end=$((SECONDS + 20))
+    until online; do
+        (( SECONDS < end )) || return 1
+        sleep 1
+    done
+}
+
+connect_wifi() {
+    local dev sec ssid pass choice label
+    local -a devs nets opts
+    rfkill unblock wifi 2>/dev/null || true
+    mapfile -t devs < <(wifi_devices)
+    if (( ! ${#devs[@]} )); then
+        screen "Wi-Fi" "No Wi-Fi card found."
+        note "Plug in a network cable, or check that Wi-Fi isn't switched off with a key or in the firmware settings."
+        pause "Back"
+        return 1
+    fi
+    dev="${devs[0]}"
+    if (( ${#devs[@]} > 1 )); then
+        dev="$(choose "Which Wi-Fi card?" "${devs[@]}")" || return 1
+    fi
+    iwctl device "$dev" set-property Powered on >/dev/null 2>&1 || true
+
+    while true; do
+        screen "Wi-Fi" "Looking for networks..."
+        iwctl station "$dev" scan >/dev/null 2>&1 || true
+        ui spin --title "Scanning" -- sleep 4 || return 1
+        mapfile -t nets < <(wifi_networks "$dev")
+
+        screen "Wi-Fi" "Pick your network. Esc goes back."
+        opts=()
+        for choice in "${nets[@]}"; do
+            label="${choice#*:}"
+            [[ ${choice%%:*} == open ]] && label+="  (no password)"
+            opts+=("$label|$choice")
+        done
+        opts+=("Scan again|rescan" "A hidden network (type its name)|hidden" "Back|back")
+        choice="$(choose "Networks" "${opts[@]}")" || return 1
+        case $choice in
+            back)   return 1 ;;
+            rescan) continue ;;
+            hidden)
+                ssid="$(ui input --header "Network name" --placeholder "exactly as it's spelled")" || continue
+                [[ -n $ssid ]] || continue
+                sec=psk ;;
+            *)
+                sec="${choice%%:*}" ssid="${choice#*:}" ;;
+        esac
+
+        pass=""
+        if [[ $sec != open ]]; then
+            pass="$(ui input --password --header "Password for $ssid" --placeholder "Wi-Fi password")" || continue
+        fi
+
+        local -a cmd=(iwctl --dont-ask)
+        [[ -n $pass ]] && cmd+=(--passphrase "$pass")
+        if [[ $choice == hidden ]]; then cmd+=(station "$dev" connect-hidden "$ssid")
+        else cmd+=(station "$dev" connect "$ssid"); fi
+
+        screen "Wi-Fi" "Connecting to $ssid..."
+        if ! "${cmd[@]}" >/dev/null 2>&1; then
+            alert "Couldn't connect to $ssid. Is the password right?"
+            pause "Try again"
+            continue
+        fi
+        if ui spin --title "Connected to $ssid, getting online" -- bash -c "$(declare -f online wait_online); wait_online"; then
+            return 0
+        fi
+        iwctl known-networks "$ssid" forget >/dev/null 2>&1 || true
+        alert "Connected to $ssid, but the internet doesn't answer." \
+            "Some networks (hotels, cafes) want a login page first, which this installer can't open."
+        pause "Back"
+    done
+}
+
 step_network() {
-    while ! curl -fsI --max-time 8 https://mirror.cachyos.org >/dev/null 2>&1; do
+    ui spin --title "Checking the internet connection" -- bash -c "$(declare -f online); online" && return 0
+    while true; do
         screen "No internet connection" "Oblio downloads its packages during install. Plug in a cable, or connect to Wi-Fi."
-        case "$(choose "What now?" "Connect to Wi-Fi (iwctl)|wifi" "Check again|retry" "Quit|quit")" in
-            wifi)
-                note "In iwctl: 'station wlan0 scan', 'station wlan0 get-networks'," \
-                    "'station wlan0 connect <name>', then 'exit'."
-                iwctl || true ;;
-            quit) exit 1 ;;
+        local -a opts=()
+        [[ -n "$(wifi_devices)" ]] && opts+=("Connect to Wi-Fi|wifi")
+        opts+=("Check again|retry" "Quit|quit")
+        case "$(choose "What now?" "${opts[@]}")" in
+            wifi)  connect_wifi && return 0 ;;
+            retry) ui spin --title "Checking the internet connection" -- bash -c "$(declare -f online); online" && return 0 ;;
+            quit)  quit now ;;
         esac
     done
 }
@@ -393,8 +493,9 @@ step_components() {
         selected="$(IFS=,; printf '%s' "${components_picked[*]}")"
     fi
     local out
-    out="$(ui choose --no-limit --header "Optional components (space toggles, enter confirms)" \
-        --selected "$selected" "${opt_names[@]}")" || return 1
+    out="$(ui choose --no-limit --header "Optional components: [x] gets installed. x toggles, Enter confirms." \
+        --cursor "> " --cursor-prefix "[ ] " --selected-prefix "[x] " --unselected-prefix "[ ] " \
+        --selected.foreground 10 --selected "$selected" "${opt_names[@]}")" || return 1
     mapfile -t picked <<< "$out"
     [[ -n $out ]] || picked=()
     components_picked=("${picked[@]}")
@@ -476,7 +577,7 @@ review() {
             "Change components|components" "Change user|user" "Quit without changes|quit")" || continue
         case $c in
             install) return 0 ;;
-            quit)    quit ;;
+            quit)    quit now ;;
             *)       "step_$c" || true ;;
         esac
     done
@@ -508,7 +609,14 @@ done_message() {
     echo
 }
 
+# Ctrl+C asks first (a second Ctrl+C quits); "Quit" in a menu quits right away
 quit() {
+    local rc=0
+    if [[ ${1:-} != now ]]; then
+        echo
+        gum confirm --default=false "Quit the installer? Nothing has been changed." || rc=$?
+        (( rc == 0 || rc == 130 )) || return 0
+    fi
     clear
     gum style --foreground "$red" "Installer stopped. Nothing was changed."
     exit 1

@@ -2,5 +2,5 @@
   [1;38;2;220;43;47mOblio[0m installer
 
   Start the installer:   [1moblio-install[0m
-  Wi-Fi:                 [1miwctl[0m
+  No internet? The installer connects you to Wi-Fi.
 

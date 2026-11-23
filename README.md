@@ -16,7 +16,9 @@ UEFI mode (not "Legacy" or "CSM").
 
 Boot the Oblio ISO and follow the steps: keyboard, language, time zone, disk (erase it, or pick
 partitions for dual boot), encryption, kernel, components, user. Nothing touches the disk before
-the summary is confirmed. Esc goes back a step, Ctrl+C quits.
+the summary is confirmed. Esc goes back a step, Ctrl+C asks whether to quit. Without a cable, the
+installer connects you to Wi-Fi (pick the network, type the password), and the installed system
+joins the same network by itself.
 
 After the reboot you log in on a text console, with fish as the shell. The first login greets you
 and points at the desktop install; your home already has Desktop, Documents, Downloads, Music,

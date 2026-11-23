@@ -28,6 +28,23 @@ sessions() {
 }
 
 red=$'\e[1;31m' bold=$'\e[1m' off=$'\e[0m'
+
+if ! curl -fsIL --max-time 10 "$source" >/dev/null 2>&1; then
+    wifi=wlan0
+    for d in /sys/class/net/*; do
+        if [[ -e $d/phy80211 ]]; then wifi="${d##*/}"; break; fi
+    done
+    echo "${red}No internet connection.${off} oblio-desktop downloads the desktop from GitHub."
+    echo "Plug in a network cable, or connect to Wi-Fi (it's remembered after that):"
+    echo
+    echo "  sudo iwctl station $wifi scan"
+    echo "  sudo iwctl station $wifi get-networks"
+    echo "  sudo iwctl station $wifi connect \"Network name\""
+    echo
+    echo "Then run oblio-desktop again."
+    exit 1
+fi
+
 current="$(sessions)"
 echo
 echo "${red}WARNING!${off} This installs the latest Oblio desktop on this Oblio system."
@@ -40,5 +57,9 @@ read -rp "Proceed? [Y/n] " answer
 dir="$(mktemp -d)"
 trap 'rm -rf "$dir"' EXIT
 echo "Downloading Oblio's desktop..."
-curl -fsSL "$source" | tar xz -C "$dir" --strip-components=1
+if ! curl -fL --progress-bar -o "$dir/oblio.tar.gz" "$source"; then
+    echo "${red}error:${off} the download failed, nothing was changed. Check the connection and try again." >&2
+    exit 1
+fi
+tar xzf "$dir/oblio.tar.gz" -C "$dir" --strip-components=1
 "$dir/desktop/setup" "$@"

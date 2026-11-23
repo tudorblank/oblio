@@ -26,7 +26,8 @@ jobs:
     container: archlinux:base-devel
     steps:
       - name: Tools
-        run: pacman -Syu --noconfirm --needed git github-cli
+        # gtk3: oblio-gtk-module compiles against it
+        run: pacman -Syu --noconfirm --needed git github-cli gtk3
 
       - uses: actions/checkout@v5
         with:

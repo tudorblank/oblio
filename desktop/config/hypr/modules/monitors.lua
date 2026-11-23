@@ -1,12 +1,13 @@
 -- Monitors: https://wiki.hypr.land/configuring/core/monitors/
--- `hyprctl monitors` lists names and modes.
+-- `hyprctl monitors` lists names and modes. Choices made in Settings > Display are
+-- saved to settings.lua and win over this.
 
--- every monitor: best mode, placed automatically
+-- every monitor: best mode, placed automatically, 100%
 hl.monitor({
     output   = "",
     mode     = "preferred",
     position = "auto",
-    scale    = "auto",
+    scale    = 1,
 })
 
 -- one monitor set by hand:

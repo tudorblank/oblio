@@ -10,8 +10,20 @@
 - [x] Minimal Hyprland (`desktop/setup`, `--link` for live editing)
 - [x] Window management: minimize, show desktop, tiling/floating per workspace (`hypr/modules/windows.lua`)
 - [x] Dock (`desktop/config/quickshell/oblio`, Quickshell)
-- [x] Settings panel (SUPER+I): dock, windows, appearance, input
-- [ ] Shell: top bar (workspaces, clock, tray, volume, network), notifications, launcher, lock screen
+- [x] Settings panel (SUPER+I): display, dock, windows, appearance, input
+- [x] Display settings: resolution, refresh rate, scale, rotation, arrangement, mirroring; keep-or-go-back
+  confirmation; 100% by default, the scale that suits the screen's size marked as recommended
+- [ ] NVIDIA on hybrid laptops: `env.lua` (and the greeter) set NVIDIA's GLX/VA-API variables whenever the
+  driver is loaded, so the dGPU never sleeps; only set them when NVIDIA drives the display
+- [ ] Shell: top bar (workspaces, clock, tray, battery, volume, brightness, Wi-Fi via iwd, Bluetooth)
+- [ ] Notifications (Quickshell server) and an on-screen display for volume/brightness
+- [ ] Idle and lid: lock, screen off, suspend
+- [ ] Wallpaper, and one accent/theme shared by the shell and the greeter
+- [ ] Power menu (lock, log out, suspend, reboot, power off); SUPER+M exits straight away now
+- [ ] Keybind cheatsheet inside the desktop
+- [ ] Launcher (Quickshell) to replace hyprlauncher
+- [ ] USB automount, clipboard history
+- [ ] Greeter: 100% like the desktop (it uses Hyprland's "auto")
 - [x] Dock: right-click menu (windows, new window, pin to dock, quit), pinning from the dock
 - [ ] Animations and look, using `hypr-config-temp` as inspiration
 - [x] Two-part install: the ISO installs the base, `oblio-desktop` installs the desktop from GitHub

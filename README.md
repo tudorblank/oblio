@@ -31,7 +31,7 @@ What it installs:
 | Core system | `base` `mkinitcpio` `linux-firmware` `amd-ucode` `intel-ucode` `fish` `sudo` `micro` (the editor) `less` `man-db` `man-pages` `xdg-user-dirs` `terminus-font` (the console font, sized to your screen) | systemd-oomd, fstrim (weekly) |
 | Kernel | your choice of CachyOS kernel (`linux-cachyos`, `-bore`, `-eevdf`, `-bmq`, `-rt-bore`, `-hardened`, `-server`, `-deckify`), plus `linux-cachyos-lts` as a fallback if you want it | |
 | CachyOS optimizations | `cachyos-settings` `ananicy-cpp` `cachyos-ananicy-rules` `cachyos-keyring` `cachyos-mirrorlist` `cachyos-rate-mirrors`, and `cachyos-v3-mirrorlist` or `cachyos-v4-mirrorlist` to match your CPU | ananicy-cpp, mirror ranking |
-| Hardware | `chwd` (picks and installs the right GPU drivers for your machine) `power-profiles-daemon` `usbutils` `smartmontools` `nvme-cli` `hdparm` `ethtool` `dmidecode` `hwinfo` | power-profiles-daemon |
+| Hardware | `chwd` (picks and installs the right GPU drivers for your machine) `power-profiles-daemon` `acpi` (`acpi -b`: battery level and time left) `usbutils` `smartmontools` `nvme-cli` `hdparm` `ethtool` `dmidecode` `hwinfo` | power-profiles-daemon |
 | Network | `iwd` (Wi-Fi) with systemd-networkd and systemd-resolved, `ufw` (firewall: incoming blocked, outgoing allowed), `openssh` `inetutils` `bind` (dig) `modemmanager` `usb_modeswitch` (mobile data modems) | ufw, networkd, resolved, timesyncd, iwd |
 | Audio | `pipewire` `pipewire-audio` `pipewire-alsa` `pipewire-pulse` `pipewire-jack` `wireplumber` `rtkit` `sof-firmware` `alsa-firmware` `alsa-utils` | |
 | Filesystems | `btrfs-progs` `dosfstools` `exfatprogs` `ntfs-3g` `xfsprogs` `f2fs-tools` `jfsutils` `nilfs-utils` `mtools` `lvm2` `mdadm` `dmraid` `fsarchiver` | |
@@ -110,7 +110,7 @@ In a VM the main key is Alt instead of Super.
 | Keys | |
 |---|---|
 | SUPER+Enter / E / W / R | terminal / files / browser / launcher |
-| SUPER+I | settings: dock, windows, appearance, input |
+| SUPER+I | settings: display, dock, windows, appearance, input |
 | SUPER+Q | close window |
 | SUPER+D / SUPER+F | maximize / fullscreen |
 | SUPER+C / SUPER+ALT+C | minimize / restore last minimized (back where it was, same place and size) |
@@ -130,6 +130,11 @@ click opens a new window; right click opens a menu: the app's windows, New windo
 Unpin from dock, Quit. The dock never moves the pointer. It can always show, auto-hide (the bottom
 edge brings it back) or hide smartly (only while a window reaches into it), and it disappears when
 it has nothing to show (SUPER+I, Dock).
+
+Display (SUPER+I): resolution, refresh rate, scale, rotation, and with more than one screen, which
+ones are on, where they sit and mirroring. A change applies at once and goes back by itself after 15
+seconds unless you keep it, so a mode the screen can't show fixes itself. Screens start at 100%;
+the scale list marks the one that suits the screen's size.
 
 A floating window comes to the front when it gets focus. Floating windows always stay above tiled
 ones; for normal desktop stacking, switch the workspace to floating with SUPER+T.

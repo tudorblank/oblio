@@ -1,44 +1,45 @@
 # Oblio
 
 A personal Arch Linux distribution built on CachyOS's repositories, kernels and tuning.
-Terminal installer, btrfs with bootable snapshots, Limine.
+It installs in two parts:
 
-## Layout
+1. **The base**: a complete, fast system with a terminal. This is what the Oblio ISO installs.
+2. **The Oblio desktop**: Hyprland with Oblio's shell (dock, settings, login screen), installed
+   afterwards with one command, straight from this repository.
 
-```
-base/         what an Oblio system is made of
-  config/       components/ (one file per component: packages + services; optional ones show up
-                in the installer), pacman.conf (Cachy repos filled in per CPU), btrfs.conf, limine.conf
-  packages/     Oblio's own packages: oblio-hooks (branding, pacman hooks), oblio-settings (system config)
-desktop/      the Oblio desktop: setup, config/ (lands in ~/.config: hypr/, quickshell/), greeter/ (login screen)
-tools/        installing and tooling
-  installer/    oblio-install (the step-by-step installer), engine.sh (install steps), oblio-repos (CPU detection)
-  build-packages, oblio-vm (test VM)
-iso/          the Oblio ISO: build-iso, and what it adds on top of Arch's live ISO
-```
+## Part 1: the base
 
-## Build the ISO
+Boot the Oblio ISO and follow the steps: keyboard, language, time zone, disk (erase it, or pick
+partitions for dual boot), encryption, kernel, components, user. Nothing touches the disk before
+the summary is confirmed. Esc goes back a step, Ctrl+C quits.
 
-```
-sudo pacman -S archiso
-iso/build-iso
-```
+After the reboot you log in on a text console, with fish as the shell and these folders in your
+home: Desktop, Documents, Downloads, Music, Pictures, Public, Videos.
 
-The ISO lands in `out/`. It boots straight into the installer.
+What it installs:
 
-## Test in a VM
+| Component | Packages | Running |
+|---|---|---|
+| Core system | `base` `mkinitcpio` `linux-firmware` `amd-ucode` `intel-ucode` `btrfs-progs` `dosfstools` `fish` `sudo` `micro` `xdg-user-dirs` | systemd-oomd, fstrim (weekly) |
+| Kernel | your choice of CachyOS kernel (`linux-cachyos`, `-bore`, `-eevdf`, `-bmq`, `-rt-bore`, `-hardened`, `-server`, `-deckify`), plus `linux-cachyos-lts` as a fallback if you want it | |
+| CachyOS optimizations | `cachyos-settings` `ananicy-cpp` `cachyos-ananicy-rules` `cachyos-keyring` `cachyos-mirrorlist` `cachyos-rate-mirrors`, and `cachyos-v3-mirrorlist` or `cachyos-v4-mirrorlist` to match your CPU | ananicy-cpp, mirror ranking |
+| Hardware detection | `chwd` (picks and installs the right GPU drivers for your machine) `power-profiles-daemon` | power-profiles-daemon |
+| Network | `iwd` (Wi-Fi), with systemd-networkd and systemd-resolved | networkd, resolved, timesyncd, iwd |
+| Audio | `pipewire` `pipewire-audio` `pipewire-alsa` `pipewire-pulse` `pipewire-jack` `wireplumber` `rtkit` `sof-firmware` `alsa-firmware` | |
+| Boot and snapshots | `limine` `limine-mkinitcpio-hook` `limine-snapper-sync` `snapper` (btrfs snapshots you can boot from the Limine menu) | |
+| Maintenance | `pacman-contrib` `arch-update` | old package cache cleanup, update notifier |
+| Oblio | `oblio-hooks` (Oblio's name in os-release, reboot-required notices), `oblio-settings` (system configuration, the fish prompt, the `oblio-desktop` and `oblio-snapshot` commands) | |
 
-```
-sudo pacman -S qemu-desktop edk2-ovmf
-tools/oblio-vm install   # boots the newest ISO from out/
-tools/oblio-vm run       # boots the installed system
-tools/oblio-vm reset     # wipes the VM disk
-```
+Optional, picked in the installer (all on by default):
 
-## Install
-
-Boot the ISO and follow the steps: keyboard, language, time zone, disk (erase or manual),
-encryption, kernel, components, user. Nothing touches the disk before the summary is confirmed.
+| Component | Packages |
+|---|---|
+| Bluetooth | `bluez` `bluez-utils` |
+| Printing | `cups` `ipp-usb` `avahi` `nss-mdns` |
+| Firmware updates | `fwupd` |
+| Game controllers | `steam-devices` |
+| Drawing tablets | `libwacom` |
+| Development tools | `base-devel` `git` `paru` `rebuild-detector` (needed for the AUR) |
 
 The installer also runs from a plain Arch ISO, building Oblio's packages on the fly:
 
@@ -47,22 +48,42 @@ curl -L https://github.com/tudorblank/oblio/archive/refs/heads/main.tar.gz | tar
 oblio-main/tools/installer/oblio-install
 ```
 
-## Desktop
+## Part 2: the Oblio desktop
 
-On an installed Oblio, as your user:
+On the installed system, as your user:
+
+```
+oblio-desktop
+reboot
+```
+
+`oblio-desktop` downloads the desktop from this repository and sets it up; run it again later to
+update. After the reboot you get Oblio's login screen: pick the user and the session at the bottom
+left (Hyprland, or anything else installed) and log in. If another login manager is already set up
+(SDDM, GDM...), it's left alone unless you run `oblio-desktop --greeter`.
+
+What it provides:
+
+| | Packages |
+|---|---|
+| Compositor | `hyprland` with Oblio's config (Lua modules in `~/.config/hypr/modules/`) |
+| Shell | `quickshell` running Oblio's dock and settings panel |
+| Login screen | `greetd` with Oblio's greeter (session picker, remembers your choice) |
+| Apps | `alacritty` (terminal), `dolphin` (files), `zen-browser-bin` (browser), `hyprlauncher` (app launcher), `btop` (task manager) |
+| Desktop plumbing | `hyprpolkitagent` (password prompts), `xdg-desktop-portal-hyprland` (screen sharing, file pickers), `qt6-wayland`, `archlinux-xdg-menu`, `xorg-xhost` |
+| Tools | `grim` `slurp` `wl-clipboard` (screenshots), `hyprpicker` (color picker), `brightnessctl` `playerctl` (brightness and media keys) |
+| Look | `breeze-icons`, `capitaine-cursors`, `inter-font`, `ttf-dejavu`, `ttf-nerd-fonts-symbols` |
+
+On another Arch-based system, the same desktop installs with:
 
 ```
 curl -L https://github.com/tudorblank/oblio/archive/refs/heads/main.tar.gz | tar xz
 oblio-main/desktop/setup
-reboot
 ```
 
-After the reboot you get Oblio's login screen (greetd + a Quickshell greeter): pick the user and
-the session (Hyprland, or anything else installed) and log in. If another login manager is already
-set up (SDDM, GDM...), setup leaves it alone unless you run `desktop/setup --greeter`.
+### Using it
 
-Hyprland with Oblio's window management and dock, Alacritty, Dolphin, Zen and Hyprland's
-launcher. In a VM the main key is Alt instead of Super.
+In a VM the main key is Alt instead of Super.
 
 | Keys | |
 |---|---|
@@ -81,14 +102,49 @@ launcher. In a VM the main key is Alt instead of Super.
 
 All keys: `~/.config/hypr/modules/binds.lua`.
 
-Everything in `desktop/config/` lands at the same path in `~/.config` (a file it replaces is kept
-as `NAME.bak.DATE`); `desktop/setup --link` symlinks instead of copying, so edits in the repo apply
-live. Hyprland: `hyprland.lua` loads `modules/` (monitors, env, input, layout, decorations,
+Dock: click opens an app; on a running app it focuses its window if it isn't focused, minimizes it
+if it is, and brings minimized windows back (to their workspace, place and size, focused); middle
+click opens a new window; right click opens a menu: the app's windows, New window, Pin to dock /
+Unpin from dock, Quit. The dock never moves the pointer. It can always show, auto-hide (the bottom
+edge brings it back) or hide smartly (only while a window reaches into it), and it disappears when
+it has nothing to show (SUPER+I, Dock).
+
+A floating window comes to the front when it gets focus. Floating windows always stay above tiled
+ones; for normal desktop stacking, switch the workspace to floating with SUPER+T.
+
+Hyprland's config: `hyprland.lua` loads `modules/` (monitors, env, input, layout, decorations,
 animations, misc, windowrules, windows, binds, autostart); what you change in the settings panel is
 saved to `settings.lua` next to it and wins over the modules.
 
-Dock: click opens an app; on a running app it focuses its window if it isn't focused, minimizes it
-if it is, and brings minimized windows back (to their workspace, place and size, focused); middle click opens a new window; right click opens
-a menu: the app's windows, New window, Pin to dock / Unpin from dock, Quit. The dock never moves
-the pointer. It can always show, auto-hide (the bottom edge brings it back) or hide smartly (only
-while a window reaches into it), and it disappears when it has nothing to show (SUPER+I, Dock).
+## Working on Oblio
+
+```
+base/         what an installed Oblio is made of
+  config/       components/ (one file per component: packages + services; optional ones show up
+                in the installer), pacman.conf (Cachy repos filled in per CPU), btrfs.conf, limine.conf
+  packages/     Oblio's own packages: oblio-hooks, oblio-settings
+desktop/      the Oblio desktop: setup, config/ (lands in ~/.config: hypr/, quickshell/), greeter/
+tools/        installing and tooling
+  installer/    oblio-install (the step-by-step installer), engine.sh (install steps), oblio-repos (CPU detection)
+  build-packages, oblio-vm (test VM)
+iso/          the Oblio ISO: build-iso, and what it adds on top of Arch's live ISO
+```
+
+Build the ISO (it carries the base only; the desktop always comes from this repository):
+
+```
+sudo pacman -S archiso
+iso/build-iso
+```
+
+Test in a VM:
+
+```
+sudo pacman -S qemu-desktop edk2-ovmf
+tools/oblio-vm install   # boots the newest ISO from out/
+tools/oblio-vm run       # boots the installed system
+tools/oblio-vm reset     # wipes the VM disk
+```
+
+Live desktop editing: `git clone` this repository and run `desktop/setup --link`. Everything in
+`desktop/config/` is then symlinked into `~/.config`, so edits in the repo apply right away.

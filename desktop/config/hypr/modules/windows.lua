@@ -175,6 +175,15 @@ hl.on("window.close", function(w)
     if w then forget(w.address) end
 end)
 
+-- a floating window that gets focus comes to the front, however it got it (a click
+-- already does that; the dock, keys and Alt+Tab don't). Tiled windows can't: Hyprland
+-- always draws floating windows above tiled ones.
+hl.on("window.active", function(w)
+    if w and w.floating then
+        hl.dispatch(hl.dsp.window.alter_zorder({ mode = "top", window = sel(w.address) }))
+    end
+end)
+
 ---------------------------------------------------------------------------
 -- per-workspace tiling <-> floating
 ---------------------------------------------------------------------------

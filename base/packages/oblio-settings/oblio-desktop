@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Installs (or updates) Oblio's desktop from the official repository:
+#   oblio-desktop            then reboot to get the login screen
+#   oblio-desktop --greeter  also replace another login manager (SDDM, GDM, ...)
+
+set -euo pipefail
+
+source="${OBLIO_SOURCE:-https://github.com/tudorblank/oblio/archive/refs/heads/main.tar.gz}"
+
+for arg; do
+    [[ $arg == --greeter ]] || { echo "usage: oblio-desktop [--greeter]" >&2; exit 1; }
+done
+[[ $EUID != 0 ]] || { echo "error: run as your normal user, not root" >&2; exit 1; }
+
+dir="$(mktemp -d)"
+trap 'rm -rf "$dir"' EXIT
+echo "Downloading Oblio's desktop..."
+curl -fsSL "$source" | tar xz -C "$dir" --strip-components=1
+"$dir/desktop/setup" "$@"

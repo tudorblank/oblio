@@ -49,6 +49,8 @@ Singleton {
     animations = { enabled = ${o.animations} },
     input = {
         follow_mouse = ${o.focusKeyboard ? 1 : o.focusScroll ? 2 : 0},
+        -- with click to focus, moving between tiled and floating windows mustn't move focus either
+        float_switch_override_focus = ${o.focusKeyboard ? 1 : 0},
         sensitivity = ${o.sensitivity.toFixed(2)},
         natural_scroll = ${o.naturalScroll},
         repeat_rate = ${o.repeatRate},

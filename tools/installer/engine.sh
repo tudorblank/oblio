@@ -317,6 +317,14 @@ build_arch_update() {
     rm -rf "$mnt$dir"
 }
 
+# Desktop, Documents, Downloads, Music, Pictures, Public, Videos: no Templates or Projects.
+# user-dirs.defaults is meant to be edited, so pacman keeps this across updates.
+home_folders() {
+    msg "Creating home folders"
+    sed -i -E '/^(TEMPLATES|PROJECTS)=/d' "$mnt/etc/xdg/user-dirs.defaults"
+    as_user "LANG=$LOCALE xdg-user-dirs-update"
+}
+
 enable_services() {
     msg "Enabling services"
     local -a units
@@ -384,5 +392,6 @@ run_install() {
     configure_boot
     create_user
     install_packages
+    home_folders
     finish
 }

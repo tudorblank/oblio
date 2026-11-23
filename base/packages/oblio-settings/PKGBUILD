@@ -2,11 +2,11 @@
 
 pkgname=oblio-settings
 pkgver=2026.11.22
-pkgrel=3
+pkgrel=4
 pkgdesc='Oblio system configuration'
 arch=('any')
 license=('GPL-3.0-or-later')
-depends=('fish' 'limine-mkinitcpio-hook' 'mkinitcpio' 'snapper' 'systemd')
+depends=('curl' 'fish' 'limine-mkinitcpio-hook' 'mkinitcpio' 'snapper' 'systemd')
 backup=('etc/mkinitcpio.conf.d/05-oblio.conf'
         'etc/limine-entry-tool.d/oblio.conf')
 source=('mkinitcpio.conf'
@@ -17,7 +17,8 @@ source=('mkinitcpio.conf'
         'oblio-snapshot'
         'resolved.conf'
         'paccache.conf'
-        'fish_prompt.fish')
+        'fish_prompt.fish'
+        'oblio-desktop')
 sha256sums=('7a4df2ccfa249f33c6269d84583639e80ea6fd6a3ead9f09c75fe6c87312367c'
             '9286a80166d3427f962c0714d4e5104d40a844aedade8f393c1213e909513955'
             'c7a5426644aeb65dcd705744f4bd8d1b0645e60e541541da5869dd7cc5948f79'
@@ -26,7 +27,8 @@ sha256sums=('7a4df2ccfa249f33c6269d84583639e80ea6fd6a3ead9f09c75fe6c87312367c'
             'fcf5a7f33cb317af7b195299b7959eb248a88a36ed39e026aae9b29f4d7a584f'
             'dc5a6fd4d4ec5da98fccfd30d2965c1c5dbb6734b43dc2ea38f6c3aa43758a97'
             'c4eb8b4a33a230e5b571ea35229f5995e68f19f0ee3cdd10d5200de4602e10e0'
-            '1ee3882588d1c8949e92cdc0b05477e2add2c816fef0b74596e876cfbc63caa2')
+            '1ee3882588d1c8949e92cdc0b05477e2add2c816fef0b74596e876cfbc63caa2'
+            '0427c00b3dccf99bd8612c4e3b9c61c4f486f04acf1003471e867c31e0b10c5d')
 
 package() {
     install -Dm644 mkinitcpio.conf "$pkgdir/etc/mkinitcpio.conf.d/05-oblio.conf"
@@ -34,7 +36,7 @@ package() {
     install -Dm644 oblio-wired.network "$pkgdir/usr/lib/systemd/network/89-oblio-wired.network"
     install -Dm644 oblio-wireless.network "$pkgdir/usr/lib/systemd/network/89-oblio-wireless.network"
     install -Dm644 snapper-template "$pkgdir/usr/share/snapper/config-templates/oblio"
-    install -Dm755 oblio-snapshot "$pkgdir/usr/bin/oblio-snapshot"
+    install -Dm755 oblio-snapshot oblio-desktop -t "$pkgdir/usr/bin/"
     install -Dm644 resolved.conf "$pkgdir/usr/lib/systemd/resolved.conf.d/oblio.conf"
     install -Dm644 paccache.conf "$pkgdir/usr/lib/systemd/system/paccache.service.d/oblio.conf"
     install -Dm644 fish_prompt.fish "$pkgdir/etc/fish/functions/fish_prompt.fish"

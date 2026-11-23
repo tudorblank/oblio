@@ -14,6 +14,8 @@
 - [ ] Shell: top bar (workspaces, clock, tray, volume, network), notifications, launcher, lock screen
 - [x] Dock: right-click menu (windows, new window, pin to dock, quit), pinning from the dock
 - [ ] Animations and look, using `hypr-config-temp` as inspiration
+- [x] Two-part install: the ISO installs the base, `oblio-desktop` installs the desktop from GitHub
+- [x] Home folders on a fresh install (xdg-user-dirs: Desktop, Documents, Downloads, Music, Pictures, Public, Videos)
 - [x] Login screen: greetd + Quickshell greeter, session picker, remembers user and session
 - [ ] Lock screen in the same style as the login screen
 - [ ] Build the ISO yourself and write it to a USB stick (documented, tested)

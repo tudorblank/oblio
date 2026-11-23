@@ -21,6 +21,8 @@ hl.config({
         -- 1: hovering a window focuses it; 2: click to focus, scrolling still goes to the
         -- window under the pointer; 0: click to focus, scrolling too (settings: SUPER+I)
         follow_mouse = 1,
+        -- 1: moving between tiled and floating windows also moves focus (0 with click to focus)
+        float_switch_override_focus = 1,
         sensitivity  = 0, -- -1.0 to 1.0, 0 = unchanged
 
         touchpad = {

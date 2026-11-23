@@ -16,17 +16,12 @@ build="$out/build"
 rm -rf "$repo" "$build"
 mkdir -p "$repo" "$build"
 
-# Portable compiler flags: the ISO must run on any x86-64 CPU, so -march=native
-# from the host's makepkg.conf (and its makepkg.conf.d) must not leak in.
-conf="$build/makepkg.conf"
-sed -e 's/-march=native/-march=x86-64 -mtune=generic/' -e 's/-O3/-O2/' /etc/makepkg.conf > "$conf"
-
 export PKGDEST="$repo" BUILDDIR="$build" SRCDEST="$build/sources"
 mkdir -p "$SRCDEST"
 
 for p in "$root"/base/packages/*/; do
     echo "==> $(basename "$p")"
-    (cd "$p" && makepkg --config "$conf" -f --nodeps --noconfirm)
+    (cd "$p" && makepkg -f --nodeps --noconfirm)
 done
 
 repo-add -q "$repo/oblio.db.tar.gz" "$repo"/*.pkg.tar.zst

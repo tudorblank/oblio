@@ -3,9 +3,8 @@
 #
 # Builds the Oblio ISO into out/: Arch's official live ISO (archiso releng profile)
 # plus the Oblio installer, its config and Oblio's prebuilt packages.
-#   iso/build-iso                     build packages, then the ISO
-#   iso/build-iso --reuse-packages    keep the packages already in out/repo
-#   iso/build-iso --profile-only      only assemble out/iso-profile, don't build
+#   iso/build-iso                  build Oblio's packages, then the ISO
+#   iso/build-iso --profile-only   only assemble out/iso-profile, don't build the ISO
 
 set -euo pipefail
 
@@ -17,11 +16,10 @@ releng="${OBLIO_RELENG:-/usr/share/archiso/configs/releng}"
 
 die() { echo "error: $*" >&2; exit 1; }
 
-reuse=no profile_only=no
+profile_only=no
 for arg in "$@"; do
     case "$arg" in
-        --reuse-packages) reuse=yes ;;
-        --profile-only)   profile_only=yes ;;
+        --profile-only) profile_only=yes ;;
         *) die "unknown option: $arg" ;;
     esac
 done
@@ -29,9 +27,7 @@ done
 [[ $EUID != 0 ]] || die "run as your normal user; sudo is only used for mkarchiso"
 [[ -d $releng ]] || die "install archiso first: sudo pacman -S archiso"
 
-if [[ $reuse == no || ! -f $out/repo/oblio.db ]]; then
-    "$root/tools/build-packages"
-fi
+"$root/tools/build-packages"
 
 echo "==> Assembling the ISO profile"
 rm -rf "$profile"
@@ -39,10 +35,11 @@ cp -r "$releng" "$profile"
 cat "$root/iso/packages.x86_64" >> "$profile/packages.x86_64"
 cp -r "$root/iso/airootfs/." "$profile/airootfs/"
 
-# same layout as the repo, so the installer finds base/ next to tools/installer/
+# same layout as the repo, so the installer finds base/config next to tools/installer;
+# Oblio's packages come prebuilt in repo/, so their sources stay out
 dest="$profile/airootfs/usr/share/oblio"
-mkdir -p "$dest/tools"
-cp -r "$root/base" "$dest/"
+mkdir -p "$dest/base" "$dest/tools"
+cp -r "$root/base/config" "$dest/base/"
 cp -r "$root/tools/installer" "$dest/tools/"
 cp -r "$out/repo" "$dest/repo"
 

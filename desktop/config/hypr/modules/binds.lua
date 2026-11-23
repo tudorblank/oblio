@@ -4,7 +4,7 @@
 local mod = oblio.vm and "ALT" or "SUPER"
 
 local terminal = "alacritty"
-local files    = "dolphin"
+local files    = "thunar"
 local browser  = "zen-browser"
 local launcher = "hyprlauncher"
 local settings = oblio.qs .. " ipc call settings toggle"

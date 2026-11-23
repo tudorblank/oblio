@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
+import qs.services
 
 Item {
     id: s
@@ -38,7 +39,7 @@ Item {
             width: knob.x + knob.width / 2
             height: 4
             radius: 2
-            color: Settings.accent
+            color: Theme.accent
         }
 
         Rectangle {
@@ -48,7 +49,7 @@ Item {
             width: 16
             height: 16
             radius: 8
-            color: "white"
+            color: Theme.knob
             scale: area.pressed ? 1.2 : area.containsMouse ? 1.08 : 1
 
             Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
@@ -74,6 +75,7 @@ Item {
     }
 
     Text {
+        font.family: Theme.fontUi
         id: label
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter

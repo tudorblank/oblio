@@ -52,11 +52,11 @@ hl.window_rule({ match = { class = "^(.*satty.*)$", title = "^(Satty)$" }, float
 hl.window_rule({ match = { class = "^(.*[Ll]auncher.*)$" }, float = true })
 hl.window_rule({ match = { class = "^(.*\\.exe)$", float = true }, center = true, fullscreen_state = 0 }) -- Windows programs (Wine)
 
--- Dolphin opens floating, under the pointer (dialogs keep their own size)
+-- Thunar opens floating, under the pointer (its dialogs keep their own size)
 hl.window_rule({
     match = {
-        class = "^(org\\.kde\\.dolphin)$",
-        title = "negative:^(Moving.*|Create New.*|Extract.*|Compress.*|Copying.*|Progress.*|Configure.*|Properties.*|Choose\\sApplication.*)$",
+        class = "^(thunar)$",
+        title = "negative:^(File Operation Progress|Rename .*|Create New .*|.* - Properties|Bulk Rename.*|Preferences.*|Open With|Confirm .*|Attention)$",
     },
     float = true,
     size  = { "max(monitor_w, monitor_h)*0.50", "min(monitor_w, monitor_h)*0.55" },

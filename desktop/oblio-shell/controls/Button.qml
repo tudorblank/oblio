@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
+import qs.services
 
 Rectangle {
     id: b
@@ -12,7 +13,7 @@ Rectangle {
     implicitHeight: 30
     radius: height / 2
     opacity: enabled ? 1 : 0.4
-    color: primary ? (area.containsMouse ? Qt.lighter(Settings.accent, 1.12) : Settings.accent)
+    color: primary ? (area.containsMouse ? Qt.lighter(Theme.accent, 1.12) : Theme.accent)
                    : (area.containsMouse ? Theme.hover : Theme.card)
     border.width: primary ? 0 : 1
     border.color: Theme.hairline
@@ -20,6 +21,7 @@ Rectangle {
     Behavior on color { ColorAnimation { duration: 140 } }
 
     Text {
+        font.family: Theme.fontUi
         id: label
         anchors.centerIn: parent
         text: b.text

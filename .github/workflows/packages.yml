@@ -1,0 +1,63 @@
+name: Packages
+# Builds Oblio's own packages (base/packages) after every change to them and publishes them,
+# signed, as the pacman repository [oblio]: the "repo" release. Installed systems get them with
+# pacman -Syu (oblio-update).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'base/packages/**'
+      - 'tools/build-packages'
+      - 'tools/package-version'
+      - '.github/workflows/packages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: packages
+
+jobs:
+  repo:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Tools
+        run: pacman -Syu --noconfirm --needed git github-cli
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # versions come from the history (tools/package-version)
+
+      - name: Build and sign
+        env:
+          SIGNING_KEY: ${{ secrets.OBLIO_SIGNING_KEY }}
+        run: |
+          useradd -m builder
+          chown -R builder "$GITHUB_WORKSPACE"
+          as_builder() { runuser -u builder -- env HOME=/home/builder "$@"; }
+          printf '%s\n' "$SIGNING_KEY" | as_builder gpg --batch --import
+          key="$(as_builder gpg --list-secret-keys --with-colons | awk -F: '/^fpr/ { print $10; exit }')"
+          as_builder env OBLIO_SIGN_KEY="$key" tools/build-packages
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cd out/repo
+          # releases can't hold symlinks: real files under the names pacman asks for
+          for f in oblio.db oblio.db.sig oblio.files oblio.files.sig; do
+            cp --remove-destination "$(readlink -f "$f")" "$f"
+          done
+          files=(oblio.db oblio.db.sig oblio.files oblio.files.sig *.pkg.tar.zst *.pkg.tar.zst.sig)
+          gh release view repo >/dev/null 2>&1 || gh release create repo --latest=false \
+            --title "Package repository" \
+            --notes "Oblio's pacman repository [oblio]. Built automatically; see base/packages."
+          gh release upload repo "${files[@]}" --clobber
+          # old package versions go, so the repository holds only the current ones
+          gh release view repo --json assets --jq '.assets[].name' | while read -r asset; do
+            printf '%s\n' "${files[@]}" | grep -qxF "$asset" || gh release delete-asset repo "$asset" --yes
+          done

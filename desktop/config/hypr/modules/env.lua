@@ -27,12 +27,14 @@ oblio.nvidia = exists("/proc/driver/nvidia/version")
 -- NVIDIA is the only GPU (no AMD/Intel one next to it, as on PRIME laptops)
 oblio.nvidia_only = oblio.nvidia and output("cat /sys/class/drm/card*/device/vendor 2>/dev/null | sort -u") == "0x10de"
 
+-- Qt apps take colors, light/dark, accent, fonts and file dialogs from the GTK theme
+-- (Settings > Appearance), and follow it live
+hl.env("QT_QPA_PLATFORMTHEME", "gtk3")
+
 hl.env("XCURSOR_THEME", "capitaine-cursors")
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 
--- Dolphin's "Open with" menus outside Plasma
-hl.env("XDG_MENU_PREFIX", "arch-")
 
 -- only when NVIDIA drives everything: on a PRIME laptop these would send every video and
 -- X11 app to the NVIDIA GPU and keep it awake; there `prime-run APP` uses it for one app

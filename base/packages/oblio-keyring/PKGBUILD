@@ -1,0 +1,19 @@
+# Maintainer: tudorblank
+
+pkgname=oblio-keyring
+pkgver=2026.11.23
+pkgrel=1
+pkgdesc='The key that signs Oblio packages'
+arch=('any')
+license=('GPL-3.0-or-later')
+install=oblio-keyring.install
+source=('oblio.gpg'
+        'oblio-trusted'
+        'oblio-revoked')
+sha256sums=('0e3737f3e2f1a7ca2ee24cb97a17ec093ba906f3074737da698bafd71a1048a2'
+            '8d876a8477c7c573f7cf95a02ac1ccf8da2af6499591c549b7ed019f889019f1'
+            'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
+
+package() {
+    install -Dm644 oblio.gpg oblio-trusted oblio-revoked -t "$pkgdir/usr/share/pacman/keyrings/"
+}

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Oblio's desktop on any Arch-based system: Hyprland, Oblio's window management,
-# keybinds, dock and login screen, Alacritty, Dolphin, Zen. Run as your normal
+# keybinds, dock and login screen, Alacritty, Thunar, Zen. Run as your normal
 # user; pacman and the system files go through sudo.
 #   desktop/setup            install packages, copy desktop/config/ into ~/.config and
 #                            desktop/oblio-shell/ (dock, settings) to ~/.config/oblio-shell
@@ -40,20 +40,28 @@ packages=(
     hyprlauncher                 # app launcher
     hyprpolkitagent              # password prompts for admin actions
     xdg-desktop-portal-hyprland  # screen sharing, portals
-    qt6-wayland                  # Qt apps (Dolphin) run natively on Wayland
+    xdg-desktop-portal-gtk       # file pickers (Open/Save dialogs) for portal apps
+    qt6-wayland                  # Qt apps run natively on Wayland
     alacritty                    # terminal
     xdg-utils                    # xdg-open: apps open links and files in the right program
     fuse2                        # AppImages
-    dolphin                      # file manager
-    archlinux-xdg-menu           # Dolphin's "Open with" menus outside Plasma
-    breeze-icons                 # icons for Dolphin and the dock
+    thunar                       # file manager
+    thunar-volman                # mounts USB drives and discs when plugged in
+    thunar-archive-plugin file-roller  # extract / compress from the right-click menu
+    tumbler                      # thumbnails in Thunar
+    gvfs                         # trash, phones, network shares in Thunar
+    adw-gtk-theme                # GTK 3 apps in the same style as GTK 4 ones
+    papirus-icon-theme           # icons for apps and the dock (Papirus-Dark / -Light)
+    breeze-icons                 # icons for the login screen
+    ttf-jetbrains-mono           # monospace font
     grim slurp wl-clipboard      # screenshots
     hyprpicker                   # color picker
     brightnessctl playerctl      # brightness and media keys
+    ffmpeg                       # H.264/AAC video in the browser (Zen loads it at runtime)
     xorg-xhost                   # lets admin apps (GParted, ...) open windows
     capitaine-cursors            # mouse cursor
     ttf-dejavu                   # a font, the base system has none
-    inter-font                   # the login screen's font
+    inter-font                   # the login screen's font, and the fallback UI font
     ttf-nerd-fonts-symbols       # icons in the shell
 )
 # browser: Zen comes from the CachyOS repos
@@ -65,14 +73,24 @@ if (( ${#missing[@]} )); then
     sudo pacman -S --needed --noconfirm "${missing[@]}"
 fi
 
-# copies SRC to DST; an existing different file is kept as DST.bak.DATE, an identical
-# one is left alone (no needless Hyprland reload)
+# checksums of the config files setup installed last time, to tell your edits from
+# Oblio's own older versions
+manifest="${XDG_STATE_HOME:-$HOME/.local/state}/oblio-desktop/installed.sha256"
+declare -A installed=()
+if [[ -f $manifest ]]; then
+    while read -r sum path; do installed[$path]=$sum; done < "$manifest"
+fi
+
+# copies SRC to DST. An identical DST is left alone (no needless Hyprland reload); a file you
+# changed since setup installed it is kept as DST.bak.DATE
 place() {
     local src="$1" dst="$2"
     mkdir -p "${dst%/*}"
     if [[ -e $dst && ! -L $dst ]]; then
         diff -rq "$src" "$dst" >/dev/null 2>&1 && return
-        mv "$dst" "$dst.bak.$stamp"
+        if [[ -f $dst && $(sha256sum < "$dst" | cut -d' ' -f1) != "${installed[$dst]:-}" ]]; then
+            cp -a "$dst" "$dst.bak.$stamp"
+        fi
     fi
     # written next to it, then renamed over it: Hyprland reloads on every change and must
     # never see the file missing or half written
@@ -88,11 +106,17 @@ place() {
 }
 
 msg "Copying Oblio's desktop files into $cfg"
-# the shell goes as a whole folder, so files removed from it don't linger
+# the shell goes as a whole folder, so files removed from it don't linger (it's Oblio's
+# program, not your config: replaced, never backed up)
 place "$here/oblio-shell" "$cfg/oblio-shell"
 while IFS= read -r -d '' src; do
     place "$src" "$cfg/${src#"$here/config/"}"
 done < <(find "$here/config" -type f -print0)
+mkdir -p "${manifest%/*}"
+while IFS= read -r -d '' src; do
+    dst="$cfg/${src#"$here/config/"}"
+    printf '%s %s\n' "$(sha256sum < "$dst" | cut -d' ' -f1)" "$dst"
+done < <(find "$here/config" -type f -print0) > "$manifest"
 
 # older versions kept the shell in ~/.config/quickshell/oblio, its settings under an id
 # made from that path; the shell's id is "oblio" now
@@ -108,15 +132,90 @@ if [[ -e $old || -L $old ]]; then
     rmdir "$cfg/quickshell" 2>/dev/null || true
 fi
 
-# inside a running Hyprland: swap the running shell for the new one
-if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && command -v hyprctl >/dev/null; then
-    pkill -u "$USER" -f "^qs (-c oblio|-p '?$cfg/oblio-shell'?)$" || true
-    hyprctl dispatch "hl.dsp.exec_cmd(\"qs -p '$cfg/oblio-shell'\")" >/dev/null 2>&1 || true
-fi
 
-msg "Building Dolphin's application menu"
-# capped: it waits for any running KDE app holding the menu cache lock
-XDG_MENU_PREFIX=arch- timeout 30 kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
+# UI font: SF Pro, Apple's, which may not be redistributed, so it isn't in this repository and
+# comes from a pinned copy of github.com/sahibjotsaggu/San-Francisco-Pro-Fonts, checked against
+# known checksums. Without it the desktop uses Inter. (Light/dark, accent and fonts are applied
+# by the shell: Settings > Appearance.)
+sf_commit=8bfea09aa6f1139479f80358b2e1e5c6dc991a58
+fonts="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/SF Pro"
+declare -A sf_sums=(
+    [SF-Pro.ttf]=216c8f70fc35fb8161d03a7f8ddf5fff5760e1879688d70eb20ed9779b8ffee2
+    [SF-Pro-Italic.ttf]=9eb0a0761f0f7df966159e091e7b7b905c422ca4b521e330280dc7c4c70f0567
+)
+for f in "${!sf_sums[@]}"; do
+    [[ $(sha256sum "$fonts/$f" 2>/dev/null | cut -d' ' -f1) == "${sf_sums[$f]}" ]] && continue
+    mkdir -p "$fonts"
+    if curl -fsSL --max-time 120 -o "$fonts/$f.part" \
+        "https://raw.githubusercontent.com/sahibjotsaggu/San-Francisco-Pro-Fonts/$sf_commit/$f" \
+        && [[ $(sha256sum "$fonts/$f.part" | cut -d' ' -f1) == "${sf_sums[$f]}" ]]; then
+        mv "$fonts/$f.part" "$fonts/$f"
+    else
+        rm -f "$fonts/$f.part"
+        printf 'warning: could not download %s, the desktop uses Inter instead\n' "$f" >&2
+    fi
+done
+fc-cache -f "$fonts" >/dev/null 2>&1 || true
+
+# icons: WhiteSur (github.com/vinceliuice/WhiteSur-icon-theme, GPL-3.0), a pinned copy checked
+# against a known checksum and put together by copying its files (its own install script isn't
+# run). WhiteSur-dark is the same set with light symbolic and small icons, sharing the rest
+# through hard links. Without it the desktop uses Papirus.
+ws_commit=73d8040da51a9ed74e47c7366e7e9ff437601a5c
+ws_sum=96661649071d8a9664b40d42abea75286175234473106156e9a4b25f54e6cb0c
+icons="${XDG_DATA_HOME:-$HOME/.local/share}/icons"
+if [[ $(cat "$icons/WhiteSur/.oblio-version" 2>/dev/null) != "$ws_commit" ]]; then
+    # built next to its final place: moving it there is a rename that keeps the hard links
+    mkdir -p "$icons"
+    ws_tmp="$(mktemp -d "$icons/.whitesur.XXXXXX")"
+    if curl -fsSL --max-time 300 -o "$ws_tmp/ws.tar.gz" \
+        "https://codeload.github.com/vinceliuice/WhiteSur-icon-theme/tar.gz/$ws_commit" \
+        && [[ $(sha256sum "$ws_tmp/ws.tar.gz" | cut -d' ' -f1) == "$ws_sum" ]]; then
+        mkdir -p "$ws_tmp/src"
+        tar -xzf "$ws_tmp/ws.tar.gz" -C "$ws_tmp/src" --strip-components=1
+        w="$ws_tmp/src" t="$ws_tmp/WhiteSur"
+        mkdir -p "$t/status"
+        cp "$w/src/index.theme" "$t/"
+        cp -r "$w"/src/{actions,animations,apps,categories,devices,emotes,emblems,mimes,places,preferences} "$t/"
+        cp -r "$w"/src/status/{16,22,24,32,symbolic} "$t/status/"
+        rm -f "$t"/places/scalable/user-trash{,-full}-dark.svg
+        cp -r "$w"/links/{actions,apps,categories,devices,emotes,emblems,mimes,places,status,preferences} "$t/"
+        cp -al "$t" "$ws_tmp/WhiteSur-dark"
+        d="$ws_tmp/WhiteSur-dark"
+        sed -i 's/^Name=.*/Name=WhiteSur-dark/' "$d/index.theme"
+        rm -f "$d"/places/scalable/user-trash{,-full}.svg
+        cp "$w/src/places/scalable/user-trash-dark.svg" "$d/places/scalable/user-trash.svg"
+        cp "$w/src/places/scalable/user-trash-full-dark.svg" "$d/places/scalable/user-trash-full.svg"
+        # sed -i writes new files, so only the recolored icons stop being shared
+        find "$d" -type f -name '*.svg' \( -path '*/16/*' -o -path '*/22/*' -o -path '*/24/*' \
+            -o -path '*/32/*' -o -path '*/symbolic/*' \) -exec sed -i 's/#363636/#dedede/g' {} +
+        echo "$ws_commit" > "$t/.oblio-version"
+        for v in WhiteSur WhiteSur-dark; do
+            rm -rf "${icons:?}/$v"
+            mv "$ws_tmp/$v" "$icons/$v"
+            gtk-update-icon-cache -qf "$icons/$v" 2>/dev/null || true
+        done
+    else
+        printf 'warning: could not download the WhiteSur icons, the desktop uses Papirus instead\n' >&2
+    fi
+    rm -rf "${ws_tmp:?}"
+fi
+# Thunar like GNOME Files: header bar (its stylesheet: oblio-shell/theme/gtk-3.0/thunar.css),
+# no menu bar (Ctrl+M brings it back) or status bar, larger icons, a wider sidebar; only
+# where these were never set, so your own choices stay
+thunar_pref() {
+    xfconf-query -c thunar -p "$1" >/dev/null 2>&1 || xfconf-query -c thunar -p "$1" -n -t "$2" -s "$3" 2>/dev/null || true
+}
+thunar_pref /last-menubar-visible bool false
+thunar_pref /misc-use-csd bool true
+thunar_pref /last-statusbar-visible bool false
+thunar_pref /last-icon-view-zoom-level string THUNAR_ZOOM_LEVEL_150_PERCENT
+thunar_pref /last-separator-position int 215
+thunar_pref /last-toolbar-items string "back:1,forward:1,location-bar:1,view-switcher:1,search:1,menu:1,open-parent:0,open-home:0,new-tab:0,new-window:0,toggle-split-view:0,undo:0,redo:0,zoom-out:0,zoom-in:0,zoom-reset:0,view-as-icons:0,view-as-detailed-list:0,view-as-compact-list:0,reload:0"
+# USB drives and discs mount when plugged in (thunar-volman ships with it off)
+for p in /automount-drives/enabled /automount-media/enabled; do
+    xfconf-query -c thunar-volman -p "$p" -n -t bool -s true 2>/dev/null || true
+done
 
 msg "Installing the login screen"
 sudo install -Dm644 -t /usr/share/oblio/greeter "$here"/greeter/*.qml
@@ -147,6 +246,31 @@ elif ((greeter)); then
 else
     login="$dm"
 fi
+
+# the desktop portal finds its backends only when it starts: one started before
+# xdg-desktop-portal-gtk was installed never tells apps about light/dark
+if systemctl --user -q is-active xdg-desktop-portal.service 2>/dev/null \
+    && ! busctl --user introspect org.freedesktop.portal.Desktop /org/freedesktop/portal/desktop 2>/dev/null \
+        | grep -q org.freedesktop.portal.Settings; then
+    systemctl --user restart xdg-desktop-portal.service || true
+fi
+
+# inside a running Hyprland: swap the running shell for the new one (last, so it sees the fonts)
+if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && command -v hyprctl >/dev/null; then
+    pkill -u "$USER" -f "^qs (-c oblio|-p '?$cfg/oblio-shell'?)$" || true
+    hyprctl dispatch "hl.dsp.exec_cmd(\"qs -p '$cfg/oblio-shell'\")" >/dev/null 2>&1 || true
+fi
+
+# which version of the desktop this is, for oblio-update: the commit oblio-desktop downloaded,
+# or this clone's (marked when the desktop has uncommitted changes)
+version="${OBLIO_COMMIT:-}"
+if [[ -z $version ]] && git -C "$here" rev-parse HEAD >/dev/null 2>&1; then
+    version="$(git -C "$here" rev-parse HEAD)"
+    [[ -z $(git -C "$here" status --porcelain -- . 2>/dev/null) ]] || version+="-modified"
+fi
+state="${XDG_STATE_HOME:-$HOME/.local/state}/oblio-desktop"
+mkdir -p "$state"
+echo "${version:-unknown}" > "$state/version"
 
 msg "Done"
 if [[ $login == greetd ]]; then

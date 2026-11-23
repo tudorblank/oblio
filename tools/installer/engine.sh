@@ -58,7 +58,7 @@ kernel_packages() {
 
 # Oblio's own packages come prebuilt on the Oblio ISO; on a plain Arch ISO they are built here
 have_iso_repo() { [[ -f $iso_repo/oblio.db ]]; }
-local_packages=(oblio-hooks oblio-settings)
+local_packages=(oblio-keyring oblio-hooks oblio-settings)
 
 root_device() {
     if [[ $ENCRYPT == yes ]]; then echo "/dev/mapper/$luks_name"; else echo "$ROOT_PART"; fi
@@ -98,7 +98,10 @@ write_live_conf() {
         sed -e 's/\$arch_v3/x86_64_v3/g' -e 's/\$arch_v4/x86_64_v4/g' "$f" > "$live_mirrors/${f##*/}"
     done
 
+    # the online [oblio] is for the installed system: here Oblio's packages come from the ISO
+    # or are built on the spot
     "$OBLIO_ROOT/tools/installer/oblio-repos" conf "$level" |
+        awk '/^\[oblio\]$/ { skip = 1; next } skip && /^\[/ { skip = 0 } !skip' |
         sed -e "s|^Architecture = auto$|Architecture = $archs|" \
             -e "s|/etc/pacman.d/cachyos|$live_mirrors/cachyos|" > "$live_conf"
 
@@ -179,7 +182,7 @@ install_base() {
     msg "Installing the base system"
     # oblio-hooks first: Limine's entry tool names the boot entry after os-release
     # when the first kernel is installed, so the branding has to be in place by then
-    local -a extra=(oblio-hooks)
+    local -a extra=(oblio-keyring oblio-hooks)
     # without the ISO's repo, Oblio's packages are built here, which needs the build tools
     have_iso_repo || extra=(base-devel git)
     # shellcheck disable=SC2046
@@ -300,7 +303,7 @@ build_local_packages() {
     cp -a "$OBLIO_ROOT/base/packages" "$mnt$src"
     chroot_do chown -R "$USERNAME:$USERNAME" "$src"
 
-    for p in oblio-hooks oblio-settings; do
+    for p in "${local_packages[@]}"; do
         as_user "cd ~/oblio-packages/$p && makepkg -f --noconfirm --nodeps"
     done
     local -a built=("$mnt$src"/*/*.pkg.tar.zst)

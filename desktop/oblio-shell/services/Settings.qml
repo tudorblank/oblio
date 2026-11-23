@@ -13,11 +13,10 @@ Singleton {
 
     readonly property string hyprDir: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/hypr"
     readonly property alias opts: adapter
-    readonly property color accent: adapter.accent === "hyprland" ? "#33ccff" : adapter.accent
 
     readonly property var hyprKeys: [
         "layout", "gapsIn", "gapsOut", "borderSize", "rounding", "inactiveOpacity", "focusKeyboard", "focusScroll",
-        "accent", "blur", "blurSize", "animations",
+        "accent", "themeMode", "blur", "blurSize", "animations",
         "sensitivity", "naturalScroll", "touchpadNaturalScroll", "repeatRate", "repeatDelay",
     ]
 
@@ -30,16 +29,16 @@ Singleton {
 
     function hyprLua() {
         const o = adapter
-        const border = o.accent === "hyprland"
-            ? '{ colors = { "rgba(33ccffee)", "rgba(00ff99ee)" }, angle = 45 }'
-            : `"rgba(${o.accent.slice(1)}ee)"`
         return `hl.config({
     general = {
         layout = "${o.layout}",
         gaps_in = ${o.gapsIn},
         gaps_out = ${o.gapsOut},
         border_size = ${o.borderSize},
-        col = { active_border = ${border} },
+        col = {
+            active_border = "rgba(${Theme.accentHex.slice(1)}ee)",
+            inactive_border = "${Theme.dark ? "rgba(595959aa)" : "rgba(b4b4bcaa)"}",
+        },
     },
     decoration = {
         rounding = ${o.rounding},
@@ -106,7 +105,7 @@ Singleton {
             property var displays: ({})
 
             // dock: pinned apps are desktop file ids (without .desktop)
-            property var dockPinned: ["Alacritty", "org.kde.dolphin"]
+            property var dockPinned: ["Alacritty", "thunar"]
             property int dockSize: 56
             property bool dockMagnify: true
             property string dockMode: "always"   // always | autohide | smart
@@ -125,8 +124,12 @@ Singleton {
             property bool focusKeyboard: false
             property bool focusScroll: true
 
-            // look
-            property string accent: "hyprland"
+            // look (Theme.qml); a font that isn't installed falls back to Inter / monospace
+            property string themeMode: "dark"    // dark | light
+            property string accent: "#b9e66c"
+            property string fontUi: "SF Pro"
+            property string fontMono: "JetBrains Mono"
+            property int fontSize: 11            // points, for apps; the shell scales its own text
             property bool blur: true
             property int blurSize: 8
             property bool animations: true

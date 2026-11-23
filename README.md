@@ -38,7 +38,7 @@ What it installs:
 | Command-line tools | `nano` `vim` `cachyos-micro-settings` `unzip` `zip` `7zip` `wget` `rsync` `ripgrep` `plocate` `pkgfile` (tells you which package has a missing command) `duf` `pv` `btop` `fastfetch` `tealdeer` (`tldr`: short command examples) | pkgfile list update |
 | Boot and snapshots | `limine` `limine-mkinitcpio-hook` `limine-snapper-sync` `snapper` `snap-pac` (a btrfs snapshot before and after every update; boot any of them from the Limine menu) | old snapshot cleanup |
 | Maintenance | `pacman-contrib` (paccache, checkupdates, pactree) | old package cache cleanup |
-| Oblio | `oblio-hooks` (Oblio's name in os-release, reboot-required notices), `oblio-settings` (system configuration, the fish prompt and welcome, the `oblio-desktop` and `oblio-snapshot` commands) | |
+| Oblio | `oblio-keyring` (the key Oblio's packages are signed with), `oblio-hooks` (Oblio's name in os-release, reboot-required notices), `oblio-settings` (system configuration, the fish prompt and welcome, the `oblio-update`, `oblio-desktop` and `oblio-snapshot` commands) | |
 
 Optional, picked in the installer (all on by default):
 
@@ -91,10 +91,10 @@ What it provides:
 | Compositor | `hyprland` with Oblio's config (Lua modules in `~/.config/hypr/modules/`) |
 | Shell | `quickshell` running Oblio's dock and settings panel |
 | Login screen | `greetd` with Oblio's greeter (session picker, remembers your choice) |
-| Apps | `alacritty` (terminal), `dolphin` (files), `zen-browser-bin` (browser), `hyprlauncher` (app launcher) |
-| Desktop plumbing | `hyprpolkitagent` (password prompts), `xdg-desktop-portal-hyprland` (screen sharing, file pickers), `xdg-utils` (opening links and files), `fuse2` (AppImages), `qt6-wayland`, `archlinux-xdg-menu`, `xorg-xhost` |
-| Tools | `grim` `slurp` `wl-clipboard` (screenshots), `hyprpicker` (color picker), `brightnessctl` `playerctl` (brightness and media keys) |
-| Look | `breeze-icons`, `capitaine-cursors`, `inter-font`, `ttf-dejavu`, `ttf-nerd-fonts-symbols` |
+| Apps | `alacritty` (terminal), `thunar` (files, with `thunar-volman` for USB drives, `thunar-archive-plugin` + `file-roller` for archives, `tumbler` thumbnails, `gvfs` trash and phones), `zen-browser-bin` (browser), `hyprlauncher` (app launcher) |
+| Desktop plumbing | `hyprpolkitagent` (password prompts), `xdg-desktop-portal-hyprland` (screen sharing), `xdg-desktop-portal-gtk` (file pickers), `xdg-utils` (opening links and files), `fuse2` (AppImages), `qt6-wayland`, `xorg-xhost` |
+| Tools | `grim` `slurp` `wl-clipboard` (screenshots), `hyprpicker` (color picker), `brightnessctl` `playerctl` (brightness and media keys), `ffmpeg` (H.264 video in the browser) |
+| Look | `adw-gtk-theme` (GTK apps), WhiteSur icons (downloaded, see below), `papirus-icon-theme` (fallback icons), `capitaine-cursors`, `ttf-jetbrains-mono`, `inter-font`, `ttf-dejavu`, `ttf-nerd-fonts-symbols`, `breeze-icons` (login screen) |
 
 On another Arch-based system, the same desktop installs with:
 
@@ -110,7 +110,7 @@ In a VM the main key is Alt instead of Super.
 | Keys | |
 |---|---|
 | SUPER+Enter / E / W / R | terminal / files / browser / launcher |
-| SUPER+I | settings: display, dock, windows, appearance, input |
+| SUPER+I | settings: display, dock, windows, appearance (light/dark, accent, fonts), input |
 | SUPER+Q | close window |
 | SUPER+D / SUPER+F | maximize / fullscreen |
 | SUPER+C / SUPER+ALT+C | minimize / restore last minimized (back where it was, same place and size) |
@@ -127,7 +127,9 @@ All keys: `~/.config/hypr/modules/binds.lua`.
 Dock: click opens an app; on a running app it focuses its window if it isn't focused, minimizes it
 if it is, and brings minimized windows back (to their workspace, place and size, focused); middle
 click opens a new window; right click opens a menu: the app's windows, New window, Pin to dock /
-Unpin from dock, Quit. The dock never moves the pointer. It can always show, auto-hide (the bottom
+Unpin from dock, Quit. Drag an icon to move it; dropping it left of the divider pins it
+there, right of it unpins it (the first app is pinned from the right-click menu). A small number
+on an icon shows how many windows the app has open. The dock never moves the pointer. It can always show, auto-hide (the bottom
 edge brings it back) or hide smartly (only while a window reaches into it), and it disappears when
 it has nothing to show (SUPER+I, Dock).
 
@@ -136,6 +138,18 @@ ones are on, where they sit and mirroring. A change applies at once and goes bac
 seconds unless you keep it, so a mode the screen can't show fixes itself. Screens start at 100%;
 the scale list marks the one that suits the screen's size.
 
+Appearance (SUPER+I): light or dark, the accent color and the fonts, for the whole desktop: the
+shell, GTK and Qt apps (switched live, open windows included; Qt follows the GTK theme through
+`QT_QPA_PLATFORMTHEME=gtk3`), browsers, icons, the terminal and window borders. libadwaita apps switch light/dark live and take a new accent when they next start.
+The interface font is SF Pro: Apple doesn't allow redistributing it, so it isn't in this repository;
+`desktop/setup` downloads a pinned, checksum-verified copy into `~/.local/share/fonts`, and the
+desktop uses Inter if that fails. The monospace font is JetBrains Mono. Icons are WhiteSur (GPL-3.0),
+also downloaded at a pinned version and checked; setup copies its files itself instead of running its
+installer, and falls back to Papirus. Thunar is styled close to GNOME Files: header bar, no menu
+bar (Ctrl+M shows it), a soft sidebar. Apps can have a look of their own: a stylesheet per app in
+`desktop/oblio-shell/theme/gtk-3.0/` (Thunar's is there) goes on top of the theme. Your own terminal settings go
+in `~/.config/alacritty/local.toml`.
+
 A floating window comes to the front when it gets focus. Floating windows always stay above tiled
 ones; for normal desktop stacking, switch the workspace to floating with SUPER+T.
 
@@ -143,13 +157,23 @@ Hyprland's config: `hyprland.lua` loads `modules/` (monitors, env, input, layout
 animations, misc, windowrules, windows, binds, autostart); what you change in the settings panel is
 saved to `settings.lua` next to it and wins over the modules.
 
+## Updating
+
+```
+oblio-update
+```
+
+updates everything: Arch and CachyOS packages, Oblio's own packages (from Oblio's signed package
+repository, `[oblio]`), and the desktop when it's installed, after showing what changed. Installs
+from before the repository existed get it added to `/etc/pacman.conf` the first time.
+
 ## Working on Oblio
 
 ```
 base/         what an installed Oblio is made of
   config/       components/ (one file per component: packages + services; optional ones show up
                 in the installer), pacman.conf (Cachy repos filled in per CPU), btrfs.conf, limine.conf
-  packages/     Oblio's own packages: oblio-hooks, oblio-settings
+  packages/     Oblio's own packages: oblio-keyring, oblio-hooks, oblio-settings
 desktop/      the Oblio desktop
   setup         installs it (packages, files, login screen)
   config/       Hyprland's config, lands in ~/.config/hypr
@@ -157,9 +181,15 @@ desktop/      the Oblio desktop
   greeter/      the login screen, lands in /usr/share/oblio/greeter
 tools/        installing and tooling
   installer/    oblio-install (the step-by-step installer), engine.sh (install steps), oblio-repos (CPU detection)
-  build-packages, oblio-vm (test VM)
+  build-packages (also signs, for the [oblio] repository), package-version, oblio-vm (test VM)
 iso/          the Oblio ISO: build-iso, and what it adds on top of Arch's live ISO
 ```
+
+Oblio's packages: every push that changes `base/packages/` makes GitHub Actions build them
+(`tools/build-packages`), sign them with Oblio's key and publish them as the `repo` release, which is
+the `[oblio]` pacman repository. Versions come from git (`tools/package-version`: the date of the
+package's last change and how many changes it has had), so nobody edits `pkgver`; after changing a
+package's files, refresh its checksums with `updpkgsums`.
 
 Build the ISO (it carries the base only; the desktop always comes from this repository):
 

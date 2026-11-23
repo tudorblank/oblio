@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // One setting: title and description on the left, its control on the right.
 import QtQuick
+import qs.services
 
 Item {
     id: row
@@ -33,6 +34,7 @@ Item {
         spacing: 3
 
         Text {
+            font.family: Theme.fontUi
             width: parent.width
             text: row.title
             color: Theme.text
@@ -41,6 +43,7 @@ Item {
         }
 
         Text {
+            font.family: Theme.fontUi
             visible: text !== ""
             width: parent.width
             text: row.description

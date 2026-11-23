@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Version of one of Oblio's packages, from git: the date of the last commit that changed it and
+# how many commits did, e.g. 2026.11.24.12. Always newer after a change, never edited by hand.
+#   tools/package-version oblio-settings
+# Prints nothing outside a git checkout (the PKGBUILD's own version is used then).
+
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+dir="base/packages/$1"
+git -C "$root" rev-parse --git-dir >/dev/null 2>&1 || exit 0
+date="$(git -C "$root" log -1 --format=%cd --date=format:%Y.%m.%d -- "$dir")"
+[[ -n $date ]] || exit 0
+echo "$date.$(git -C "$root" rev-list --count HEAD -- "$dir")"

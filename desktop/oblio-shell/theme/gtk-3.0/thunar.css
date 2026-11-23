@@ -1,0 +1,83 @@
+/* Thunar in header-bar mode (misc-use-csd), drawn close to GNOME Files: the header bar is part
+   of the content, the sidebar is its own soft column, buttons are flat */
+
+.thunar headerbar {
+  background-color: @view_bg_color;
+  background-image: none;
+  border: none;
+  box-shadow: none;
+  min-height: 46px;
+  padding: 0 8px;
+}
+.thunar headerbar toolbar { padding: 0; background: none; border: none; }
+.thunar headerbar button {
+  min-height: 32px;
+  min-width: 32px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  box-shadow: none;
+}
+.thunar headerbar button:hover { background-color: alpha(@window_fg_color, 0.08); }
+.thunar headerbar button:active,
+.thunar headerbar button:checked { background-color: alpha(@window_fg_color, 0.14); }
+.thunar headerbar button.titlebutton {
+  min-height: 24px;
+  min-width: 24px;
+  padding: 0;
+  margin: 0 2px 0 6px;
+  border-radius: 50%;
+  background-color: alpha(@window_fg_color, 0.1);
+}
+.thunar headerbar entry {
+  min-height: 34px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background-color: alpha(@window_fg_color, 0.08);
+  box-shadow: none;
+}
+.thunar headerbar entry:focus { box-shadow: inset 0 0 0 2px alpha(@accent_bg_color, 0.6); }
+
+/* the sidebar: a rounded card inset from the window's edges */
+.thunar .sidebar { background-color: @view_bg_color; border: none; }
+.thunar .shortcuts-pane {
+  margin: 4px 0 10px 10px;
+  padding: 6px 4px;
+  border-radius: 12px;
+  border: none;
+  background-color: alpha(@window_fg_color, 0.06);
+}
+.thunar .shortcuts-pane .view {
+  padding: 5px 6px;
+  background-color: transparent;
+  color: @sidebar_fg_color;
+}
+.thunar .shortcuts-pane .view:selected,
+.thunar .shortcuts-pane .view:selected:focus {
+  background-color: alpha(@window_fg_color, 0.1);
+  color: @window_fg_color;
+}
+.thunar paned > separator { min-width: 1px; background: none; border: none; }
+
+/* files: Thunar paints selections itself with these two colors (only older GTK 3 apps use
+   them): a soft accent tint with normal text, also when the window isn't focused */
+@define-color theme_selected_bg_color alpha(@accent_bg_color, 0.3);
+@define-color theme_selected_fg_color @window_fg_color;
+@define-color theme_unfocused_selected_bg_color alpha(@accent_bg_color, 0.18);
+@define-color theme_unfocused_selected_fg_color @window_fg_color;
+
+.thunar .standard-view { background-color: @view_bg_color; border: none; }
+.thunar .standard-view .view:not(.rubberband) { background-color: @view_bg_color; }
+.thunar .standard-view .view:selected,
+.thunar .standard-view .view text:selected { color: @window_fg_color; }
+.thunar .standard-view .view:hover { background-color: alpha(@window_fg_color, 0.1); border-radius: 6px; }
+/* selected icons are tinted with the view's :active background when the window isn't focused
+   (unset, that is black): white leaves them as they are */
+.thunar .standard-view .view:active { background-color: #ffffff; }
+.thunar .standard-view .rubberband,
+.thunar .standard-view .view.rubberband {
+  background-color: alpha(@accent_bg_color, 0.15);
+  border: 1px solid alpha(@accent_bg_color, 0.7);
+}

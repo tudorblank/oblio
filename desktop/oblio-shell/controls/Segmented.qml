@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
+import qs.services
 
 Rectangle {
     id: seg
@@ -29,11 +30,12 @@ Rectangle {
                 width: label.implicitWidth + 26
                 height: 24
                 radius: height / 2
-                color: selected ? Settings.accent : area.containsMouse ? Theme.hover : "transparent"
+                color: selected ? Theme.accent : area.containsMouse ? Theme.hover : "transparent"
 
                 Behavior on color { ColorAnimation { duration: 140 } }
 
                 Text {
+                    font.family: Theme.fontUi
                     id: label
                     anchors.centerIn: parent
                     text: parent.modelData.label

@@ -1,0 +1,10 @@
+# Oblio's terminal. Colors and font come from Settings (SUPER+I > Appearance); your own
+# additions go in local.toml next to this file (loaded after the theme, kept on updates).
+
+[general]
+import = ["~/.config/alacritty/oblio-theme.toml", "~/.config/alacritty/local.toml"]
+live_config_reload = true
+
+[window]
+padding = { x = 10, y = 8 }
+dynamic_padding = true

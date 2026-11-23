@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Pushes Oblio's theme to the rest of the system; the shell runs it on start and on every change.
+#   apply-theme MODE ACCENT ACCENT_FG ADWAITA_ACCENT UI_FONT MONO_FONT SIZE
+# MODE dark|light, ACCENT/ACCENT_FG #rrggbb, ADWAITA_ACCENT one of libadwaita's named accents.
+
+set -euo pipefail
+
+mode=$1 accent=$2 accent_fg=$3 named=$4 ui=$5 mono=$6 size=$7
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
+themes="${XDG_DATA_HOME:-$HOME/.local/share}/themes"
+gs() { gsettings set org.gnome.desktop.interface "$@" 2>/dev/null || true; }
+gs_get() { gsettings get org.gnome.desktop.interface "$1" 2>/dev/null | tr -d "'"; }
+
+# writes stdin to FILE, only when it changed. In place, not renamed over it: Alacritty
+# doesn't notice a renamed file
+put() {
+    local file=$1 tmp
+    mkdir -p "${file%/*}"
+    tmp="$(mktemp)"
+    cat > "$tmp"
+    if cmp -s "$tmp" "$file"; then rm -f "$tmp"; return 1; fi
+    cat "$tmp" > "$file"
+    rm -f "$tmp"
+}
+
+if [[ $mode == light ]]; then
+    base=adw-gtk3 scheme=prefer-light icons=(WhiteSur Papirus-Light)
+    bg='#f4f4f6' fg='#1c1c21'
+else
+    base=adw-gtk3-dark scheme=prefer-dark icons=(WhiteSur-dark Papirus-Dark)
+    bg='#141417' fg='#e6e6ea'
+fi
+# the first icon set that's installed (WhiteSur comes from setup, Papirus from the repos)
+icon=Adwaita
+for i in "${icons[@]}"; do
+    if [[ -d ${XDG_DATA_HOME:-$HOME/.local/share}/icons/$i || -d /usr/share/icons/$i ]]; then icon=$i; break; fi
+done
+
+colors="@define-color accent_bg_color $accent;
+@define-color accent_fg_color $accent_fg;
+@define-color accent_color $accent;"
+
+# GTK 3 and plain GTK 4: adw-gtk3 with the exact accent. GTK rereads a theme only when its name
+# changes, so the new one goes into whichever of two copies isn't in use and GTK switches to it:
+# open apps restyle at once.
+theme_css() {
+    printf '@import url("file:///usr/share/themes/%s/%s/gtk.css");\n%s\n' "$base" "$1" "$colors"
+    # apps with a look of their own: theme/<gtk version>/<app>.css, scoped to that app's windows
+    local f
+    for f in "$here/../theme/$1"/*.css; do [[ -e $f ]] && cat "$f"; done
+    return 0
+}
+current="$(gs_get gtk-theme)"
+next=Oblio
+[[ $current == Oblio ]] && next=Oblio-Alt
+if [[ $current != Oblio && $current != Oblio-Alt ]] || ! cmp -s <(theme_css gtk-3.0) "$themes/$current/gtk-3.0/gtk.css"; then
+    for v in gtk-3.0 gtk-4.0; do theme_css $v | put "$themes/$next/$v/gtk.css" || true; done
+    printf '[Desktop Entry]\nType=X-GNOME-Metatheme\nName=%s\n\n[X-GNOME-Metatheme]\nGtkTheme=%s\n' "$next" "$next" \
+        | put "$themes/$next/index.theme" || true
+    gs gtk-theme "$next"
+fi
+
+# libadwaita apps and browsers: light/dark and the nearest named accent switch live; the exact
+# accent from gtk.css applies when an app starts
+gs color-scheme "$scheme"
+gs accent-color "$named"
+put "$cfg/gtk-4.0/gtk.css" <<CSS || true
+/* written by Oblio's settings (SUPER+I > Appearance), edits here get overwritten */
+$colors
+:root { --accent-bg-color: $accent; --accent-fg-color: $accent_fg; --accent-color: $accent; }
+CSS
+
+gs icon-theme "$icon"
+gs font-name "$ui $size"
+gs document-font-name "$ui $size"
+gs monospace-font-name "$mono $size"
+
+# apps that ask fontconfig for "sans-serif" / "monospace" (browsers, Qt) get the same fonts
+xml() { sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' <<< "$1"; }
+put "$cfg/fontconfig/conf.d/50-oblio-fonts.conf" <<XML || true
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<!-- written by Oblio's settings (SUPER+I > Appearance), edits here get overwritten -->
+<fontconfig>
+  <alias binding="same"><family>sans-serif</family><prefer><family>$(xml "$ui")</family></prefer></alias>
+  <alias binding="same"><family>system-ui</family><prefer><family>$(xml "$ui")</family></prefer></alias>
+  <alias binding="same"><family>monospace</family><prefer><family>$(xml "$mono")</family></prefer></alias>
+</fontconfig>
+XML
+
+# terminal: alacritty.toml imports this file and reloads when it changes
+toml() { sed 's/\\/\\\\/g; s/"/\\"/g' <<< "$1"; }
+if [[ $mode == light ]]; then
+    normal=(  '#2b2b31' '#c8323b' '#3f7d14' '#9a6f00' '#2f6fd1' '#8a46c2' '#1a8282' '#d6d6dc')
+    bright=(  '#6a6a74' '#e0444d' '#529a22' '#b88600' '#4a86e8' '#a05cd6' '#21a0a0' '#f4f4f6')
+else
+    normal=(  '#26262c' '#ef6b73' '#a6d96a' '#f2c55c' '#6fa8f5' '#c792ea' '#5fd4d4' '#c8c8ce')
+    bright=(  '#4a4a52' '#ff8a91' '#c3ef8a' '#ffd97a' '#8fbdff' '#d7a8f5' '#7fe6e6' '#f2f2f5')
+fi
+names=(black red green yellow blue magenta cyan white)
+{
+    printf '# written by Oblio'"'"'s settings (SUPER+I > Appearance), edits here get overwritten\n\n'
+    printf '[font]\nsize = %s\nnormal = { family = "%s" }\n\n' "$size" "$(toml "$mono")"
+    printf '[colors.primary]\nbackground = "%s"\nforeground = "%s"\n\n' "$bg" "$fg"
+    printf '[colors.cursor]\ncursor = "%s"\ntext = "%s"\n\n' "$accent" "$bg"
+    printf '[colors.selection]\nbackground = "%s"\ntext = "%s"\n\n' "$accent" "$accent_fg"
+    printf '[colors.normal]\n'; for i in "${!names[@]}"; do printf '%s = "%s"\n' "${names[$i]}" "${normal[$i]}"; done
+    printf '\n[colors.bright]\n'; for i in "${!names[@]}"; do printf '%s = "%s"\n' "${names[$i]}" "${bright[$i]}"; done
+} | put "$cfg/alacritty/oblio-theme.toml" || true

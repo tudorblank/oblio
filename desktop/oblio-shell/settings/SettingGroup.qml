@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // A titled card of SettingRows.
 import QtQuick
+import qs.services
 
 Column {
     id: group
@@ -12,6 +13,7 @@ Column {
     spacing: 8
 
     Text {
+        font.family: Theme.fontUi
         leftPadding: 4
         text: group.title
         color: Theme.subtext

@@ -18,13 +18,20 @@
 - [ ] Shell: top bar (workspaces, clock, tray, battery, volume, brightness, Wi-Fi via iwd, Bluetooth)
 - [ ] Notifications (Quickshell server) and an on-screen display for volume/brightness
 - [ ] Idle and lid: lock, screen off, suspend
-- [ ] Wallpaper, and one accent/theme shared by the shell and the greeter
+- [x] Theme: light/dark, accent, fonts (SF Pro, JetBrains Mono) for the shell, GTK 3/4, browsers, icons,
+      terminal, Hyprland; Settings > Appearance
+- [x] WhiteSur icons (pinned download), Thunar restyled like GNOME Files (per-app stylesheets)
+- [x] Qt apps follow the theme (QT_QPA_PLATFORMTHEME=gtk3: light/dark, accent, fonts, live)
+- [ ] Thunar light mode: the home icon in the path field is faint
+- [x] Updates: [oblio] pacman repo (signed, built by GitHub Actions), oblio-update, desktop version tracking
+- [ ] Daily update check with a notification (needs notifications)
+- [ ] Wallpaper
+- [ ] Greeter redesign (own theme; leave alone until then)
 - [ ] Power menu (lock, log out, suspend, reboot, power off); SUPER+M exits straight away now
 - [ ] Keybind cheatsheet inside the desktop
 - [ ] Launcher (Quickshell) to replace hyprlauncher
-- [ ] USB automount, clipboard history
-- [ ] Two Dolphin windows rebuild KDE's app menu cache (~/.cache/ksycoca6_*) in turn every ~2 s at ~45% CPU;
-      cause unknown (same environment in both)
+- [x] Thunar instead of Dolphin (no KDE frameworks); USB drives mount when plugged in (thunar-volman)
+- [ ] Clipboard history
 - [ ] Greeter: 100% like the desktop (it uses Hyprland's "auto")
 - [x] Dock: right-click menu (windows, new window, pin to dock, quit), pinning from the dock
 - [ ] Animations and look, using `hypr-config-temp` as inspiration

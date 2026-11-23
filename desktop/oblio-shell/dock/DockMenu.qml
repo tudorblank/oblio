@@ -4,6 +4,7 @@
 
 import QtQuick
 import Quickshell
+import qs.services
 
 PopupWindow {
     id: menu
@@ -35,6 +36,7 @@ PopupWindow {
         color: area.containsMouse ? Theme.hover : "transparent"
 
         Text {
+            font.family: Theme.fontUi
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: 12
@@ -42,7 +44,7 @@ PopupWindow {
             anchors.verticalCenter: parent.verticalCenter
             text: e.text
             elide: Text.ElideRight
-            color: e.danger ? "#ff8a8d" : Theme.text
+            color: e.danger ? Theme.danger : Theme.text
             opacity: e.dim ? 0.55 : 1
             font.pixelSize: 13
         }
@@ -73,9 +75,9 @@ PopupWindow {
     Rectangle {
         anchors.fill: parent
         radius: 14
-        color: "#f0141418"
+        color: Theme.popup
         border.width: 1
-        border.color: "#24ffffff"
+        border.color: Theme.border
 
         Column {
             id: list
@@ -83,6 +85,7 @@ PopupWindow {
             width: parent.width - 12
 
             Text {
+                font.family: Theme.fontUi
                 width: parent.width
                 leftPadding: 12
                 topPadding: 6

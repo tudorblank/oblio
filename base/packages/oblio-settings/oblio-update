@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Updates everything: Arch, CachyOS and Oblio packages (pacman), then Oblio's desktop when it's
+# installed. Run as your normal user.
+#   oblio-update
+
+set -euo pipefail
+
+repo=tudorblank/oblio
+server="https://github.com/$repo/releases/download/repo"
+red=$'\e[1;31m' bold=$'\e[1m' faint=$'\e[2m' off=$'\e[0m'
+msg() { printf '%s==>%s %s%s%s\n' "$red" "$off" "$bold" "$*" "$off"; }
+
+[[ $EUID != 0 ]] || { echo "error: run as your normal user, not root" >&2; exit 1; }
+
+# installs from before Oblio's package repository don't list it yet; first, so Oblio's own
+# packages win over same-named ones
+if ! pacman-conf --repo-list | grep -qx oblio; then
+    msg "Adding Oblio's package repository to /etc/pacman.conf"
+    sudo cp /etc/pacman.conf "/etc/pacman.conf.bak.$(date +%Y%m%d-%H%M%S)"
+    sudo awk -v server="$server" '
+        !done && /^\[/ && $0 != "[options]" { print "[oblio]"; print "Server = " server; print ""; done = 1 }
+        { print }' /etc/pacman.conf | sudo tee /etc/pacman.conf.new >/dev/null
+    sudo mv /etc/pacman.conf.new /etc/pacman.conf
+fi
+
+msg "Updating packages"
+sudo pacman -Syu
+
+state="${XDG_STATE_HOME:-$HOME/.local/state}/oblio-desktop/version"
+[[ -f $state ]] || exit 0
+installed="$(cat "$state")"
+
+msg "Checking Oblio's desktop"
+latest="$(curl -fsSL --max-time 15 "https://api.github.com/repos/$repo/commits/main" 2>/dev/null \
+    | sed -n 's/^  "sha": "\([0-9a-f]\{40\}\)",$/\1/p' | head -n1)" || true
+if [[ -z $latest ]]; then
+    echo "Couldn't reach GitHub; the desktop wasn't checked."
+    exit 0
+fi
+if [[ $installed == "$latest" ]]; then
+    echo "The desktop is up to date."
+    exit 0
+fi
+
+# what changed since the installed version, newest first
+if [[ $installed =~ ^[0-9a-f]{40}$ ]]; then
+    echo "New since your version:"
+    curl -fsSL --max-time 15 "https://api.github.com/repos/$repo/compare/$installed...$latest" 2>/dev/null \
+        | sed -n 's/^        "message": "\([^"\\]*\).*/\1/p' | tac | head -n 20 | sed "s/^/  ${faint}•${off} /" || true
+else
+    echo "Installed version: ${installed:-unknown}"
+fi
+read -rp "Update the desktop now? [Y/n] " answer
+[[ -z $answer || $answer == [yY]* ]] || exit 0
+oblio-desktop --update "$latest"

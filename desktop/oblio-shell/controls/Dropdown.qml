@@ -2,11 +2,13 @@
 // A button showing the current choice; clicking it lists the options below it.
 import QtQuick
 import QtQuick.Controls as C
+import qs.services
 
 Item {
     id: dd
 
-    property var options: []    // [{ value, label, tag, note }]: tag in the accent color, note on the right
+    property var options: []    // [{ value, label, tag, note, font }]: tag in the accent color, note on the
+                                // right, font draws the label in that font (font pickers)
     property var value
     signal picked(var value)
 
@@ -21,7 +23,7 @@ Item {
         radius: height / 2
         color: area.containsMouse || popup.opened ? Theme.hover : Theme.card
         border.width: 1
-        border.color: popup.opened ? Qt.rgba(Settings.accent.r, Settings.accent.g, Settings.accent.b, 0.6) : Theme.hairline
+        border.color: popup.opened ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.6) : Theme.hairline
 
         Row {
             anchors.left: parent.left
@@ -30,14 +32,16 @@ Item {
             spacing: 8
 
             Text {
+                font.family: Theme.fontUi
                 text: dd.current ? dd.current.label : ""
                 color: Theme.text
                 font.pixelSize: 12
                 font.weight: Font.Medium
             }
             Text {
+                font.family: Theme.fontUi
                 text: dd.current?.tag ?? ""
-                color: Settings.accent
+                color: Theme.accent
                 font.pixelSize: 11
             }
         }
@@ -82,9 +86,9 @@ Item {
 
         background: Rectangle {
             radius: 14
-            color: "#f4161619"
+            color: Theme.popup
             border.width: 1
-            border.color: "#24ffffff"
+            border.color: Theme.border
         }
 
         contentItem: ListView {
@@ -109,7 +113,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     width: 14
                     text: option.selected ? "" : ""
-                    color: Settings.accent
+                    color: Theme.accent
                     font.family: Theme.iconFont
                     font.pixelSize: 11
                 }
@@ -121,19 +125,22 @@ Item {
                     spacing: 8
 
                     Text {
+                        font.family: option.modelData.font ?? Theme.fontUi
                         text: option.modelData.label
                         color: Theme.text
                         font.pixelSize: 12
                         font.weight: option.selected ? Font.DemiBold : Font.Normal
                     }
                     Text {
+                        font.family: Theme.fontUi
                         text: option.modelData.tag ?? ""
-                        color: Settings.accent
+                        color: Theme.accent
                         font.pixelSize: 11
                     }
                 }
 
                 Text {
+                    font.family: Theme.fontUi
                     anchors.right: parent.right
                     anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter

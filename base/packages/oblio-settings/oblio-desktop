@@ -2,15 +2,27 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Installs (or updates) Oblio's desktop from the official repository:
-#   oblio-desktop            then reboot to get the login screen
-#   oblio-desktop --greeter  also replace another login manager (SDDM, GDM, ...)
+#   oblio-desktop                 then reboot to get the login screen
+#   oblio-desktop --greeter       also replace another login manager (SDDM, GDM, ...)
+#   oblio-desktop --update [SHA]  no questions, the given commit or the newest (oblio-update)
+# OBLIO_SOURCE=<tarball url> installs from somewhere else (tests).
 
 set -euo pipefail
 
-source="${OBLIO_SOURCE:-https://github.com/tudorblank/oblio/archive/refs/heads/main.tar.gz}"
+repo=tudorblank/oblio
+red=$'\e[1;31m' bold=$'\e[1m' off=$'\e[0m'
 
-for arg; do
-    [[ $arg == --greeter ]] || { echo "usage: oblio-desktop [--greeter]" >&2; exit 1; }
+update=0 commit="" args=()
+while (( $# )); do
+    case $1 in
+        --greeter) args+=(--greeter) ;;
+        --update)
+            update=1
+            if [[ ${2:-} =~ ^[0-9a-f]{40}$ ]]; then commit=$2; shift; fi
+            ;;
+        *) echo "usage: oblio-desktop [--greeter] [--update [COMMIT]]" >&2; exit 1 ;;
+    esac
+    shift
 done
 [[ $EUID != 0 ]] || { echo "error: run as your normal user, not root" >&2; exit 1; }
 
@@ -27,9 +39,7 @@ sessions() {
     done | sort -u | paste -sd, - | sed 's/,/, /g'
 }
 
-red=$'\e[1;31m' bold=$'\e[1m' off=$'\e[0m'
-
-if ! curl -fsIL --max-time 10 "$source" >/dev/null 2>&1; then
+if ! curl -fsI --max-time 10 "https://github.com" >/dev/null 2>&1; then
     wifi=wlan0
     for d in /sys/class/net/*; do
         if [[ -e $d/phy80211 ]]; then wifi="${d##*/}"; break; fi
@@ -45,14 +55,29 @@ if ! curl -fsIL --max-time 10 "$source" >/dev/null 2>&1; then
     exit 1
 fi
 
-current="$(sessions)"
-echo
-echo "${red}WARNING!${off} This installs the latest Oblio desktop on this Oblio system."
-echo "It's best installed on a fresh Oblio setup."
-echo "Desktop sessions you have now: ${bold}${current:-none}${off}"
-echo
-read -rp "Proceed? [Y/n] " answer
-[[ -z $answer || $answer == [yY]* ]] || { echo "Nothing was changed."; exit 0; }
+# the exact commit, so the installed desktop knows its version (oblio-update compares it)
+if [[ -z $commit && -z ${OBLIO_SOURCE:-} ]]; then
+    commit="$(curl -fsSL --max-time 15 "https://api.github.com/repos/$repo/commits/main" 2>/dev/null \
+        | sed -n 's/^  "sha": "\([0-9a-f]\{40\}\)",$/\1/p' | head -n1)" || true
+fi
+if [[ -n ${OBLIO_SOURCE:-} ]]; then
+    source=$OBLIO_SOURCE
+elif [[ -n $commit ]]; then
+    source="https://github.com/$repo/archive/$commit.tar.gz"
+else
+    source="https://github.com/$repo/archive/refs/heads/main.tar.gz"
+fi
+
+if (( ! update )); then
+    current="$(sessions)"
+    echo
+    echo "${red}WARNING!${off} This installs the latest Oblio desktop on this Oblio system."
+    echo "It's best installed on a fresh Oblio setup."
+    echo "Desktop sessions you have now: ${bold}${current:-none}${off}"
+    echo
+    read -rp "Proceed? [Y/n] " answer
+    [[ -z $answer || $answer == [yY]* ]] || { echo "Nothing was changed."; exit 0; }
+fi
 
 dir="$(mktemp -d)"
 trap 'rm -rf "$dir"' EXIT
@@ -62,4 +87,4 @@ if ! curl -fL --progress-bar -o "$dir/oblio.tar.gz" "$source"; then
     exit 1
 fi
 tar xzf "$dir/oblio.tar.gz" -C "$dir" --strip-components=1
-"$dir/desktop/setup" "$@"
+OBLIO_COMMIT="$commit" "$dir/desktop/setup" "${args[@]}"

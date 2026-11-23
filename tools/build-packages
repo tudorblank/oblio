@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Builds Oblio's own packages into a local pacman repo: out/repo
-# Runs as your normal user.
+# Builds Oblio's own packages into a pacman repo: out/repo
+#   tools/build-packages                  unsigned, for the ISO
+#   OBLIO_SIGN_KEY=<fingerprint> tools/build-packages
+#                                         packages and database signed with that key (GitHub
+#                                         Actions does this for the online repo)
+# Versions come from git (tools/package-version). Runs as your normal user.
 
 set -euo pipefail
 
@@ -10,21 +14,30 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 out="$root/out"
 repo="$out/repo"
 build="$out/build"
+key="${OBLIO_SIGN_KEY:-}"
 
 [[ $EUID != 0 ]] || { echo "error: run as your normal user, not root" >&2; exit 1; }
 
 rm -rf "$repo" "$build"
-mkdir -p "$repo" "$build"
+mkdir -p "$repo" "$build/sources"
 
 export PKGDEST="$repo" BUILDDIR="$build" SRCDEST="$build/sources"
-mkdir -p "$SRCDEST"
+sign=()
+[[ -n $key ]] && sign=(--sign --key "$key")
 
 for p in "$root"/base/packages/*/; do
-    echo "==> $(basename "$p")"
-    (cd "$p" && makepkg -f --nodeps --noconfirm)
+    name="$(basename "$p")"
+    version="$("$root/tools/package-version" "$name")"
+    # built from a copy, so the version set here never touches the repository
+    cp -r "$p" "$build/$name"
+    if [[ -n $version ]]; then
+        sed -i -e "s/^pkgver=.*/pkgver=$version/" -e "s/^pkgrel=.*/pkgrel=1/" "$build/$name/PKGBUILD"
+    fi
+    echo "==> $name ${version:-(PKGBUILD version)}"
+    (cd "$build/$name" && makepkg -f --nodeps --noconfirm "${sign[@]}")
 done
 
-repo-add -q "$repo/oblio.db.tar.gz" "$repo"/*.pkg.tar.zst
+repo-add -q "${sign[@]}" "$repo/oblio.db.tar.gz" "$repo"/*.pkg.tar.zst
 rm -rf "$build"
 echo "==> packages in $repo:"
 ls "$repo"/*.pkg.tar.zst | xargs -n1 basename

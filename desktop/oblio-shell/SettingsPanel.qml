@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Oblio's settings (SUPER+I, or `qs -c oblio ipc call settings toggle`).
+// Oblio's settings (SUPER+I, or `qs -p ~/.config/oblio-shell ipc call settings toggle`).
 
 import QtQuick
 import Quickshell
@@ -37,7 +37,7 @@ Scope {
         function toggle(): void { if (root.shown) root.shown = false; else root.open() }
         function open(): void { root.open() }
         function close(): void { root.shown = false }
-        // qs -c oblio ipc call settings set gapsOut 10   (value is JSON: 10, true, '"#5b9cf5"')
+        // qs -p ~/.config/oblio-shell ipc call settings set gapsOut 10   (value is JSON: 10, true, '"#5b9cf5"')
         function set(key: string, value: string): void { Settings.set(key, JSON.parse(value)) }
     }
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Oblio's settings, saved in Quickshell's state folder (~/.local/state/quickshell/...).
+// Oblio's settings, saved in ~/.local/state/quickshell/by-shell/oblio/settings.json.
 // Hyprland choices are applied live and also written to ~/.config/hypr/settings.lua,
 // which hyprland.lua loads last.
 pragma Singleton

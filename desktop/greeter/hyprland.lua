@@ -22,7 +22,12 @@ local virt = io.popen("systemd-detect-virt --vm")
 local vm = virt and (virt:read("*l") or "none") ~= "none"
 if virt then virt:close() end
 
-if exists("/proc/driver/nvidia/version") then
+-- NVIDIA as the only GPU; on PRIME laptops these would wake it (see env.lua)
+local vendors = io.popen("cat /sys/class/drm/card*/device/vendor 2>/dev/null | sort -u")
+local nvidia_only = vendors and vendors:read("*a"):gsub("%s+$", "") == "0x10de"
+if vendors then vendors:close() end
+
+if exists("/proc/driver/nvidia/version") and nvidia_only then
     hl.env("LIBVA_DRIVER_NAME", "nvidia")
     hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
     hl.env("NVD_BACKEND", "direct")

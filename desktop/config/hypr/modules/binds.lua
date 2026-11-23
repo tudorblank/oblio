@@ -7,7 +7,7 @@ local terminal = "alacritty"
 local files    = "dolphin"
 local browser  = "zen-browser"
 local launcher = "hyprlauncher"
-local settings = "qs -c oblio ipc call settings toggle"
+local settings = oblio.qs .. " ipc call settings toggle"
 
 local function key(k, action, opts) hl.bind(mod .. " + " .. k, action, opts) end
 local function run(cmd) return hl.dsp.exec_cmd(cmd) end

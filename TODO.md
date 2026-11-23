@@ -7,9 +7,9 @@
   - [ ] Encryption: passphrase prompt at boot, snapshot entries still boot
   - [ ] Manual mode with a shared EFI partition
   - [ ] Kernel choice: main kernel boots first, LTS second
-- [x] Minimal Hyprland (`desktop/setup`, `--link` for live editing)
+- [x] Minimal Hyprland (`desktop/setup`)
 - [x] Window management: minimize, show desktop, tiling/floating per workspace (`hypr/modules/windows.lua`)
-- [x] Dock (`desktop/config/quickshell/oblio`, Quickshell)
+- [x] Dock (`desktop/oblio-shell`, Quickshell)
 - [x] Settings panel (SUPER+I): display, dock, windows, appearance, input
 - [x] Display settings: resolution, refresh rate, scale, rotation, arrangement, mirroring; keep-or-go-back
   confirmation; 100% by default, the scale that suits the screen's size marked as recommended
@@ -23,6 +23,8 @@
 - [ ] Keybind cheatsheet inside the desktop
 - [ ] Launcher (Quickshell) to replace hyprlauncher
 - [ ] USB automount, clipboard history
+- [ ] Two Dolphin windows rebuild KDE's app menu cache (~/.cache/ksycoca6_*) in turn every ~2 s at ~45% CPU;
+      cause unknown (same environment in both)
 - [ ] Greeter: 100% like the desktop (it uses Hyprland's "auto")
 - [x] Dock: right-click menu (windows, new window, pin to dock, quit), pinning from the dock
 - [ ] Animations and look, using `hypr-config-temp` as inspiration

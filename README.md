@@ -150,7 +150,11 @@ base/         what an installed Oblio is made of
   config/       components/ (one file per component: packages + services; optional ones show up
                 in the installer), pacman.conf (Cachy repos filled in per CPU), btrfs.conf, limine.conf
   packages/     Oblio's own packages: oblio-hooks, oblio-settings
-desktop/      the Oblio desktop: setup, config/ (lands in ~/.config: hypr/, quickshell/), greeter/
+desktop/      the Oblio desktop
+  setup         installs it (packages, files, login screen)
+  config/       Hyprland's config, lands in ~/.config/hypr
+  oblio-shell/  Oblio's shell (dock, settings panel), lands in ~/.config/oblio-shell
+  greeter/      the login screen, lands in /usr/share/oblio/greeter
 tools/        installing and tooling
   installer/    oblio-install (the step-by-step installer), engine.sh (install steps), oblio-repos (CPU detection)
   build-packages, oblio-vm (test VM)
@@ -173,5 +177,6 @@ tools/oblio-vm run       # boots the installed system
 tools/oblio-vm reset     # wipes the VM disk
 ```
 
-Live desktop editing: `git clone` this repository and run `desktop/setup --link`. Everything in
-`desktop/config/` is then symlinked into `~/.config`, so edits in the repo apply right away.
+Working on the desktop: edit it in a clone of this repository, then run `desktop/setup` to copy it
+onto the system. The installed files are independent copies; Hyprland and the shell pick up the new
+ones by themselves.

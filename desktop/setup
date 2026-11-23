@@ -4,8 +4,8 @@
 # Oblio's desktop on any Arch-based system: Hyprland, Oblio's window management,
 # keybinds, dock and login screen, Alacritty, Dolphin, Zen. Run as your normal
 # user; pacman and the system files go through sudo.
-#   desktop/setup            install packages, copy desktop/config/ into ~/.config
-#   desktop/setup --link     symlink instead of copying: edits in the repo apply live
+#   desktop/setup            install packages, copy desktop/config/ into ~/.config and
+#                            desktop/oblio-shell/ (dock, settings) to ~/.config/oblio-shell
 #   desktop/setup --greeter  make Oblio's login screen the login manager even when
 #                            another one (SDDM, GDM, ...) is already set up
 #
@@ -23,10 +23,9 @@ red=$'\e[1;31m' bold=$'\e[1m' off=$'\e[0m'
 msg() { printf '%s==>%s %s%s%s\n' "$red" "$off" "$bold" "$*" "$off"; }
 die() { printf '%serror:%s %s\n' "$red" "$off" "$*" >&2; exit 1; }
 
-link=0 greeter=0
+greeter=0
 for arg; do
     case $arg in
-        --link)    link=1 ;;
         --greeter) greeter=1 ;;
         *) die "unknown option: $arg" ;;
     esac
@@ -66,35 +65,58 @@ if (( ${#missing[@]} )); then
     sudo pacman -S --needed --noconfirm "${missing[@]}"
 fi
 
-# puts SRC at DST: a link or a copy; an existing different file is kept as DST.bak.DATE
+# copies SRC to DST; an existing different file is kept as DST.bak.DATE, an identical
+# one is left alone (no needless Hyprland reload)
 place() {
     local src="$1" dst="$2"
     mkdir -p "${dst%/*}"
-    if [[ -e $dst && ! -L $dst ]] && ! diff -rq "$src" "$dst" >/dev/null 2>&1; then
+    if [[ -e $dst && ! -L $dst ]]; then
+        diff -rq "$src" "$dst" >/dev/null 2>&1 && return
         mv "$dst" "$dst.bak.$stamp"
     fi
-    if ((link)); then
-        ln -sfn "$src" "$dst"
-    elif [[ -d $src ]]; then
+    # written next to it, then renamed over it: Hyprland reloads on every change and must
+    # never see the file missing or half written
+    if [[ -d $src ]]; then
+        rm -rf "$dst.new"
+        cp -r "$src" "$dst.new"
         rm -rf "$dst"
-        cp -r "$src" "$dst"
+        mv "$dst.new" "$dst"
     else
-        rm -f "$dst"
-        install -m644 "$src" "$dst"
+        install -m644 "$src" "$dst.new"
+        mv -f "$dst.new" "$dst"
     fi
 }
 
-msg "$( ((link)) && echo Linking || echo Copying ) Oblio's desktop files into $cfg"
-# Quickshell's config folder goes as a whole, so new files in it show up by themselves
-place "$here/config/quickshell/oblio" "$cfg/quickshell/oblio"
+msg "Copying Oblio's desktop files into $cfg"
+# the shell goes as a whole folder, so files removed from it don't linger
+place "$here/oblio-shell" "$cfg/oblio-shell"
 while IFS= read -r -d '' src; do
     place "$src" "$cfg/${src#"$here/config/"}"
-done < <(find "$here/config" -path "$here/config/quickshell" -prune -o -type f -print0)
-# links left behind by files that moved or were removed in the repo
-find "$cfg/hypr" -xtype l -lname "$here/*" -delete 2>/dev/null || true
+done < <(find "$here/config" -type f -print0)
+
+# older versions kept the shell in ~/.config/quickshell/oblio, its settings under an id
+# made from that path; the shell's id is "oblio" now
+old="$cfg/quickshell/oblio"
+state="${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/by-shell"
+old_id="$(printf '%s' "$old/shell.qml" | md5sum | cut -d' ' -f1)"
+if [[ -f $state/$old_id/settings.json && ! -e $state/oblio/settings.json ]]; then
+    mkdir -p "$state/oblio"
+    cp "$state/$old_id/settings.json" "$state/oblio/settings.json"
+fi
+if [[ -e $old || -L $old ]]; then
+    rm -rf "$old"
+    rmdir "$cfg/quickshell" 2>/dev/null || true
+fi
+
+# inside a running Hyprland: swap the running shell for the new one
+if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && command -v hyprctl >/dev/null; then
+    pkill -u "$USER" -f "^qs (-c oblio|-p '?$cfg/oblio-shell'?)$" || true
+    hyprctl dispatch "hl.dsp.exec_cmd(\"qs -p '$cfg/oblio-shell'\")" >/dev/null 2>&1 || true
+fi
 
 msg "Building Dolphin's application menu"
-XDG_MENU_PREFIX=arch- kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
+# capped: it waits for any running KDE app holding the menu cache lock
+XDG_MENU_PREFIX=arch- timeout 30 kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
 
 msg "Installing the login screen"
 sudo install -Dm644 -t /usr/share/oblio/greeter "$here"/greeter/*.qml

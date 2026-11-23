@@ -3,6 +3,10 @@
 
 oblio = oblio or {}
 
+-- Oblio's shell (dock, settings), copied here by desktop/setup
+oblio.shell = (os.getenv("XDG_CONFIG_HOME") or (os.getenv("HOME") .. "/.config")) .. "/oblio-shell"
+oblio.qs = "qs -p '" .. oblio.shell .. "'"
+
 local function output(cmd)
     local p = io.popen(cmd)
     if not p then return "" end
@@ -20,6 +24,8 @@ end
 local virt = output("systemd-detect-virt --vm")
 oblio.vm = virt ~= "" and virt ~= "none"
 oblio.nvidia = exists("/proc/driver/nvidia/version")
+-- NVIDIA is the only GPU (no AMD/Intel one next to it, as on PRIME laptops)
+oblio.nvidia_only = oblio.nvidia and output("cat /sys/class/drm/card*/device/vendor 2>/dev/null | sort -u") == "0x10de"
 
 hl.env("XCURSOR_THEME", "capitaine-cursors")
 hl.env("XCURSOR_SIZE", "24")
@@ -28,7 +34,9 @@ hl.env("HYPRCURSOR_SIZE", "24")
 -- Dolphin's "Open with" menus outside Plasma
 hl.env("XDG_MENU_PREFIX", "arch-")
 
-if oblio.nvidia then
+-- only when NVIDIA drives everything: on a PRIME laptop these would send every video and
+-- X11 app to the NVIDIA GPU and keep it awake; there `prime-run APP` uses it for one app
+if oblio.nvidia_only then
     hl.env("LIBVA_DRIVER_NAME", "nvidia")         -- video decoding
     hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia") -- OpenGL
     hl.env("NVD_BACKEND", "direct")

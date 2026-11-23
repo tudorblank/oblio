@@ -55,18 +55,25 @@ On an installed Oblio, as your user:
 
 ```
 curl -L https://github.com/tudorblank/oblio/archive/refs/heads/main.tar.gz | tar xz
-oblio-main/desktop/hyprland/setup
+oblio-main/desktop/setup
 start-hyprland
 ```
 
-Hyprland with Oblio's window management and dock, Alacritty (SUPER+Q), Dolphin (SUPER+E)
-and Hyprland's launcher (SUPER+R). In a VM the main key is Alt instead of Super.
+Hyprland with Oblio's window management and dock, Alacritty, Dolphin, Zen and Hyprland's
+launcher. In a VM the main key is Alt instead of Super.
 
 | Keys | |
 |---|---|
-| SUPER+H / SUPER+SHIFT+H | minimize / restore last minimized |
-| SUPER+D | show desktop (minimize all), again to bring them back |
+| SUPER+Enter / E / W / R | terminal / files / browser / launcher |
+| SUPER+Q | close window |
+| SUPER+D / SUPER+F | maximize / fullscreen |
+| SUPER+C / SUPER+SHIFT+C | minimize / restore last minimized |
+| SUPER+SHIFT+D | show desktop (minimize all), again to bring them back |
 | SUPER+T | this workspace: tiling <-> floating (KDE-like, cascading windows) |
+
+Everything in `desktop/config/` lands at the same path in `~/.config`. `desktop/setup --link`
+symlinks instead of copying, so edits in the repo apply live. `hyprland.lua` is written on the
+first run only (`--fresh` rewrites it); Oblio's parts live in the `oblio*.lua` files next to it.
 
 Dock: click opens, focuses or restores; clicking the focused app minimizes it; right click
 minimizes or restores all of an app's windows; middle click opens a new window.

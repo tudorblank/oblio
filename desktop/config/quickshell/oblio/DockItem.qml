@@ -10,7 +10,12 @@ Item {
     property var app
     property var dock
 
-    readonly property var entry: DesktopEntries.byId(app.id) ?? DesktopEntries.heuristicLookup(app.id)
+    // desktop entries load in the background after startup; touching the list
+    // re-runs the lookup once they arrive (byId alone never updates)
+    readonly property var entry: {
+        DesktopEntries.applications.values
+        return DesktopEntries.byId(app.id) ?? DesktopEntries.heuristicLookup(app.id)
+    }
     readonly property bool active: app.windows.some(t => t.activated)
     readonly property bool allMinimized: app.windows.length > 0 && app.windows.every(t => dock.isMinimized(t))
 

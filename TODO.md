@@ -7,9 +7,9 @@
   - [ ] Encryption: passphrase prompt at boot, snapshot entries still boot
   - [ ] Manual mode with a shared EFI partition
   - [ ] Kernel choice: main kernel boots first, LTS second
-- [x] Minimal Hyprland (`desktop/hyprland/setup`)
+- [x] Minimal Hyprland (`desktop/setup`, `--link` for live editing)
 - [x] Window management: minimize, show desktop, tiling/floating per workspace (`oblio.lua`)
-- [x] Dock (`desktop/shell`, Quickshell)
+- [x] Dock (`desktop/config/quickshell/oblio`, Quickshell)
 - [ ] Shell: top bar (workspaces, clock, tray, volume, network), notifications, launcher, lock screen
 - [ ] Dock: tooltips with window titles, right-click menu, pinning from the dock
 - [ ] Animations and look, using `hypr-config-temp` as inspiration

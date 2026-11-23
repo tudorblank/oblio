@@ -4,7 +4,7 @@
 --   minimize / restore (any number of windows), show desktop,
 --   per-workspace tiling <-> floating mode.
 -- Minimized windows live on the hidden workspace "special:minimized".
--- Everything is reachable from outside (the dock) through
+-- Keys: oblio-keys.lua. Everything is reachable from outside (the dock) through
 --   hyprctl dispatch 'function() oblio.restore("0x...") end'
 
 oblio = oblio or {}
@@ -169,17 +169,5 @@ hl.on("window.move_to_workspace", function(w, ws)
     if not w or not ws or ws.special then return end
     if s.floating[ws.id] then float_window(w) else tile_window(w) end
 end)
-
----------------------------------------------------------------------------
--- keys
----------------------------------------------------------------------------
-
-function oblio.setup(opts)
-    local mod = (opts and opts.mod) or "SUPER"
-    hl.bind(mod .. " + H",         function() oblio.minimize() end)
-    hl.bind(mod .. " + SHIFT + H", function() oblio.restore_last() end)
-    hl.bind(mod .. " + D",         function() oblio.toggle_desktop() end)
-    hl.bind(mod .. " + T",         function() oblio.toggle_mode() end)
-end
 
 return oblio

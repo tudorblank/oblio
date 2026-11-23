@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Oblio's desktop on any Arch-based system: Hyprland, Oblio's window management,
+# keybinds and dock, Alacritty, Dolphin, Zen. Run as your normal user; pacman
+# runs through sudo.
+#   desktop/setup            install packages, copy desktop/config/ into ~/.config
+#   desktop/setup --link     symlink instead of copying: edits in the repo apply live
+#   desktop/setup --fresh    also rewrite hyprland.lua (the old one is backed up)
+#
+# Every file in desktop/config/ lands at the same path under ~/.config.
+# hyprland.lua is yours: only the first run writes it, reruns leave it alone.
+
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
+config="$cfg/hypr/hyprland.lua"
+default="${OBLIO_HYPR_DEFAULT:-/usr/share/hypr/hyprland.lua}"
+red=$'\e[1;31m' bold=$'\e[1m' off=$'\e[0m'
+
+msg() { printf '%s==>%s %s%s%s\n' "$red" "$off" "$bold" "$*" "$off"; }
+die() { printf '%serror:%s %s\n' "$red" "$off" "$*" >&2; exit 1; }
+
+link=0 fresh=0
+for arg; do
+    case $arg in
+        --link)  link=1 ;;
+        --fresh) fresh=1 ;;
+        *) die "unknown option: $arg" ;;
+    esac
+done
+
+[[ $EUID != 0 ]] || die "run as your normal user, not root"
+
+packages=(
+    quickshell                   # runs the Oblio shell (dock)
+    hyprland                     # compositor (pulls in XWayland)
+    hyprlauncher                 # app launcher
+    hyprpolkitagent              # password prompts for admin actions
+    xdg-desktop-portal-hyprland  # screen sharing, portals
+    qt6-wayland                  # Qt apps (Dolphin) run natively on Wayland
+    alacritty                    # terminal
+    dolphin                      # file manager
+    breeze-icons                 # icons for Dolphin and the dock
+    archlinux-xdg-menu           # Dolphin's "Open with" menus outside Plasma
+    ttf-dejavu                   # a font, the base system has none
+)
+# browser: Zen comes from the CachyOS repos
+if pacman -Si zen-browser-bin &>/dev/null; then packages+=(zen-browser-bin); fi
+
+mapfile -t missing < <(pacman -T "${packages[@]}" || true)
+if (( ${#missing[@]} )); then
+    msg "Installing packages"
+    sudo pacman -S --needed --noconfirm "${missing[@]}"
+fi
+
+msg "$( ((link)) && echo Linking || echo Copying ) Oblio's desktop files into $cfg"
+while IFS= read -r -d '' src; do
+    dst="$cfg/${src#"$here/config/"}"
+    mkdir -p "${dst%/*}"
+    if ((link)); then
+        ln -sfn "$src" "$dst"
+    else
+        rm -f "$dst"
+        install -m644 "$src" "$dst"
+    fi
+done < <(find "$here/config" -type f -print0)
+
+if [[ ! -e $config ]] || ((fresh)); then
+    msg "Writing $config"
+    if [[ -e $config ]]; then
+        cp "$config" "$config.bak.$(date +%Y%m%d-%H%M%S)"
+        echo "existing config backed up"
+    fi
+
+    # console keymap -> keyboard layout, when it is also a valid XKB layout
+    layout=us
+    keymap="$(sed -n 's/^KEYMAP=//p' /etc/vconsole.conf 2>/dev/null)"
+    if [[ -n $keymap ]] && localectl list-x11-keymap-layouts | grep -qx "$keymap"; then
+        layout="$keymap"
+    fi
+
+    # In a VM the host desktop keeps Super for itself (KDE, GNOME, Windows), so the
+    # VM gets Alt as its main key. On real hardware it stays Super.
+    mod=SUPER
+    if systemd-detect-virt -q; then mod=ALT; fi
+
+    # Hyprland's own default config, with Oblio's programs and its keybinds
+    # (from "-- Example binds" to the last media key) swapped for oblio-keys.lua
+    tmp="$(mktemp)"
+    sed -e 's/^local terminal    = "kitty"$/local terminal    = "alacritty"/' \
+        -e 's/^local menu        = "hyprlauncher"$/&\nlocal browser     = "zen-browser"/' \
+        -e "s/^\(        kb_layout  = \)\"us\",$/\1\"$layout\",/" \
+        -e "s/^local mainMod = \"SUPER\"/local mainMod = \"$mod\"/" \
+        -e '/^-- Example binds, see/,/^hl.bind("XF86AudioPrev"/c\
+-- Oblio'"'"'s keybinds: oblio-keys.lua\
+require("oblio-keys")({\
+    mod      = mainMod,\
+    terminal = terminal,\
+    files    = fileManager,\
+    browser  = browser,\
+    launcher = menu,\
+})' \
+        "$default" > "$tmp"
+    if grep -q '^hl.bind(' "$tmp" || ! grep -q '^local browser' "$tmp"; then
+        rm -f "$tmp"
+        die "Hyprland's default config changed, desktop/setup needs updating"
+    fi
+
+    {
+        cat "$tmp"
+        cat <<'EOF'
+
+
+---------------
+---- OBLIO ----
+---------------
+
+-- window management, dock, autostart (oblio-desktop.lua, oblio.lua)
+require("oblio-desktop")
+EOF
+
+        if lspci -k 2>/dev/null | grep -q "Kernel driver in use: nvidia"; then
+            cat <<'EOF'
+
+-- Nvidia: video decoding and OpenGL go through Nvidia's driver
+hl.env("LIBVA_DRIVER_NAME", "nvidia")
+hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
+hl.env("NVD_BACKEND", "direct")
+EOF
+        fi
+
+        if systemd-detect-virt -q; then
+            cat <<'EOF'
+
+-- virtual machine: the virtual GPU has no hardware cursor
+hl.config({
+    cursor = {
+        no_hardware_cursors = true,
+    },
+})
+EOF
+        fi
+    } > "$config"
+    rm -f "$tmp"
+fi
+
+msg "Building Dolphin's application menu"
+XDG_MENU_PREFIX=arch- kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
+
+mod="$(sed -n 's/^local mainMod = "\(.*\)".*/\1/p' "$config")"
+mod="${mod:-SUPER}"
+
+msg "Done"
+cat <<EOF
+
+Start Hyprland from the console with:  ${bold}start-hyprland${off}
+
+  $mod + Enter     terminal (Alacritty)
+  $mod + E         files (Dolphin)
+  $mod + W         browser (Zen)
+  $mod + R         app launcher
+  $mod + Q         close window
+  $mod + D         maximize                 $mod + F           fullscreen
+  $mod + C         minimize                 $mod + SHIFT + C   restore last minimized
+  $mod + SHIFT + D show desktop (minimize all, again to restore)
+  $mod + T         this workspace: tiling <-> floating
+  $mod + 1..0      switch workspace
+  $mod + M         exit Hyprland
+
+Dock: click = open / focus / restore, click the focused app = minimize,
+      right click = minimize or restore all its windows, middle click = new window
+
+Config: $config  (keys: oblio-keys.lua)
+EOF
+if [[ $mod == ALT ]]; then
+    echo "This is a virtual machine, so the main key is Alt instead of Super."
+fi

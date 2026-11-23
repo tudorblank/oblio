@@ -27,7 +27,7 @@ jobs:
       - name: Tools
         run: pacman -Syu --noconfirm --needed git github-cli
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0   # versions come from the history (tools/package-version)
 

@@ -79,10 +79,11 @@ reboot
 ```
 
 `oblio-desktop` is part of every Oblio install. It shows which desktop sessions you already have,
-asks before changing anything, then downloads the desktop from this repository and sets it up; run
-it again later to update. After the reboot you get Oblio's login screen: pick the user and the session at the bottom
-left (Hyprland, or anything else installed) and log in. If another login manager is already set up
-(SDDM, GDM...), it's left alone unless you run `oblio-desktop --greeter`.
+asks before changing anything, then downloads the desktop from this repository and sets it up;
+`oblio-update` keeps it current afterwards. After the reboot you get Oblio's login screen: pick the
+user and the session at the bottom left (Hyprland, or anything else installed) and log in. If another
+login manager is already set up (SDDM, GDM...), it's left alone unless you run
+`oblio-desktop --greeter`.
 
 What it provides:
 
@@ -127,11 +128,11 @@ All keys: `~/.config/hypr/modules/binds.lua`.
 Dock: click opens an app; on a running app it focuses its window if it isn't focused, minimizes it
 if it is, and brings minimized windows back (to their workspace, place and size, focused); middle
 click opens a new window; right click opens a menu: the app's windows, New window, Pin to dock /
-Unpin from dock, Quit. Drag an icon to move it; dropping it left of the divider pins it
-there, right of it unpins it (the first app is pinned from the right-click menu). A small number
-on an icon shows how many windows the app has open. The dock never moves the pointer. It can always show, auto-hide (the bottom
-edge brings it back) or hide smartly (only while a window reaches into it), and it disappears when
-it has nothing to show (SUPER+I, Dock).
+Unpin from dock, Quit. Drag an icon to move it; dropping it left of the divider pins it there,
+right of it unpins it (the first app is pinned from the right-click menu). A small number on an icon
+shows how many windows the app has open. The dock never moves the pointer. It can always show,
+auto-hide (the bottom edge brings it back) or hide smartly (only while a window reaches into it),
+and it disappears when it has nothing to show (SUPER+I, Dock).
 
 Display (SUPER+I): resolution, refresh rate, scale, rotation, and with more than one screen, which
 ones are on, where they sit and mirroring. A change applies at once and goes back by itself after 15
@@ -140,15 +141,23 @@ the scale list marks the one that suits the screen's size.
 
 Appearance (SUPER+I): light or dark, the accent color and the fonts, for the whole desktop: the
 shell, GTK and Qt apps (switched live, open windows included; Qt follows the GTK theme through
-`QT_QPA_PLATFORMTHEME=gtk3`), browsers, icons, the terminal and window borders. libadwaita apps switch light/dark live and take a new accent when they next start.
-The interface font is SF Pro: Apple doesn't allow redistributing it, so it isn't in this repository;
-`desktop/setup` downloads a pinned, checksum-verified copy into `~/.local/share/fonts`, and the
-desktop uses Inter if that fails. The monospace font is JetBrains Mono. Icons are WhiteSur (GPL-3.0),
-also downloaded at a pinned version and checked; setup copies its files itself instead of running its
-installer, and falls back to Papirus. Thunar is styled close to GNOME Files: header bar, no menu
-bar (Ctrl+M shows it), a soft sidebar. Apps can have a look of their own: a stylesheet per app in
-`desktop/oblio-shell/theme/gtk-3.0/` (Thunar's is there) goes on top of the theme. Your own terminal settings go
-in `~/.config/alacritty/local.toml`.
+`QT_QPA_PLATFORMTHEME=gtk3`), browsers, icons, the terminal and window borders. libadwaita apps
+switch light/dark live and take a new accent when they next start. The shell applies it all with
+`~/.config/oblio-shell/scripts/apply-theme`, which generates the GTK theme (`Oblio` /
+`Oblio-Alt` in `~/.local/share/themes`, built on adw-gtk3), fontconfig defaults and the terminal's
+colors.
+
+The look:
+
+- Fonts: SF Pro for the interface, JetBrains Mono for the terminal and code. SF Pro is Apple's and
+  may not be redistributed, so it isn't in this repository: `desktop/setup` downloads a pinned,
+  checksum-verified copy into `~/.local/share/fonts`, and the desktop uses Inter if that fails.
+- Icons: WhiteSur (GPL-3.0), also downloaded at a pinned version and checked; setup copies its files
+  itself instead of running its installer, and falls back to Papirus.
+- Thunar is styled close to GNOME Files: header bar, no menu bar (Ctrl+M shows it), the sidebar as a
+  rounded card, soft accent selections. Apps can have a look of their own: a stylesheet per app in
+  `desktop/oblio-shell/theme/gtk-3.0/` (Thunar's is there) goes on top of the theme.
+- Your own terminal settings go in `~/.config/alacritty/local.toml`; Oblio's never touch it.
 
 A floating window comes to the front when it gets focus. Floating windows always stay above tiled
 ones; for normal desktop stacking, switch the workspace to floating with SUPER+T.
@@ -164,8 +173,21 @@ oblio-update
 ```
 
 updates everything: Arch and CachyOS packages, Oblio's own packages (from Oblio's signed package
-repository, `[oblio]`), and the desktop when it's installed, after showing what changed. Installs
-from before the repository existed get it added to `/etc/pacman.conf` the first time.
+repository, `[oblio]`), and the desktop when it's installed: it lists the changes since your version
+and asks first. `desktop/setup` records which commit the desktop came from in
+`~/.local/state/oblio-desktop/version`.
+
+Installs from before the repository existed have neither the repository nor its key yet. Once, with
+a clone of this repository: trust the key, install the current packages, then update:
+
+```
+sudo pacman-key --add base/packages/oblio-keyring/oblio.gpg
+sudo pacman-key --lsign-key E2B2BA7A0B2272BCC7EAE55BC6FD18809924F914
+tools/build-packages && sudo pacman -U out/repo/*.pkg.tar.zst
+oblio-update
+```
+
+`oblio-update` adds `[oblio]` to `/etc/pacman.conf` (keeping a backup) and takes it from there.
 
 ## Working on Oblio
 
@@ -183,6 +205,7 @@ tools/        installing and tooling
   installer/    oblio-install (the step-by-step installer), engine.sh (install steps), oblio-repos (CPU detection)
   build-packages (also signs, for the [oblio] repository), package-version, oblio-vm (test VM)
 iso/          the Oblio ISO: build-iso, and what it adds on top of Arch's live ISO
+.github/      workflows/packages.yml: builds, signs and publishes Oblio's packages
 ```
 
 Oblio's packages: every push that changes `base/packages/` makes GitHub Actions build them
@@ -209,4 +232,5 @@ tools/oblio-vm reset     # wipes the VM disk
 
 Working on the desktop: edit it in a clone of this repository, then run `desktop/setup` to copy it
 onto the system. The installed files are independent copies; Hyprland and the shell pick up the new
-ones by themselves.
+ones by themselves. Once it's committed and pushed, `oblio-update` brings every other Oblio machine to
+the same version (the packages a few minutes later, once GitHub Actions has published them).

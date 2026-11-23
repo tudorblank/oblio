@@ -13,4 +13,6 @@ ShellRoot {
             screen: modelData
         }
     }
+
+    SettingsPanel {}
 }

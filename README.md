@@ -65,6 +65,7 @@ launcher. In a VM the main key is Alt instead of Super.
 | Keys | |
 |---|---|
 | SUPER+Enter / E / W / R | terminal / files / browser / launcher |
+| SUPER+I | settings: dock, windows, appearance, input |
 | SUPER+Q | close window |
 | SUPER+D / SUPER+F | maximize / fullscreen |
 | SUPER+C / SUPER+SHIFT+C | minimize / restore last minimized |

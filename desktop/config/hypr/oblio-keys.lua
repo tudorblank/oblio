@@ -13,6 +13,7 @@ return function(o)
     key("E",      hl.dsp.exec_cmd(o.files))
     key("W",      hl.dsp.exec_cmd(o.browser))
     key("R",      hl.dsp.exec_cmd(o.launcher))
+    key("I",      hl.dsp.exec_cmd("qs -c oblio ipc call settings toggle"))
 
     -- windows
     key("Q",         hl.dsp.window.close())

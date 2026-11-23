@@ -45,6 +45,7 @@ packages=(
     breeze-icons                 # icons for Dolphin and the dock
     archlinux-xdg-menu           # Dolphin's "Open with" menus outside Plasma
     ttf-dejavu                   # a font, the base system has none
+    ttf-nerd-fonts-symbols       # icons in the shell
 )
 # browser: Zen comes from the CachyOS repos
 if pacman -Si zen-browser-bin &>/dev/null; then packages+=(zen-browser-bin); fi
@@ -56,6 +57,21 @@ if (( ${#missing[@]} )); then
 fi
 
 msg "$( ((link)) && echo Linking || echo Copying ) Oblio's desktop files into $cfg"
+# folders named "oblio" belong to Oblio whole: --link links the folder itself,
+# so files added to it later show up without rerunning setup
+stamp="$(date +%Y%m%d-%H%M%S)"
+while IFS= read -r -d '' dir; do
+    dst="$cfg/${dir#"$here/config/"}"
+    mkdir -p "${dst%/*}"
+    if ((link)); then
+        if [[ -e $dst && ! -L $dst ]]; then mv "$dst" "$dst.bak.$stamp"; fi
+        ln -sfn "$dir" "$dst"
+    elif [[ -L $dst ]]; then
+        rm "$dst"
+    fi
+done < <(find "$here/config" -type d -name oblio -prune -print0)
+
+if ((link)); then skip=(-type d -name oblio -prune -o); else skip=(); fi
 while IFS= read -r -d '' src; do
     dst="$cfg/${src#"$here/config/"}"
     mkdir -p "${dst%/*}"
@@ -65,7 +81,7 @@ while IFS= read -r -d '' src; do
         rm -f "$dst"
         install -m644 "$src" "$dst"
     fi
-done < <(find "$here/config" -type f -print0)
+done < <(find "$here/config" "${skip[@]}" -type f -print0)
 
 if [[ ! -e $config ]] || ((fresh)); then
     msg "Writing $config"
@@ -161,6 +177,7 @@ Start Hyprland from the console with:  ${bold}start-hyprland${off}
   $mod + E         files (Dolphin)
   $mod + W         browser (Zen)
   $mod + R         app launcher
+  $mod + I         settings
   $mod + Q         close window
   $mod + D         maximize                 $mod + F           fullscreen
   $mod + C         minimize                 $mod + SHIFT + C   restore last minimized

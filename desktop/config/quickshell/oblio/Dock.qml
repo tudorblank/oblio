@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Bottom dock: pinned apps, then running apps. Window actions go through
-// oblio.lua in Hyprland, so minimized windows land on special:minimized.
+// Bottom dock: pinned apps, a divider, then other running apps. Window actions
+// go through oblio.lua in Hyprland, so minimized windows land on special:minimized.
 
 import QtQuick
 import Quickshell
@@ -14,18 +14,26 @@ PanelWindow {
     property var pinned: ["Alacritty", "org.kde.dolphin"]
 
     readonly property string minimizedWorkspace: "special:minimized"
+    // proportions of the macOS dock: icons ~60% of its height, gaps ~30% of an icon
+    readonly property int size: Settings.opts.dockSize
+    readonly property int iconSize: Math.round(size * 0.6)
+    readonly property int pad: Math.round((size - iconSize) / 2)
+    readonly property int margin: 8
+    readonly property bool autoHide: Settings.opts.dockAutoHide
+    property bool revealed: true
 
     anchors.bottom: true
-    implicitWidth: background.width + 40
-    implicitHeight: 84
-    exclusiveZone: 66
+    implicitWidth: background.width + 200
+    implicitHeight: background.height + margin + 48   // room above for labels
+    exclusiveZone: autoHide ? 0 : background.height + margin
     color: "transparent"
     WlrLayershell.namespace: "oblio-dock"
 
-    // only the dock itself takes clicks, not the empty space above it
-    mask: Region { item: background }
+    // only the dock takes clicks; when hidden, a thin strip at the bottom edge
+    mask: Region { item: root.revealed ? background : edge }
 
     Component.onCompleted: Hyprland.refreshToplevels()
+    onAutoHideChanged: revealed = !autoHide
 
     function appIdOf(t) {
         if (t.wayland && t.wayland.appId) return t.wayland.appId
@@ -69,6 +77,8 @@ PanelWindow {
         }
         return order.map(k => groups[k])
     }
+    readonly property var pinnedApps: apps.filter(a => a.pinned)
+    readonly property var otherApps: apps.filter(a => !a.pinned)
 
     function activate(app, entry) {
         const wins = app.windows
@@ -93,33 +103,76 @@ PanelWindow {
         else app.windows.forEach(restore)
     }
 
+    HoverHandler {
+        id: hover
+        onHoveredChanged: {
+            if (hovered) {
+                hideTimer.stop()
+                root.revealed = true
+            } else if (root.autoHide) {
+                hideTimer.restart()
+            }
+        }
+    }
+
+    Timer {
+        id: hideTimer
+        interval: 450
+        onTriggered: root.revealed = false
+    }
+
+    Item {
+        id: edge
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: background.width
+        height: 3
+    }
+
+    // frosted glass: Hyprland blurs what's behind (layer rule in oblio-desktop.lua)
     Rectangle {
         id: background
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 8
         anchors.horizontalCenter: parent.horizontalCenter
-        width: row.implicitWidth + 20
-        height: 60
-        radius: 18
-        color: "#cc141414"
-        border.color: "#26ffffff"
+        y: root.revealed ? parent.height - height - root.margin : parent.height + 2
+        width: row.implicitWidth + root.pad * 2
+        height: root.size
+        radius: Math.round(height * 0.32)
+        color: Qt.rgba(0.08, 0.08, 0.09, Settings.opts.dockOpacity / 100)
         border.width: 1
+        border.color: "#24ffffff"
 
-        Behavior on width { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+        Behavior on width { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+        Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
 
         Row {
             id: row
-            anchors.centerIn: parent
-            spacing: 6
+            anchors.left: parent.left
+            anchors.leftMargin: root.pad
+            // icon + its running dot are centered together, not the icon alone
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: -2
+            spacing: Math.round(root.iconSize * 0.3)
 
             Repeater {
-                model: root.apps
+                model: root.pinnedApps
+                DockItem { required property var modelData; app: modelData; dock: root }
+            }
 
-                DockItem {
-                    required property var modelData
-                    app: modelData
-                    dock: root
+            Item {
+                visible: Settings.opts.dockDivider && root.pinnedApps.length > 0 && root.otherApps.length > 0
+                width: 1
+                height: root.iconSize
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 1
+                    height: parent.height * 0.7
+                    color: "#26ffffff"
                 }
+            }
+
+            Repeater {
+                model: root.otherApps
+                DockItem { required property var modelData; app: modelData; dock: root }
             }
         }
     }

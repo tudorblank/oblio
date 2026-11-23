@@ -10,6 +10,7 @@
 - [x] Minimal Hyprland (`desktop/setup`, `--link` for live editing)
 - [x] Window management: minimize, show desktop, tiling/floating per workspace (`oblio.lua`)
 - [x] Dock (`desktop/config/quickshell/oblio`, Quickshell)
+- [x] Settings panel (SUPER+I): dock, windows, appearance, input
 - [ ] Shell: top bar (workspaces, clock, tray, volume, network), notifications, launcher, lock screen
 - [ ] Dock: tooltips with window titles, right-click menu, pinning from the dock
 - [ ] Animations and look, using `hypr-config-temp` as inspiration

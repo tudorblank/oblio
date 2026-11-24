@@ -55,7 +55,7 @@ hl.window_rule({ match = { class = "^(.*\\.exe)$", float = true }, center = true
 -- Thunar opens floating, under the pointer (its dialogs keep their own size)
 hl.window_rule({
     match = {
-        class = "^(thunar)$",
+        class = "^([Tt]hunar)$",
         title = "negative:^(File Operation Progress|Rename .*|Create New .*|.* - Properties|Bulk Rename.*|Preferences.*|Open With|Confirm .*|Attention)$",
     },
     float = true,

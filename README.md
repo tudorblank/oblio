@@ -95,7 +95,7 @@ What it provides:
 | Apps | `alacritty` (terminal), `thunar` (files, with `thunar-volman` for USB drives, `thunar-archive-plugin` + `file-roller` for archives, `tumbler` thumbnails, `gvfs` trash and phones), `zen-browser-bin` (browser), `hyprlauncher` (app launcher) |
 | Desktop plumbing | `hyprpolkitagent` (password prompts), `xdg-desktop-portal-hyprland` (screen sharing), `xdg-desktop-portal-gtk` (file pickers), `xdg-utils` (opening links and files), `fuse2` (AppImages), `qt6-wayland`, `xorg-xhost` |
 | Tools | `grim` `slurp` `wl-clipboard` (screenshots), `hyprpicker` (color picker), `brightnessctl` `playerctl` (brightness and media keys), `ffmpeg` (H.264 video in the browser) |
-| Look | `adw-gtk-theme` (GTK apps), WhiteSur icons (downloaded, see below), `papirus-icon-theme` (fallback icons), `capitaine-cursors`, `ttf-jetbrains-mono`, `inter-font`, `ttf-dejavu`, `ttf-nerd-fonts-symbols`, `breeze-icons` (login screen) |
+| Look | `adw-gtk-theme` (GTK apps), `oblio-gtk-module` (see below), WhiteSur icons (downloaded, see below), `papirus-icon-theme` (fallback icons), `capitaine-cursors`, `ttf-jetbrains-mono`, `inter-font`, `ttf-dejavu`, `ttf-nerd-fonts-symbols`, `breeze-icons` (login screen) |
 
 On another Arch-based system, the same desktop installs with:
 
@@ -155,9 +155,12 @@ The look:
 - Icons: WhiteSur (GPL-3.0), also downloaded at a pinned version and checked; setup copies its files
   itself instead of running its installer, and falls back to Papirus.
 - Thunar is styled close to GNOME Files: header bar, no menu bar (Ctrl+M shows it), the sidebar as a
-  rounded card with its entries close under the headings, soft accent selections. What a stylesheet
-  can't reach is done by `oblio-gtk-module`, a small GTK 3 module from `[oblio]`. Apps can have a look of their own: a stylesheet per app in
-  `desktop/oblio-shell/theme/gtk-3.0/` (Thunar's is there) goes on top of the theme.
+  rounded card with its entries close under the headings, soft accent selections.
+- Apps with a look of their own: CSS first. A stylesheet per app in
+  `desktop/oblio-shell/theme/gtk-3.0/` (Thunar's is there) goes on top of the theme. Only what a
+  stylesheet can't reach goes in `oblio-gtk-module` (`desktop/packages/oblio-gtk-module`): one small
+  GTK 3 module, a regular package from `[oblio]`, loaded into GTK 3 apps through `GTK3_MODULES` and
+  touching only the widgets it names (today: the indent Thunar's code puts in front of sidebar entries).
 - Your own terminal settings go in `~/.config/alacritty/local.toml`; Oblio's never touch it.
 
 A floating window comes to the front when it gets focus. Floating windows always stay above tiled

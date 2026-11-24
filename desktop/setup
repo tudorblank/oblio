@@ -257,6 +257,13 @@ if systemctl --user -q is-active xdg-desktop-portal.service 2>/dev/null \
     systemctl --user restart xdg-desktop-portal.service || true
 fi
 
+# oblio-gtk-module installed during a session: apps started from now on load it, also those
+# started over D-Bus (env.lua sets it at every login)
+if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} && -e /usr/lib/gtk-3.0/modules/liboblio-gtk.so ]]; then
+    hyprctl dispatch 'function() hl.env("GTK3_MODULES", "oblio-gtk") end' >/dev/null 2>&1 || true
+    dbus-update-activation-environment --systemd GTK3_MODULES=oblio-gtk 2>/dev/null || true
+fi
+
 # inside a running Hyprland: swap the running shell for the new one (last, so it sees the fonts)
 if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && command -v hyprctl >/dev/null; then
     pkill -u "$USER" -f "^qs (-c oblio|-p '?$cfg/oblio-shell'?)$" || true

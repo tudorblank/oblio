@@ -14,6 +14,7 @@
 - [ ] Clipboard history
 - [ ] Animations and look, using `hypr-config-temp` as inspiration
 - [ ] Greeter redesign (own theme, 100% scale like the desktop; leave alone until then)
+- [ ] Login screen files as an `[oblio]` package (system files, now installed by setup with sudo)
 - [ ] Thunar light mode: the home icon in the path field is faint
 - [ ] Qt apps: progress bars and sliders take the soft selection tint (Qt uses one color for both);
       a Qt-only palette could keep them bright, at the cost of picking up accent changes only on restart

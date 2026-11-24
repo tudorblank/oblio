@@ -193,6 +193,19 @@ oblio-update
 
 `oblio-update` adds `[oblio]` to `/etc/pacman.conf` (keeping a backup) and takes it from there.
 
+Where each part comes from:
+
+| | From | Updated by |
+|---|---|---|
+| Arch and CachyOS packages | their repositories | `pacman -Syu` |
+| Oblio's packages: `oblio-keyring`, `oblio-hooks`, `oblio-settings` (base), `oblio-gtk-module` (desktop) | `[oblio]`, Oblio's own pacman repository: built from `base/packages/` and `desktop/packages/`, signed, published as this repository's `repo` release | `pacman -Syu` |
+| The desktop's files: Hyprland's config, the shell, the theme, the login screen, the terminal's config, fonts and icons | this git repository (`desktop/`), copied by `desktop/setup` | `oblio-update`, which compares the commit you have with GitHub's and runs `setup` again |
+
+The desktop's files aren't packages on purpose: most live in your home folder, belong to your user,
+and you may change them (setup keeps your edits as backups); packages are for system files pacman
+owns. The login screen's files are the exception (system files setup installs with sudo) and will
+become an `[oblio]` package.
+
 ## Working on Oblio
 
 ```

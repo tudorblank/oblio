@@ -14,7 +14,7 @@ Column {
     property string takenEdge: ""       // the edge the other panel uses: greyed out
     property int sizeFrom: 24
     property int sizeTo: 64
-    property bool islands: false        // floating: continuous or scattered (the bar)
+    property bool islands: false        // floating: one surface or its islands apart (the bar)
 
     readonly property var o: Settings.opts
     function get(name) { return o[prefix + name] }
@@ -68,31 +68,15 @@ Column {
                 onPicked: v => es.set("Shape", v)
             }
         }
-        // a floating bar: one island, or its sections apart, each continuous or scattered
+        // a floating bar: one surface, or its islands apart (each continuous or scattered: BarLayout)
         SettingRow {
             visible: es.islands && es.get("Shape") === "floating"
             title: "Islands"
-            description: es.get("Islands") === "sections" ? "Each section stands on its own" : "One island holding everything"
+            description: es.get("Islands") === "sections" ? "Each island stands on its own" : "One bar holding every island"
             Segmented {
                 options: [{ value: "bar", label: "One bar" }, { value: "sections", label: "Sections" }]
                 value: es.get("Islands")
                 onPicked: v => es.set("Islands", v)
-            }
-        }
-        Repeater {
-            model: es.islands && es.get("Shape") === "floating" && es.get("Islands") === "sections" ? BarWidgets.lanes : []
-            SettingRow {
-                id: islandRow
-                required property string modelData
-                readonly property string key: "Islands" + { start: "Start", center: "Center", end: "End" }[modelData]
-                readonly property bool side: es.edge === "left" || es.edge === "right"
-                title: ({ start: side ? "Top" : "Left side", center: "Middle", end: side ? "Bottom" : "Right side" })[modelData]
-                description: es.get(key) === "scattered" ? "Each widget is an island of its own" : "One island holding its widgets"
-                Segmented {
-                    options: [{ value: "continuous", label: "Continuous" }, { value: "scattered", label: "Scattered" }]
-                    value: es.get(islandRow.key)
-                    onPicked: v => es.set(islandRow.key, v)
-                }
             }
         }
         SettingRow {

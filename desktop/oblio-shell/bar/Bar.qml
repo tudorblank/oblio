@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The bar, an edge panel (edges/EdgePanel.qml: space, shape, look, showing) on any edge. Its
-// widgets (services/BarWidgets.qml) sit in three sections: start, center, end. Floating, it's one
-// island, or (scattered) one island per widget. Fit length packs the sections together; fixed
-// and full spread them out, and expanding spacers share the free room of their section.
+// widgets (services/BarWidgets.qml) sit in islands, groups of widgets in order along the bar.
+// Floating, the bar is one surface, or split into its islands: each is one (continuous) or one
+// per widget (scattered). Fit length packs the islands together; fixed and full spread them out
+// (place()), and expanding spacers take the free room next to the first and the last island.
 // "Along" is x on a top/bottom bar and y on a side bar. A right click opens the bar's menu.
 import QtQuick
 import Quickshell
@@ -15,12 +16,8 @@ EdgePanel {
 
     prefix: "bar"
 
-    // floating: one island, or split into its sections; each section then is one island
-    // (continuous) or one per widget (scattered)
+    // floating: one surface, or split into its islands
     readonly property bool split: floating && o.barIslands === "sections"
-    function scatteredLane(name) {
-        return split && o["barIslands" + { start: "Start", center: "Center", end: "End" }[name]] === "scattered"
-    }
     readonly property bool spread: shape === "full" || o.barLength === "fixed"
     readonly property int laneGap: split ? 6 : 8
     padding: split ? 0 : floating ? 6 : 10
@@ -37,7 +34,9 @@ EdgePanel {
     }
     forceShown: popover.shown
 
-    readonly property var lanesShown: [startLane, centerLane, endLane].filter(l => l.natural > 0)
+    // the islands' lanes in order, and those with something to show
+    readonly property var lanes: contentItem.children.filter(c => c.isLane === true).sort((a, b) => a.order - b.order)
+    readonly property var lanesShown: lanes.filter(l => l.natural > 0)
     contentLength: lanesShown.reduce((n, l) => n + l.natural, 0) + Math.max(0, lanesShown.length - 1) * laneGap
 
     function openPopup(widget, component, width) {
@@ -102,7 +101,8 @@ EdgePanel {
         // continuous: room around each widget for its hover highlight; scattered: inside its island
         readonly property real pad: item && item.island ? Math.round(root.thickness * (scattered ? 0.4 : 0.26)) : 0
         readonly property real natural: shows ? item.length + 2 * pad : 0
-        readonly property bool expanding: shows && item.expand && root.spread && lane !== undefined && lane.name !== "center"
+        readonly property bool stretchy: shows && item.expand && root.spread
+        readonly property bool expanding: stretchy && lane !== undefined && lane.grows
         readonly property real along: natural + (expanding ? lane.extra : 0)
         visible: shows
         width: root.vertical ? root.thickness : along
@@ -146,27 +146,35 @@ EdgePanel {
 
     component Lane: Item {
         id: section
-        property string name
-        readonly property bool scattered: root.scatteredLane(name)
-        // a continuous section of a split bar is one island, with room at its ends
+        required property string modelData
+        readonly property bool isLane: true
+        readonly property int order: BarWidgets.islandUids.indexOf(modelData)
+        readonly property bool scattered: root.split && BarWidgets.island(modelData)?.style === "scattered"
+        // a continuous island of a split bar is drawn as one, with room at its ends
         readonly property bool boxed: root.split && !scattered
         readonly property real pad: boxed ? 6 : 0
-        // how long it is without expanding spacers, and how long it may get
+        // how long it is without expanding spacers, how long it may get, and where it starts
         readonly property real natural: {
             let n = 0, c = 0
             for (const ch of grid.children) if (ch.natural > 0) { n += ch.natural; c++ }
             return c > 0 ? n + (c - 1) * grid.spacing + 2 * pad : 0
+        }
+        readonly property bool stretchy: {
+            for (const ch of grid.children) if (ch.stretchy) return true
+            return false
         }
         readonly property int expanders: {
             let c = 0
             for (const ch of grid.children) if (ch.expanding) c++
             return c
         }
-        property real room: natural
+        readonly property var placed: root.placement[modelData] ?? { at: 0, room: natural, grows: false, end: false }
+        readonly property bool grows: placed.grows
+        readonly property real room: placed.room
         readonly property real extra: expanders > 0 ? Math.max(0, room - natural) / expanders : 0
-        // where it starts along the bar
-        property real at: 0
         readonly property real size: root.vertical ? height : width
+        // the last island keeps to the far end, however long its spacers make it
+        readonly property real at: placed.end ? root.span - size : placed.at
         x: root.vertical ? 0 : at
         y: root.vertical ? at : 0
         width: root.vertical ? root.thickness : (natural > 0 ? grid.width + 2 * pad : 0)
@@ -187,37 +195,41 @@ EdgePanel {
             spacing: section.scattered ? 6 : 0
 
             Repeater {
-                model: ScriptModel { values: BarWidgets.uids(section.name) }
+                model: ScriptModel { values: BarWidgets.uids(section.modelData) }
                 Slot { lane: section }
             }
         }
     }
 
-    // free room on each side: half of what the center leaves, or shared with the other side
+    // Where each island goes, from how long they are without stretching: island i of n sits
+    // i/(n-1) of the way along the free travel, so the first at the start, the last at the end
+    // and the ones between spread evenly (with three, the middle one centered), moved aside where
+    // a neighbour is too long; a lone island in the middle. Free room next to the first and the last island is theirs to
+    // stretch into (shared when both want the same room); the others keep their place.
     readonly property real span: vertical ? contentItem.height : contentItem.width
-    readonly property real freeSides: centerLane.natural > 0
-        ? (span - centerLane.natural) / 2 - laneGap
-        : span - laneGap
-    Lane {
-        id: startLane
-        name: "start"
-        room: centerLane.natural > 0 ? root.freeSides
-            : startLane.natural + Math.max(0, root.freeSides - startLane.natural - endLane.natural) / (endLane.expanders > 0 ? 2 : 1)
-    }
-    Lane {
-        id: endLane
-        name: "end"
-        at: root.span - size
-        room: centerLane.natural > 0 ? root.freeSides
-            : endLane.natural + Math.max(0, root.freeSides - startLane.natural - endLane.natural) / (startLane.expanders > 0 ? 2 : 1)
-    }
-    Lane {
-        id: centerLane
-        name: "center"
-        at: {
-            const lo = startLane.natural > 0 ? startLane.size + root.laneGap : 0
-            const hi = root.span - size - (endLane.natural > 0 ? endLane.size + root.laneGap : 0)
-            return Math.max(lo, Math.min((root.span - size) / 2, hi))
+    readonly property var placement: {
+        const shown = lanesShown, n = shown.length, g = laneGap, S = span
+        const len = shown.map(l => l.natural)
+        const at = shown.map((l, i) => n === 1 ? (S - len[0]) / 2 : S * i / (n - 1) - len[i] * i / (n - 1))
+        for (let i = 1; i < n - 1; i++) at[i] = Math.max(at[i], at[i - 1] + len[i - 1] + g)
+        for (let i = n - 2; i >= 1; i--) at[i] = Math.min(at[i], at[i + 1] - g - len[i])
+        const p = {}
+        shown.forEach((l, i) => p[l.modelData] = { at: at[i], room: len[i], grows: false, end: n > 1 && i === n - 1 })
+        if (n === 1) {
+            if (shown[0].stretchy) p[shown[0].modelData] = { at: 0, room: S, grows: true, end: false }
+            return p
         }
+        const first = shown[0], last = shown[n - 1]
+        // the room between the first island and the next, and between the last and the one before
+        const after = at[1] - len[0] - g, before = at[n - 1] - (at[n - 2] + len[n - 2]) - g
+        const both = n === 2 && first.stretchy && last.stretchy
+        if (first.stretchy) Object.assign(p[first.modelData], { grows: true, room: len[0] + Math.max(0, after) / (both ? 2 : 1) })
+        if (last.stretchy) Object.assign(p[last.modelData], { grows: true, room: len[n - 1] + Math.max(0, before) / (both ? 2 : 1) })
+        return p
+    }
+
+    Repeater {
+        model: ScriptModel { values: BarWidgets.islandUids }
+        Lane {}
     }
 }

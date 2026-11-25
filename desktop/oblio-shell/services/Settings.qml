@@ -134,20 +134,17 @@ Singleton {
             property int barLengthPercent: 50
             property string barMode: "always"
             property int barSize: 32
-            // floating bar: one island (bar) or one per section (sections); each section then:
-            // continuous | scattered (one island per widget)
+            // floating bar: one surface (bar) or one per island (sections)
             property string barIslands: "bar"
-            property string barIslandsStart: "continuous"
-            property string barIslandsCenter: "continuous"
-            property string barIslandsEnd: "continuous"
-            // services/BarWidgets.qml: the widgets in each section, { uid, type, ...its options }
-            property var barWidgets: ({
-                start: [{ uid: "workspaces", type: "workspaces" }, { uid: "window", type: "window" }],
-                center: [{ uid: "clock", type: "clock" }],
-                end: [{ uid: "media", type: "media" }, { uid: "tray", type: "tray" }, { uid: "notifications", type: "notifications" },
-                      { uid: "network", type: "network" }, { uid: "bluetooth", type: "bluetooth" }, { uid: "volume", type: "volume" },
-                      { uid: "brightness", type: "brightness" }, { uid: "battery", type: "battery" }, { uid: "power", type: "power" }],
-            })
+            // services/BarWidgets.qml: the bar's islands in order, { uid, style, widgets: [{ uid, type, ...options }] }
+            property var barWidgets: [
+                { uid: "start", style: "continuous", widgets: [{ uid: "workspaces", type: "workspaces" }, { uid: "window", type: "window" }] },
+                { uid: "center", style: "continuous", widgets: [{ uid: "clock", type: "clock" }] },
+                { uid: "end", style: "continuous", widgets: [
+                    { uid: "media", type: "media" }, { uid: "tray", type: "tray" }, { uid: "notifications", type: "notifications" },
+                    { uid: "network", type: "network" }, { uid: "bluetooth", type: "bluetooth" }, { uid: "volume", type: "volume" },
+                    { uid: "brightness", type: "brightness" }, { uid: "battery", type: "battery" }, { uid: "power", type: "power" }] },
+            ]
 
             // notifications: Do Not Disturb keeps them in the list without showing cards
             property bool notifyDnd: false

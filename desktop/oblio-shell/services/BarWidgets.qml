@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// The bar's widgets: what exists (catalog, one file each in bar/widgets/) and what sits where
-// (Settings.opts.barWidgets: start/center/end lists of entries: uid, type and its options).
+// The bar's widgets: what exists (catalog, one file each in bar/widgets/) and what sits where.
+// Settings.opts.barWidgets is the list of the bar's islands, in order along it: an island is a
+// group of widgets, a uid, its style (continuous | scattered: one island per widget, on a bar
+// split into its islands) and its widgets (entries: uid, type and the widget's options). The
+// layout from before islands (three lists: start, center, end) reads as three islands.
 pragma Singleton
 
 import QtQuick
@@ -9,8 +12,6 @@ import Quickshell
 Singleton {
     id: root
 
-    readonly property var lanes: ["start", "center", "end"]
-    readonly property var laneNames: ({ start: "Left", center: "Center", end: "Right" })
 
     // options: key, label, kind (toggle | choice | list | number | text), default, then
     // choices (choice, list) or from/to/step/unit (number). Optional: section (options are grouped
@@ -103,10 +104,17 @@ Singleton {
 
     function info(type) { return catalog.find(c => c.type === type) ?? null }
 
-    readonly property var layout: Settings.opts.barWidgets
-    function uids(lane) { return (layout[lane] ?? []).map(e => e.uid) }
+    readonly property var islands: {
+        const v = Settings.opts.barWidgets ?? []
+        // (what the settings file gives back is a list, but not a JS Array)
+        if (v.length === undefined) return ["start", "center", "end"].map(k => ({ uid: k, style: "continuous", widgets: v[k] ?? [] }))
+        return Array.from(v)
+    }
+    readonly property var islandUids: islands.map(i => i.uid)
+    function island(uid) { return islands.find(i => i.uid === uid) ?? null }
+    function uids(island) { return (root.island(island)?.widgets ?? []).map(e => e.uid) }
     function entry(uid) {
-        for (const l of lanes) for (const e of layout[l] ?? []) if (e.uid === uid) return e
+        for (const i of islands) for (const e of i.widgets) if (e.uid === uid) return e
         return null
     }
     function option(e, key) {
@@ -116,40 +124,61 @@ Singleton {
         return o ? o.default : undefined
     }
 
-    function copy() {
-        const l = JSON.parse(JSON.stringify(layout))
-        for (const k of lanes) l[k] = l[k] ?? []
-        return l
-    }
-    function add(lane, type) {
-        const l = copy()
-        const uid = type + "-" + Date.now().toString(36)
-        l[lane].push({ uid, type })
+    // changes: each works on a copy and saves it whole
+    function newUid(kind) { return kind + "-" + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36) }
+    function change(fn) {
+        const l = JSON.parse(JSON.stringify(islands))
+        const r = fn(l)
         Settings.set("barWidgets", l)
-        return uid
+        return r
+    }
+    function add(island, type) {
+        return change(l => {
+            const uid = newUid(type)
+            l.find(i => i.uid === island)?.widgets.push({ uid, type })
+            return uid
+        })
     }
     function remove(uid) {
-        const l = copy()
-        for (const k of lanes) l[k] = l[k].filter(e => e.uid !== uid)
-        Settings.set("barWidgets", l)
+        change(l => { for (const i of l) i.widgets = i.widgets.filter(e => e.uid !== uid) })
     }
-    function move(uid, lane, index) {
-        const l = copy()
-        let e = null
-        for (const k of lanes) {
-            const i = l[k].findIndex(x => x.uid === uid)
-            if (i < 0) continue
-            e = l[k][i]
-            l[k].splice(i, 1)
-            if (k === lane && i < index) index--
-        }
-        if (!e) return
-        l[lane].splice(Math.max(0, Math.min(index, l[lane].length)), 0, e)
-        Settings.set("barWidgets", l)
+    function move(uid, island, index) {
+        change(l => {
+            let e = null
+            for (const i of l) {
+                const at = i.widgets.findIndex(x => x.uid === uid)
+                if (at < 0) continue
+                e = i.widgets[at]
+                i.widgets.splice(at, 1)
+                if (i.uid === island && at < index) index--
+            }
+            const to = l.find(i => i.uid === island)
+            if (e && to) to.widgets.splice(Math.max(0, Math.min(index, to.widgets.length)), 0, e)
+        })
     }
     function setOption(uid, key, value) {
-        const l = copy()
-        for (const k of lanes) for (const e of l[k]) if (e.uid === uid) e[key] = value
-        Settings.set("barWidgets", l)
+        change(l => { for (const i of l) for (const e of i.widgets) if (e.uid === uid) e[key] = value })
+    }
+
+    function addIsland() {
+        return change(l => {
+            const uid = newUid("island")
+            l.push({ uid, style: "continuous", widgets: [] })
+            return uid
+        })
+    }
+    // with its widgets; the bar keeps at least one
+    function removeIsland(uid) {
+        if (islands.length > 1) change(l => l.splice(l.findIndex(i => i.uid === uid), 1))
+    }
+    function moveIsland(uid, by) {
+        change(l => {
+            const at = l.findIndex(i => i.uid === uid), to = at + by
+            if (at < 0 || to < 0 || to >= l.length) return
+            l.splice(to, 0, l.splice(at, 1)[0])
+        })
+    }
+    function setStyle(uid, style) {
+        change(l => { const i = l.find(i => i.uid === uid); if (i) i.style = style })
     }
 }

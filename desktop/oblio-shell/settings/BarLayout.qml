@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Settings > Bar > Widgets: the bar's three sections as rows of chips. Drag a chip to move it
-// (into another section too), × removes it, + adds one; a click on a chip shows its options.
+// Settings > Bar > Widgets: the bar's islands, in order along it, as rows of chips. Drag a chip to
+// move it (into another island too), × removes it, + adds one; a click on a chip shows its
+// options. Each island's header moves it along the bar, removes it, and (bar split into its
+// islands) picks continuous or scattered.
 import QtQuick
 import Quickshell
 import qs.services
@@ -16,27 +18,29 @@ Item {
     // dragging a chip
     property string dragging: ""
     property point dragPos
-    property string dropLane: ""
+    property string dropIsland: ""
     property int dropIndex: -1
     property var flows: ({})
-    function endDrag() { dragging = ""; dropLane = ""; dropIndex = -1 }
+    function endDrag() { dragging = ""; dropIsland = ""; dropIndex = -1 }
+    readonly property bool split: Settings.opts.barShape === "floating" && Settings.opts.barIslands === "sections"
+    readonly property bool side: Settings.opts.barEdge === "left" || Settings.opts.barEdge === "right"
 
     width: parent ? parent.width : 0
     height: content.implicitHeight
 
-    // where a point (in ed's coordinates) drops: the section under it, the place between chips
+    // where a point (in ed's coordinates) drops: the island under it, the place between chips
     function dropAt(p) {
-        dropLane = ""
+        dropIsland = ""
         dropIndex = -1
-        for (const lane of BarWidgets.lanes) {
-            const row = flows[lane]
-            if (!row) continue
+        for (const island of BarWidgets.islandUids) {
+            const row = flows[island]
+            if (!row || !row.parent) continue
             const box = row.parent.mapToItem(ed, 0, 0)
             if (p.y < box.y || p.y > box.y + row.parent.height) continue
             const q = row.mapFromItem(ed, p.x, p.y)
             const chips = row.children.filter(c => c.uid !== undefined)
             let i = chips.findIndex(c => q.y < c.y || (q.y <= c.y + c.height && q.x < c.x + c.width / 2))
-            dropLane = lane
+            dropIsland = island
             dropIndex = i < 0 ? chips.length : i
             return
         }
@@ -84,18 +88,20 @@ Item {
             title: "WIDGETS"
 
             Repeater {
-                model: BarWidgets.lanes
+                model: ScriptModel { values: BarWidgets.islandUids }
 
                 Item {
                     id: laneRow
                     required property string modelData
-                    readonly property bool dropHere: ed.dragging !== "" && ed.dropLane === modelData
+                    required property int index
+                    readonly property var island: BarWidgets.island(modelData)
+                    readonly property bool dropHere: ed.dragging !== "" && ed.dropIsland === modelData
                     // the chips in order (the Flow also holds the Repeater and the + chip)
                     function chips() { return flow.children.filter(c => c.uid !== undefined) }
                     width: parent.width
-                    height: Math.max(flow.implicitHeight, Theme.controlHeight) + 24
+                    height: flow.y + Math.max(flow.implicitHeight, Theme.controlHeight) + 14
 
-                    Divider { visible: laneRow.Positioner.index > 0; inset: 16; space: 1 }
+                    Divider { visible: laneRow.index > 0; inset: 16; space: 1 }
 
                     Rectangle {
                         anchors.fill: parent
@@ -104,26 +110,64 @@ Item {
                         color: laneRow.dropHere ? Theme.tint(Theme.accent, 0.08) : "transparent"
                     }
 
-                    Text {
-                        id: laneName
+                    // Island N, then its style and its moves along the bar
+                    Item {
+                        id: head
                         x: 16
-                        anchors.verticalCenter: flow.top
-                        anchors.verticalCenterOffset: Theme.controlHeight / 2
-                        width: 64
-                        text: BarWidgets.laneNames[laneRow.modelData]
-                        color: Theme.text
-                        font.family: Theme.fontUi
-                        font.pixelSize: Theme.textTitle
+                        y: 10
+                        width: parent.width - 32
+                        height: Theme.controlHeight
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Island " + (laneRow.index + 1)
+                            color: Theme.text
+                            font.family: Theme.fontUi
+                            font.pixelSize: Theme.textTitle
+                        }
+                        Row {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 4
+
+                            Segmented {
+                                visible: ed.split
+                                anchors.verticalCenter: parent.verticalCenter
+                                options: [{ value: "continuous", label: "Continuous" }, { value: "scattered", label: "Scattered" }]
+                                value: laneRow.island?.style ?? "continuous"
+                                onPicked: v => BarWidgets.setStyle(laneRow.modelData, v)
+                            }
+                            Item { visible: ed.split; width: 6; height: 1 }
+                            IconButton {
+                                size: 28
+                                icon: ed.side ? Icons.chevronDown : Icons.chevronLeft
+                                rotation: ed.side ? 180 : 0
+                                enabled: laneRow.index > 0
+                                onClicked: BarWidgets.moveIsland(laneRow.modelData, -1)
+                            }
+                            IconButton {
+                                size: 28
+                                icon: ed.side ? Icons.chevronDown : Icons.chevronRight
+                                enabled: laneRow.index < BarWidgets.islandUids.length - 1
+                                onClicked: BarWidgets.moveIsland(laneRow.modelData, 1)
+                            }
+                            IconButton {
+                                size: 28
+                                icon: Icons.trash
+                                enabled: BarWidgets.islandUids.length > 1
+                                onClicked: BarWidgets.removeIsland(laneRow.modelData)
+                            }
+                        }
                     }
 
                     Flow {
                         id: flow
-                        anchors.left: laneName.right
-                        anchors.right: parent.right
-                        anchors.rightMargin: 16
-                        y: 12
+                        x: 16
+                        y: head.y + head.height + 8
+                        width: parent.width - 32
                         spacing: 6
                         Component.onCompleted: ed.flows[laneRow.modelData] = flow
+                        Component.onDestruction: if (ed.flows[laneRow.modelData] === flow) delete ed.flows[laneRow.modelData]
 
                         Repeater {
                             model: ScriptModel { values: BarWidgets.uids(laneRow.modelData) }
@@ -164,9 +208,9 @@ Item {
                                     onDragMoved: at => follow(at)
                                     onDropped: {
                                         // moving it can destroy this chip: finish the drag first
-                                        const uid = chip.uid, lane = ed.dropLane, index = ed.dropIndex
+                                        const uid = chip.uid, island = ed.dropIsland, index = ed.dropIndex
                                         ed.endDrag()
-                                        if (lane) BarWidgets.move(uid, lane, index)
+                                        if (island) BarWidgets.move(uid, island, index)
                                     }
                                     onDragCanceled: ed.endDrag()
                                     onClicked: if (!dragged) ed.selected = ed.selected === chip.uid ? "" : chip.uid
@@ -205,7 +249,7 @@ Item {
                             }
                         }
 
-                        // add a widget to this section
+                        // add a widget to this island
                         Rectangle {
                             id: addChip
                             width: Theme.controlHeight
@@ -290,12 +334,45 @@ Item {
                     }
                 }
             }
+            // a new, empty island at the end of the bar
+            Item {
+                width: parent.width
+                height: Theme.controlHeight + 16
+
+                Divider { inset: 16; space: 1 }
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    radius: Theme.groupRadius - 4
+                    color: addIslandArea.containsMouse ? Theme.hover : "transparent"
+                }
+                Row {
+                    x: 16
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 10
+                    PlusMark { anchors.verticalCenter: parent.verticalCenter; width: 12; height: 12; color: Theme.subtext }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Add island"
+                        color: Theme.text
+                        font.family: Theme.fontUi
+                        font.pixelSize: Theme.textTitle
+                    }
+                }
+                MouseArea {
+                    id: addIslandArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: BarWidgets.addIsland()
+                }
+            }
         }
 
         Text {
             leftPadding: 4
             width: parent.width
-            text: "Drag to rearrange, + to add, × to remove, click one for its options."
+            text: "Drag to rearrange, + to add, × to remove, click one for its options. Islands spread out along the bar in this order: the first at its start, the last at its end."
             wrapMode: Text.WordWrap
             color: Theme.subtext
             font.family: Theme.fontUi

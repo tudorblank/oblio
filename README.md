@@ -1,4 +1,6 @@
-# Oblio
+<p align="center">
+  <img src="assets/oblio%20logo%20full%20dark.png" alt="Oblio" width="480">
+</p>
 
 A personal Arch Linux distribution built on CachyOS's repositories, kernels and tuning.
 It installs in two parts:

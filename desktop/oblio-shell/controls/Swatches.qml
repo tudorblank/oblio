@@ -37,7 +37,7 @@ Row {
                 color: parent.modelData
                 scale: area.containsMouse ? 1.12 : 1
 
-                Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                Behavior on scale { NumberAnimation { duration: Theme.ms(140); easing.type: Easing.OutCubic } }
             }
 
             MouseArea {
@@ -67,7 +67,7 @@ Row {
             width: 18
             height: 18
             scale: customArea.containsMouse ? 1.12 : 1
-            Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: Theme.ms(140); easing.type: Easing.OutCubic } }
 
             Shape {
                 anchors.fill: parent

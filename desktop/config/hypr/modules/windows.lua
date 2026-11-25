@@ -91,7 +91,8 @@ end
 
 local function tag(address, t) hl.dispatch(hl.dsp.window.tag({ tag = t, window = sel(address) })) end
 
--- timings (ms), all of them:
+-- timings (ms) at the animations' own pace, all of them; ms() scales one to the speed set in
+-- Settings (oblio.motion from animations.lua; 0 with animations off):
 --   FLIGHT  a picture's flight
 --   SETTLE  how long a flight in waits for the layout to make room (measured: tiled neighbours have
 --           moved ~85 % by 160 ms, and the picture only reaches full size halfway through its flight)
@@ -99,7 +100,10 @@ local function tag(address, t) hl.dispatch(hl.dsp.window.tag({ tag = t, window =
 --           measured): the picture stays over it this long
 -- and how long each phase may wait for the shell before it finishes here
 local FLIGHT, SETTLE, HOLD = 200, 160, 250
-local DEADLINE = { covering = 300, leaving = FLIGHT + 500, placing = SETTLE + 300, arriving = FLIGHT + 500, showing = HOLD }
+local function ms(t) return math.max(1, math.floor(t * (oblio.motion or 1) + 0.5)) end
+local function deadline(name)
+    return ({ covering = 300, leaving = ms(FLIGHT) + 500, placing = ms(SETTLE) + 300, arriving = ms(FLIGHT) + 500, showing = ms(HOLD) })[name]
+end
 
 -- invisible in its place (the "oblio-hidden" rule in windowrules.lua), or visible again. Showing
 -- holds "oblio-still" (no animations) for HOLD: without it Hyprland fades the window in, and the
@@ -108,7 +112,7 @@ local function conceal(address, on)
     if on then return tag(address, "+oblio-hidden") end
     tag(address, "+oblio-still")
     tag(address, "-oblio-hidden")
-    hl.timer(function() if win(address) then tag(address, "-oblio-still") end end, { timeout = HOLD, type = "oneshot" })
+    hl.timer(function() if win(address) then tag(address, "-oblio-still") end end, { timeout = ms(HOLD), type = "oneshot" })
 end
 
 -- messages to the shell are lines appended to a file it watches: a write, not a process to start
@@ -136,7 +140,7 @@ local function phase(address, name)
     s.fx_n[address] = n
     hl.timer(function()
         if s.fx[address] == name and s.fx_n[address] == n then finish(address); save() end
-    end, { timeout = DEADLINE[name], type = "oneshot" })
+    end, { timeout = deadline(name), type = "oneshot" })
 end
 
 local function rect(w)
@@ -223,7 +227,7 @@ local function arrive(address)
     phase(address, "arriving")
     -- focused as its picture sets off: its border has the focused color when it shows
     focus_quietly(address)
-    shell("go", address, FLIGHT)
+    shell("go", address, ms(FLIGHT))
 end
 
 -- a report from the shell about a flight that has since been finished (drop) and replaced by one
@@ -251,7 +255,7 @@ function oblio.ready(address, way)
     conceal(address, true)
     if w.active then focus_previous(address) end
     phase(address, "leaving")
-    shell("go", address, FLIGHT)
+    shell("go", address, ms(FLIGHT))
 end
 
 -- the end of a flight: a minimized window goes (the gap closes now; it stays concealed until it
@@ -305,7 +309,7 @@ function oblio.restore(w)
     if moves then
         hl.timer(function()
             if s.waits[address] then s.waits[address].layout = false; arrive(address); save() end
-        end, { timeout = SETTLE, type = "oneshot" })
+        end, { timeout = ms(SETTLE), type = "oneshot" })
     end
 end
 

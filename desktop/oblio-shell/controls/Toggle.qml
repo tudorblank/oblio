@@ -17,7 +17,7 @@ Item {
         radius: height / 2
         color: t.checked ? Theme.accent : Theme.control
 
-        Behavior on color { ColorAnimation { duration: 160 } }
+        Behavior on color { ColorAnimation { duration: Theme.ms(160) } }
 
         Rectangle {
             width: 18
@@ -27,7 +27,7 @@ Item {
             x: t.checked ? parent.width - width - 3 : 3
             color: Theme.knob
 
-            Behavior on x { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+            Behavior on x { NumberAnimation { duration: Theme.ms(180); easing.type: Easing.OutCubic } }
         }
     }
 

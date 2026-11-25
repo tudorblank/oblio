@@ -18,6 +18,7 @@ Item {
 
     implicitWidth: 250
     implicitHeight: 24
+    opacity: enabled ? 1 : Theme.disabledOpacity
 
     Item {
         id: track
@@ -41,7 +42,7 @@ Item {
             height: 4
             radius: 2
             color: s.muted ? Theme.subtext : Theme.accent
-            Behavior on color { ColorAnimation { duration: 160 } }
+            Behavior on color { ColorAnimation { duration: Theme.ms(160) } }
         }
 
         Rectangle {
@@ -54,7 +55,7 @@ Item {
             color: Theme.knob
             scale: area.pressed ? 1.2 : area.containsMouse ? 1.08 : 1
 
-            Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: Theme.ms(140); easing.type: Easing.OutCubic } }
         }
 
         MouseArea {

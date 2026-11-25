@@ -52,8 +52,8 @@ BarWidget {
                 width: w.vertical ? across : along
                 height: w.vertical ? along : across
 
-                Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                Behavior on width { NumberAnimation { duration: Theme.ms(200); easing.type: Easing.OutCubic } }
+                Behavior on height { NumberAnimation { duration: Theme.ms(200); easing.type: Easing.OutCubic } }
 
                 Rectangle {
                     anchors.fill: parent
@@ -61,7 +61,7 @@ BarWidget {
                     color: ws.current ? Theme.accent
                          : w.numbers ? (area.containsMouse ? Theme.hover : "transparent")
                          : Theme.tint(Theme.text, ws.occupied ? (area.containsMouse ? 0.75 : 0.55) : (area.containsMouse ? 0.4 : 0.2))
-                    Behavior on color { ColorAnimation { duration: 160 } }
+                    Behavior on color { ColorAnimation { duration: Theme.ms(160) } }
                 }
 
                 Text {

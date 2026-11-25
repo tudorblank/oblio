@@ -16,8 +16,8 @@ Singleton {
     readonly property alias opts: adapter
 
     readonly property var hyprKeys: [
-        "layout", "gapsIn", "gapsOut", "borderSize", "rounding", "inactiveOpacity", "focusKeyboard", "focusScroll",
-        "accent", "themeMode", "blur", "blurSize", "animations",
+        "layout", "gapsIn", "gapsOut", "borderSize", "rounding", "focusKeyboard", "focusScroll",
+        "accent", "themeMode", "blurSize", "animations", "animationSpeed",
         "sensitivity", "naturalScroll", "touchpadNaturalScroll", "repeatRate", "repeatDelay",
     ]
 
@@ -54,10 +54,8 @@ Singleton {
     },
     decoration = {
         rounding = ${o.rounding},
-        inactive_opacity = ${(o.inactiveOpacity / 100).toFixed(2)},
-        blur = { enabled = ${o.blur}, size = ${o.blurSize} },
+        blur = { size = ${o.blurSize} },
     },
-    animations = { enabled = ${o.animations} },
     input = {
         follow_mouse = ${o.focusKeyboard ? 1 : o.focusScroll ? 2 : 0},
         -- with click to focus, moving between tiled and floating windows mustn't move focus either
@@ -69,6 +67,8 @@ Singleton {
         touchpad = { natural_scroll = ${o.touchpadNaturalScroll} },
     },
 })
+-- animations on or off, and their speed (modules/animations.lua)
+if oblio and oblio.animate then oblio.animate(${(100 / o.animationSpeed).toFixed(3)}, ${o.animations}) end
 `
     }
 
@@ -85,13 +85,19 @@ Singleton {
         return "\n" + keys.map(k => Displays.rule(k, adapter.displays[k]) + "\n").join("")
     }
 
+    // settings.lua: Hyprland's settings, monitors and the style rules (services/Styles.qml), also
+    // written at start so a Hyprland reload gets what the shell has
+    function writeHypr() {
+        hyprFile.setText("-- written by Oblio's settings (SUPER+I), edits here get overwritten\n"
+            + hyprLua() + displaysLua() + "\n" + Styles.hyprRules + "\n")
+    }
+
     Timer {
         id: saveTimer
         interval: 400
         onTriggered: {
             settingsFile.writeAdapter()
-            hyprFile.setText("-- written by Oblio's settings (SUPER+I), edits here get overwritten\n"
-                + root.hyprLua() + root.displaysLua())
+            root.writeHypr()
         }
     }
 
@@ -109,6 +115,8 @@ Singleton {
         path: Quickshell.statePath("settings.json")
         watchChanges: true
         onFileChanged: reload()
+        onLoaded: root.writeHypr()
+        onLoadFailed: root.writeHypr()
 
         JsonAdapter {
             id: adapter
@@ -118,50 +126,44 @@ Singleton {
 
             // edge panels (edges/EdgePanel.qml), the same settings for each prefix:
             //   Edge top|bottom|left|right, Shape floating|attached|full, Roundness 0..100 (square ..
-            //   round ends), Material solid|blur|glass, Opacity (of the tint, %; 100 = opaque),
-            //   Color / ColorLight theme|#rrggbb (the tint in dark / light mode), Length fit|fixed, LengthPercent (fixed: 0 just fits the
-            //   content, 100 spans the edge),
-            //   Mode always|autohide|smart, Size (thickness, px)
+            //   round ends), Length fit|fixed, LengthPercent (fixed: 0 just fits the content, 100 spans
+            //   the edge), Mode always|autohide|smart, Size (thickness, px). Their look is a style.
             property bool barEnabled: true
             property string barEdge: "top"
-            property string barShape: "full"
-            property int barRoundness: 65
-            property string barMaterial: "blur"
-            property int barOpacity: 35
-            property string barColor: "theme"
-            property string barColorLight: "theme"
-            property string barLength: "fit"
-            property int barLengthPercent: 50
+            property string barShape: "floating"
+            property int barRoundness: 100
+            property string barLength: "fixed"
+            property int barLengthPercent: 100
             property string barMode: "always"
-            property int barSize: 32
+            property int barSize: 35
             // floating bar: one surface (bar) or one per island (sections)
-            property string barIslands: "bar"
+            property string barIslands: "sections"
             // services/BarWidgets.qml: the bar's islands in order, { uid, style, widgets: [{ uid, type, ...options }] }
             property var barWidgets: [
-                { uid: "start", style: "continuous", widgets: [{ uid: "workspaces", type: "workspaces" }, { uid: "window", type: "window" }] },
-                { uid: "center", style: "continuous", widgets: [{ uid: "clock", type: "clock" }] },
-                { uid: "end", style: "continuous", widgets: [
-                    { uid: "media", type: "media" }, { uid: "tray", type: "tray" }, { uid: "notifications", type: "notifications" },
-                    { uid: "network", type: "network" }, { uid: "bluetooth", type: "bluetooth" }, { uid: "volume", type: "volume" },
-                    { uid: "brightness", type: "brightness" }, { uid: "battery", type: "battery" }, { uid: "power", type: "power" }] },
+                { uid: "start", style: "continuous", widgets: [{ uid: "settings", type: "settings" }] },
+                { uid: "center", style: "continuous", widgets: [
+                    { uid: "brightness", type: "brightness" }, { uid: "volume", type: "volume" },
+                    { uid: "spacer-left", type: "spacer", length: 132 },
+                    { uid: "clock", type: "clock", format: "d MMM   HH:mm", language: "en_US" },
+                    { uid: "workspaces", type: "workspaces" }, { uid: "media", type: "media", hideIdle: true },
+                    { uid: "spacer-right", type: "spacer", length: 132 },
+                    { uid: "notifications", type: "notifications" }, { uid: "network", type: "network" },
+                    { uid: "bluetooth", type: "bluetooth" }, { uid: "battery", type: "battery" }] },
+                { uid: "end", style: "continuous", widgets: [{ uid: "power", type: "power" }] },
             ]
 
             // notifications: Do Not Disturb keeps them in the list without showing cards
             property bool notifyDnd: false
 
             // dock: pinned apps are desktop file ids (without .desktop)
-            property var dockPinned: ["Alacritty", "org.gnome.Nautilus"]
+            property var dockPinned: ["org.gnome.Nautilus", "Alacritty"]
             property string dockEdge: "bottom"
             property string dockShape: "floating"
-            property int dockRoundness: 65
-            property string dockMaterial: "blur"
-            property int dockOpacity: 35
-            property string dockColor: "theme"
-            property string dockColorLight: "theme"
+            property int dockRoundness: 100
             property string dockLength: "fit"
-            property int dockLengthPercent: 60
+            property int dockLengthPercent: 40
             property string dockMode: "always"
-            property int dockSize: 56
+            property int dockSize: 52
             property bool dockMagnify: true
             property bool dockDivider: true
             // where the icons sit along a dock longer than they need (full, or a fixed length):
@@ -176,7 +178,6 @@ Singleton {
             property int gapsOut: 20
             property int borderSize: 2
             property int rounding: 10
-            property int inactiveOpacity: 100
             // keyboard focus follows the pointer (follow_mouse 1); otherwise click to focus,
             // with scrolling still going to the window under the pointer (2) or not (0)
             property bool focusKeyboard: false
@@ -184,13 +185,22 @@ Singleton {
 
             // look (Theme.qml); a font that isn't installed falls back to Inter / monospace
             property string themeMode: "dark"    // dark | light
-            property string accent: "#b9e66c"
+            property string accent: "#e6c784"
             property string fontUi: "SF Pro"
             property string fontMono: "JetBrains Mono"
             property int fontSize: 11            // points, for apps; the shell scales its own text
-            property bool blur: true
+            // blur strength: Hyprland has one for every blur style
             property int blurSize: 8
+            // animations, and their speed (% of their own pace: 200 = twice as fast), for windows,
+            // workspaces and the shell (Theme.ms)
             property bool animations: true
+            property int animationSpeed: 100
+
+            // styles (services/Styles.qml): Default first, then the ones made in Settings; targets are
+            // shell parts ("bar", "dock", "menus", "settings", "launcher"), "apps" or "app:CLASS"
+            property var styles: [
+                { uid: "default", name: "Default", material: "blur", opacity: 30, tint: "theme", tintLight: "theme", targets: [] },
+            ]
 
             // wallpaper (services/Wallpaper.qml): picture paths, "" = none; the lock screen shows
             // the desktop's while wallpaperLockSame; the folder Settings lists ("" = Pictures/Wallpapers)

@@ -18,7 +18,7 @@ Rectangle {
     border.width: primary ? 0 : 1
     border.color: Theme.hairline
 
-    Behavior on color { ColorAnimation { duration: 140 } }
+    Behavior on color { ColorAnimation { duration: Theme.ms(140) } }
 
     Text {
         font.family: Theme.fontUi

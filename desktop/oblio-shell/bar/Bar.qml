@@ -27,9 +27,8 @@ EdgePanel {
     component Island: Surface {
         edge: root.edge
         shape: "floating"
-        material: root.material
-        opacityPercent: root.tintOpacity
-        tintColor: root.tintColor
+        fill: root.look.fill
+        line: root.look.line
         radius: root.rounded(root.thickness)
     }
     forceShown: popover.shown

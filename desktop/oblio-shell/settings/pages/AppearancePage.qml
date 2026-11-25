@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Settings > Appearance: light/dark, accent, fonts, effects. Applies to the shell, GTK apps,
-// browsers, icons, the terminal and Hyprland (services/SystemTheme.qml).
+// Settings > Appearance: light/dark, accent, styles, fonts, animations. Mode, accent and fonts apply
+// to the shell, GTK apps, browsers, icons, the terminal and Hyprland (services/SystemTheme.qml);
+// styles are the look of the shell's parts and of apps (services/Styles.qml, settings/StyleCard.qml).
 import QtQuick
+import Quickshell
 import Quickshell.Io
 import qs.services
 import qs.controls
@@ -118,6 +120,60 @@ Column {
         }
     }
 
+    Column {
+        width: parent.width
+        spacing: 8
+
+        SectionLabel { text: "STYLES" }
+        Text {
+            leftPadding: 4
+            bottomPadding: 4
+            width: parent.width
+            text: "A style is a look: material, tint and opacity. Give it to parts of the shell and to apps; each follows one style. Parts of the shell in no other style follow Default, apps in none keep their own look."
+            wrapMode: Text.WordWrap
+            color: Theme.subtext
+            font.family: Theme.fontUi
+            font.pixelSize: Theme.textLabel
+        }
+        Column {
+            width: parent.width
+            spacing: 12
+            Repeater {
+                model: ScriptModel { values: Styles.uids }
+                StyleCard { required property string modelData; uid: modelData }
+            }
+        }
+        // a new style, applied to nothing yet
+        Rectangle {
+            width: parent.width
+            height: Theme.controlHeight + 16
+            radius: Theme.groupRadius
+            color: newArea.containsMouse ? Theme.hover : "transparent"
+            border.width: 1
+            border.color: Theme.hairline
+            Row {
+                x: 16
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 10
+                PlusMark { anchors.verticalCenter: parent.verticalCenter; width: 12; height: 12; color: Theme.subtext }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "New style"
+                    color: Theme.text
+                    font.family: Theme.fontUi
+                    font.pixelSize: Theme.textTitle
+                }
+            }
+            MouseArea {
+                id: newArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: Styles.add()
+            }
+        }
+    }
+
     SettingGroup {
         title: "FONTS"
 
@@ -151,29 +207,24 @@ Column {
     }
 
     SettingGroup {
-        title: "EFFECTS"
+        title: "ANIMATIONS"
 
         SettingRow {
-            title: "Blur"
-            description: "Blurs what's behind the bar, dock, menus and see-through windows"
-            Toggle {
-                checked: Settings.opts.blur
-                onToggled: v => Settings.set("blur", v)
-            }
-        }
-        SettingRow {
-            title: "Blur strength"
-            ValueSlider {
-                from: 1; to: 16
-                value: Settings.opts.blurSize
-                onMoved: v => Settings.set("blurSize", v)
-            }
-        }
-        SettingRow {
             title: "Animations"
+            description: "Windows, workspaces and the shell"
             Toggle {
                 checked: Settings.opts.animations
                 onToggled: v => Settings.set("animations", v)
+            }
+        }
+        SettingRow {
+            title: "Speed"
+            description: Settings.opts.animationSpeed === 100 ? "Oblio's own pace" : Settings.opts.animationSpeed > 100 ? "Faster than Oblio's own pace" : "Slower than Oblio's own pace"
+            ValueSlider {
+                enabled: Settings.opts.animations
+                from: 50; to: 200; step: 10; unit: "%"
+                value: Settings.opts.animationSpeed
+                onMoved: v => Settings.set("animationSpeed", Math.round(v))
             }
         }
     }

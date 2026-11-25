@@ -37,7 +37,7 @@ Column {
             sourceSize: Qt.size(Math.max(64, thumb.decode), Math.max(36, Math.round(thumb.decode * 9 / 16)))
             asynchronous: true
             opacity: status === Image.Ready ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: 160 } }
+            Behavior on opacity { NumberAnimation { duration: Theme.ms(160) } }
         }
     }
 
@@ -52,7 +52,7 @@ Column {
         spacing: 10
         opacity: enabled ? 1 : Theme.disabledOpacity
 
-        Behavior on opacity { NumberAnimation { duration: 160 } }
+        Behavior on opacity { NumberAnimation { duration: Theme.ms(160) } }
 
         Item {
             id: frame
@@ -64,7 +64,7 @@ Column {
                 anchors.fill: parent
                 radius: Theme.groupRadius
                 color: frame.over ? Theme.tint(Theme.accent, 0.12) : hover.hovered && slot.enabled ? Theme.hover : Theme.card
-                Behavior on color { ColorAnimation { duration: 140 } }
+                Behavior on color { ColorAnimation { duration: Theme.ms(140) } }
             }
 
             Thumb {
@@ -87,8 +87,8 @@ Column {
                     radius: 22
                     color: Theme.tint(Theme.accent, frame.over || hover.hovered ? 0.22 : 0.14)
                     scale: frame.over ? 1.1 : 1
-                    Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
-                    Behavior on color { ColorAnimation { duration: 140 } }
+                    Behavior on scale { NumberAnimation { duration: Theme.ms(160); easing.type: Easing.OutCubic } }
+                    Behavior on color { ColorAnimation { duration: Theme.ms(140) } }
                     PlusMark { anchors.centerIn: parent; width: 18; height: 18; color: Theme.accentText }
                 }
                 Text {
@@ -150,8 +150,8 @@ Column {
                 visible: opacity > 0
                 opacity: slot.path !== "" && slot.enabled && hover.hovered && !frame.over ? 1 : 0
                 scale: opacity * 0.15 + 0.85
-                Behavior on opacity { NumberAnimation { duration: 140 } }
-                Behavior on color { ColorAnimation { duration: 120 } }
+                Behavior on opacity { NumberAnimation { duration: Theme.ms(140) } }
+                Behavior on color { ColorAnimation { duration: Theme.ms(120) } }
 
                 Text {
                     anchors.centerIn: parent

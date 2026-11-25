@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Pushes Oblio's theme to the rest of the system; the shell (services/SystemTheme.qml) runs it on
 # start and on every change, with Theme's values in OBLIO_* variables: MODE dark|light, ACCENT,
-# ACCENT_FG, ACCENT_NAMED (libadwaita's nearest named accent), BG, FG, SUBTEXT (#rrggbb), POPUP,
-# CARD, BORDER, HOVER (#rrggbbaa), FONT_UI, FONT_MONO, FONT_ICONS, FONT_SIZE, RADIUS,
+# ACCENT_FG, ACCENT_NAMED (libadwaita's nearest named accent), BG, FG, SUBTEXT (#rrggbb), LAUNCHER
+# (the launcher's style: its fill), CARD, BORDER, HOVER (#rrggbbaa), FONT_UI, FONT_MONO, FONT_ICONS, FONT_SIZE, RADIUS,
 # LOCK_WALLPAPER (a picture's path, or empty), FACE_VERSION (changes with the profile picture).
 
 set -euo pipefail
@@ -120,7 +120,7 @@ names=(black red green yellow blue magenta cyan white)
     printf 'configuration { icon-theme: "%s"; }\n' "$(quote "$icon")"
     printf '* {\n'
     printf '    bg: %s;\n    fg: %s;\n    card: %s;\n    line: %s;\n    subtle: %s;\n    selected: %s;\n' \
-        "$OBLIO_POPUP" "$fg" "$OBLIO_CARD" "$OBLIO_BORDER" "$OBLIO_SUBTEXT" "$OBLIO_HOVER"
+        "$OBLIO_LAUNCHER" "$fg" "$OBLIO_CARD" "$OBLIO_BORDER" "$OBLIO_SUBTEXT" "$OBLIO_HOVER"
     # the shell's card corners (Theme.radius); rows sit 8 px in, on the same curve
     printf '    radius: %spx;\n    inner-radius: %spx;\n' "$radius" "$(( radius > 12 ? radius - 8 : 4 ))"
     printf '    ui-font: "%s 12";\n    search-font: "%s 15";\n    icon-font: "%s 15";\n}\n' \

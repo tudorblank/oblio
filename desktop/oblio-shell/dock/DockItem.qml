@@ -38,7 +38,7 @@ Item {
                        : item.edge === "top" ? Item.Top : Item.Bottom
         scale: item.dock.dragging ? 1 : mouse.pressed ? 0.92 : mouse.containsMouse && Settings.opts.dockMagnify ? 1.15 : 1
 
-        Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+        Behavior on scale { NumberAnimation { duration: Theme.ms(160); easing.type: Easing.OutCubic } }
     }
 
     // one dot per window on the edge side of the icon, then a plus past dock.maxDots: accent when
@@ -63,9 +63,9 @@ Item {
         verticalItemAlignment: Grid.AlignVCenter
         opacity: item.allMinimized ? 0.35 : 1
 
-        Behavior on opacity { NumberAnimation { duration: 200 } }
-        Behavior on x { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-        Behavior on y { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+        Behavior on opacity { NumberAnimation { duration: Theme.ms(200) } }
+        Behavior on x { NumberAnimation { duration: Theme.ms(180); easing.type: Easing.OutCubic } }
+        Behavior on y { NumberAnimation { duration: Theme.ms(180); easing.type: Easing.OutCubic } }
 
         Repeater {
             model: Math.min(dots.count, item.dock.maxDots)
@@ -76,8 +76,8 @@ Item {
                 radius: dots.d / 2
                 color: dots.tint
 
-                Behavior on color { ColorAnimation { duration: 200 } }
-                NumberAnimation on scale { from: 0.3; to: 1; duration: 220; easing.type: Easing.OutBack }
+                Behavior on color { ColorAnimation { duration: Theme.ms(200) } }
+                NumberAnimation on scale { from: 0.3; to: 1; duration: Theme.ms(220); easing.type: Easing.OutBack }
             }
         }
 
@@ -106,9 +106,9 @@ Item {
                  && item.dock.previewKey !== item.key ? 1 : 0
         visible: opacity > 0
 
-        Behavior on opacity { NumberAnimation { duration: 150 } }
-        Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
-        Behavior on y { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+        Behavior on opacity { NumberAnimation { duration: Theme.ms(150) } }
+        Behavior on x { NumberAnimation { duration: Theme.ms(150); easing.type: Easing.OutCubic } }
+        Behavior on y { NumberAnimation { duration: Theme.ms(150); easing.type: Easing.OutCubic } }
 
         Text {
             font.family: Theme.fontUi

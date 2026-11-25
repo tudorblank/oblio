@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // A one-line text field: Enter or leaving it applies (a password only on Enter or submit()),
-// Esc puts the value back.
+// Esc puts the value back. text is what's typed so far (search fields), editing whether it has
+// the keyboard.
 import QtQuick
 import qs.services
 
@@ -11,10 +12,13 @@ Rectangle {
     property bool mono: false
     property bool password: false
     property string placeholder: ""
+    readonly property alias text: input.text
+    readonly property bool editing: input.activeFocus
     signal edited(string value)
 
     function submit() { input.apply() }
     function focusInput() { input.forceActiveFocus() }
+    function reset() { input.text = box.value }
 
     implicitWidth: 250
     implicitHeight: Theme.controlHeight
@@ -50,6 +54,6 @@ Rectangle {
         function apply() { if (text !== box.value) box.edited(text) }
         onAccepted: { apply(); focus = false }
         onActiveFocusChanged: if (!activeFocus && !box.password) apply()
-        Keys.onEscapePressed: { text = box.value; focus = false }
+        Keys.onEscapePressed: { box.reset(); focus = false }
     }
 }

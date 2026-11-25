@@ -40,7 +40,7 @@ PanelWindow {
     // the new picture stays on top until the next change; the one under it catches up meanwhile
     SequentialAnimation {
         id: fade
-        NumberAnimation { target: next; property: "opacity"; to: 1; duration: 450; easing.type: Easing.InOutCubic }
+        NumberAnimation { target: next; property: "opacity"; to: 1; duration: Theme.ms(450); easing.type: Easing.InOutCubic }
         ScriptAction { script: shown.source = next.source }
     }
 }

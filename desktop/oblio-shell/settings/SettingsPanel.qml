@@ -21,10 +21,10 @@ Scope {
 
     readonly property var pages: [
         { title: "Display", icon: Icons.display, subtitle: "Resolution, refresh rate, scale and arrangement", content: displayPage },
-        { title: "Bar", icon: Icons.bar, subtitle: "Its widgets, where it sits, its shape and its look", content: barPage },
-        { title: "Dock", icon: Icons.dock, subtitle: "Where it sits, its shape, its look and its icons", content: dockPage },
+        { title: "Bar", icon: Icons.bar, subtitle: "Its widgets, where it sits and its shape", content: barPage },
+        { title: "Dock", icon: Icons.dock, subtitle: "Where it sits, its shape and its icons", content: dockPage },
         { title: "Windows", icon: Icons.windows, subtitle: "Tiling, gaps, borders and focus", content: windowsPage },
-        { title: "Appearance", icon: Icons.appearance, subtitle: "Light or dark, accent color, fonts and effects", content: lookPage },
+        { title: "Appearance", icon: Icons.appearance, subtitle: "Light or dark, accent color, styles, fonts and animations", content: lookPage },
         { title: "Wallpaper", icon: Icons.wallpaper, subtitle: "Pictures for the desktop and the lock screen", content: wallpaperPage },
         { title: "Input", icon: Icons.input, subtitle: "Mouse, touchpad and keyboard", content: inputPage },
         { title: "Battery", icon: Icons.battery[8], subtitle: "Its state and the low and charged alerts", content: batteryPage },
@@ -165,7 +165,7 @@ Scope {
             color: Theme.scrim
             opacity: root.shown ? 0.3 : 0
 
-            Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Theme.ms(180); easing.type: Easing.OutCubic } }
 
             MouseArea {
                 anchors.fill: parent
@@ -190,16 +190,17 @@ Scope {
             }
             width: 880
             height: 600
+            readonly property var look: Styles.look("settings")
             radius: Theme.radius
-            color: Theme.panel
+            color: look.fill
             border.width: 1
-            border.color: Theme.hairline
+            border.color: look.line
             opacity: root.shown ? 1 : 0
             scale: root.shown ? 1 : 0.97
             focus: true
 
-            Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-            Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Theme.ms(180); easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: Theme.ms(220); easing.type: Easing.OutCubic } }
 
             Keys.onEscapePressed: root.shown = false
             onVisibleChanged: if (visible) { fit(); forceActiveFocus() }
@@ -255,7 +256,7 @@ Scope {
                             radius: width / 2
                             color: "#8c000000"
                             opacity: faceArea.containsMouse ? 1 : 0
-                            Behavior on opacity { NumberAnimation { duration: 140 } }
+                            Behavior on opacity { NumberAnimation { duration: Theme.ms(140) } }
 
                             Column {
                                 anchors.centerIn: parent
@@ -286,7 +287,7 @@ Scope {
                             color: "transparent"
                             border.width: 2
                             border.color: faceArea.containsMouse ? Theme.accent : Theme.hairline
-                            Behavior on border.color { ColorAnimation { duration: 140 } }
+                            Behavior on border.color { ColorAnimation { duration: Theme.ms(140) } }
                         }
 
                         MouseArea {
@@ -335,7 +336,7 @@ Scope {
                         radius: 12
                         color: selected ? Theme.tint(Theme.accent, 0.16) : area.containsMouse ? Theme.hover : "transparent"
 
-                        Behavior on color { ColorAnimation { duration: 140 } }
+                        Behavior on color { ColorAnimation { duration: Theme.ms(140) } }
 
                         Text {
                             id: icon

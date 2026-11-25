@@ -44,7 +44,7 @@ PanelWindow {
                     interval: toast.n.expireTimeout > 0 ? toast.n.expireTimeout : 5000
                     onTriggered: Notifications.hideToast(toast.modelData)
                 }
-                NumberAnimation on opacity { from: 0; to: 1; duration: 180; easing.type: Easing.OutCubic }
+                NumberAnimation on opacity { from: 0; to: 1; duration: Theme.ms(180); easing.type: Easing.OutCubic }
             }
         }
     }

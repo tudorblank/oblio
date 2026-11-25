@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Settings > Bar: on or off, its widgets (BarLayout), then the edge panel settings (EdgeSettings).
+// Its look is a style (Appearance).
 import QtQuick
 import qs.services
 import qs.controls

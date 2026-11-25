@@ -118,10 +118,11 @@ Scope {
             y: root.vertical ? start : (root.edge === "top" ? root.away : win.height - root.away - depth)
             width: root.vertical ? depth : length
             height: root.vertical ? length : depth
+            readonly property var look: Styles.look("menus")
             radius: Theme.radius
-            color: Theme.popup
+            color: look.fill
             border.width: 1
-            border.color: Theme.border
+            border.color: look.line
             opacity: root.open ? 1 : 0
 
             Behavior on opacity { Anim { duration: Theme.motionQuick } }

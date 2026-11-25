@@ -73,10 +73,11 @@ Scope {
                     : pop.edge === "bottom" ? pop.target.y - height - gap : cy - height / 2
                 return Math.max(gap, Math.min(want, win.height - height - gap))
             }
+            readonly property var look: Styles.look("menus")
             radius: Theme.radius
-            color: Theme.popup
+            color: look.fill
             border.width: 1
-            border.color: Theme.border
+            border.color: look.line
             opacity: pop.shown ? 1 : 0
             focus: pop.shown
 
@@ -85,10 +86,10 @@ Scope {
                 readonly property real d: pop.shown ? 0 : 6
                 x: pop.edge === "left" ? -d : pop.edge === "right" ? d : 0
                 y: pop.edge === "top" ? -d : pop.edge === "bottom" ? d : 0
-                Behavior on x { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
-                Behavior on y { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                Behavior on x { NumberAnimation { duration: Theme.ms(160); easing.type: Easing.OutCubic } }
+                Behavior on y { NumberAnimation { duration: Theme.ms(160); easing.type: Easing.OutCubic } }
             }
-            Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Theme.ms(140); easing.type: Easing.OutCubic } }
 
             Keys.onEscapePressed: pop.close()
 

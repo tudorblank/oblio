@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Settings > Windows: focus, tiling, borders.
+// Settings > Windows: focus, tiling, borders. How see-through apps are is a style (Appearance).
 import QtQuick
 import qs.services
 import qs.controls
@@ -77,14 +77,6 @@ Column {
                 from: 0; to: 24; unit: " px"
                 value: Settings.opts.rounding
                 onMoved: v => Settings.set("rounding", v)
-            }
-        }
-        SettingRow {
-            title: "Inactive window opacity"
-            ValueSlider {
-                from: 50; to: 100; unit: "%"
-                value: Settings.opts.inactiveOpacity
-                onMoved: v => Settings.set("inactiveOpacity", v)
             }
         }
     }

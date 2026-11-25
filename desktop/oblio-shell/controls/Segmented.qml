@@ -35,7 +35,7 @@ Rectangle {
                 radius: height / 2
                 color: selected ? Theme.accent : area.containsMouse ? Theme.hover : "transparent"
 
-                Behavior on color { ColorAnimation { duration: 140 } }
+                Behavior on color { ColorAnimation { duration: Theme.ms(140) } }
 
                 Text {
                     font.family: Theme.fontFor(text)

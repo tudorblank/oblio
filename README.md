@@ -149,8 +149,7 @@ and Dock, set them up the same way:
   full (the whole edge), with corners from square to fully round. An island's length fits what it
   holds, or is a fixed share of the edge. A floating bar is one island, or its sections (left,
   middle, right) stand apart, each one island or one per widget.
-- Look: material solid or blur (Oblio's own glass comes later), a tint color (the theme's or your
-  own) and its opacity. At 100% it's solid and nothing is blurred behind it.
+- Look: a style, like every part of the shell (Appearance, below).
 - Showing: always, auto-hide (the edge brings it back) or smart (hides while a window reaches into
   it).
 - Where: any edge for either; the edge the other one uses is greyed out.
@@ -183,6 +182,19 @@ switch light/dark live and take a new accent when they next start. The shell app
 `~/.config/oblio-shell/scripts/apply-theme`, which generates the GTK theme (`Oblio` /
 `Oblio-Alt` in `~/.local/share/themes`, built on adw-gtk3), fontconfig defaults and the terminal's
 colors.
+
+Styles (Appearance): a style is a look, made of a material (solid, or blur with its strength;
+Oblio's own glass comes later), a tint color (the theme's or your own, one for dark mode and one for
+light) and an opacity. Every part of the shell (bar, dock, menus, settings, the app launcher) follows
+Default, the one style that's always there, until you give it a style you made. Menus are everything
+the shell opens for a moment: the bar's popups, right-click menus, the dock's window previews,
+notification cards. Apps keep their own look until you add them to a style (one app, or all apps at
+once). Something in a style can't be added to another one. For an app, opacity is the whole
+window's and the tint stays the shell's; blur strength is one for every blur style for now
+(Hyprland's blur has one). Changes apply at once: the shell draws its parts in their style and
+gives Hyprland one named rule per part or app (`~/.config/hypr/settings.lua`).
+
+Animations (Appearance): on or off, and their speed, for windows, workspaces and the shell alike.
 
 The look:
 

@@ -18,7 +18,7 @@ Rectangle {
     color: primary ? (area.containsMouse ? Theme.accentHover : Theme.accent)
                    : area.containsMouse ? Theme.hover : "transparent"
 
-    Behavior on color { ColorAnimation { duration: 120 } }
+    Behavior on color { ColorAnimation { duration: Theme.ms(120) } }
 
     Text {
         anchors.centerIn: parent

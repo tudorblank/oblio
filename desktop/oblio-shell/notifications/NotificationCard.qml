@@ -23,11 +23,13 @@ Rectangle {
 
     width: parent ? parent.width : 360
     height: content.implicitHeight + 24
-    // in the bell's list it sits inside a popover, 8 px from its edge
+    // in the bell's list it's a card inside a popover, 8 px from its edge; on its own (a toast) it's
+    // a menu, in the menus' style
+    readonly property var look: Styles.look("menus")
     radius: compact ? Theme.inner(8) : Theme.radius
-    color: Theme.popup
+    color: compact ? Theme.card : look.fill
     border.width: 1
-    border.color: n.urgency === NotificationUrgency.Critical ? Theme.tint(Theme.danger, 0.6) : Theme.border
+    border.color: n.urgency === NotificationUrgency.Critical ? Theme.tint(Theme.danger, 0.6) : compact ? Theme.hairline : look.line
 
     HoverHandler { id: hover }
     MouseArea {

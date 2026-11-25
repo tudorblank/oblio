@@ -55,7 +55,7 @@ Item {
             font.pixelSize: 14
             rotation: popup.opened ? 180 : 0
 
-            Behavior on rotation { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+            Behavior on rotation { NumberAnimation { duration: Theme.ms(160); easing.type: Easing.OutCubic } }
         }
     }
 

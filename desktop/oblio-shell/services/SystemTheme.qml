@@ -40,7 +40,7 @@ Singleton {
         OBLIO_BG: alphaLast(Theme.background).slice(0, 7),
         OBLIO_FG: alphaLast(Theme.text).slice(0, 7),
         OBLIO_SUBTEXT: alphaLast(Theme.subtext).slice(0, 7),
-        OBLIO_POPUP: alphaLast(Theme.popup),
+        OBLIO_LAUNCHER: alphaLast(Styles.look("launcher").fill),
         OBLIO_CARD: alphaLast(Theme.card),
         OBLIO_BORDER: alphaLast(Theme.border),
         OBLIO_HOVER: alphaLast(Theme.hover),

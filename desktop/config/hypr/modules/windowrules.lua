@@ -91,11 +91,6 @@ hl.window_rule({ match = { class = "^(steam_app.*)$", initial_title = "^$" }, fl
 hl.window_rule({ match = { class = "^(steam)$", title = "^(Friends List)$" }, float = true })
 hl.window_rule({ match = { class = "^(steam)$", title = "^(Launching\\.{3})$" }, float = true, center = true })
 
--- these stay fully opaque if you lower window opacity in the settings
-hl.window_rule({ match = { class = "^(firefox|zen)$" }, opacity = "1.0 override" })
-hl.window_rule({ match = { class = "^(kitty|ghostty|Alacritty|foot)$" }, opacity = "1.0 override" })
-hl.window_rule({ match = { class = "^(mpv|.*vlc.*)$" }, opacity = "1.0 override" })
-
 -- Hyprland's run dialog
 hl.window_rule({
     name  = "move-hyprland-run",
@@ -114,20 +109,10 @@ hl.window_rule({
 -- held while it shows again, so it appears at once instead of fading in under the picture
 hl.window_rule({ name = "oblio-still", match = { tag = "oblio-still" }, no_anim = true })
 
--- Oblio's shell. Edge panels animate themselves; one that isn't opaque and wants blur uses the
--- "-blur" namespace (edges/EdgePanel.qml), blurred only where it's drawn
-for _, name in ipairs({ "oblio-bar", "oblio-dock" }) do
-    hl.layer_rule({ match = { namespace = name }, no_anim = true })
-    hl.layer_rule({ match = { namespace = name .. "-blur" }, blur = true, ignore_alpha = 0.01, no_anim = true })
+-- Oblio's shell animates its own layers (the wallpaper fades by itself; windows flying into and
+-- out of the dock show at once, exactly over the window). Blur behind the shell's parts and the
+-- look of apps come from Settings > Appearance > Styles, as named rules in settings.lua
+for _, name in ipairs({ "oblio-bar", "oblio-dock", "oblio-wallpaper", "oblio-notifications", "oblio-settings",
+                        "oblio-popup", "oblio-previews", "oblio-fx" }) do
+    hl.layer_rule({ match = { namespace = "^(" .. name .. ")$" }, no_anim = true })
 end
--- the wallpaper fades by itself
-hl.layer_rule({ match = { namespace = "oblio-wallpaper" }, no_anim = true })
--- app launcher and notification cards: blurred behind
-hl.layer_rule({ match = { namespace = "rofi" }, blur = true, ignore_alpha = 0.02 })
-hl.layer_rule({ match = { namespace = "oblio-notifications" }, blur = true, ignore_alpha = 0.5, no_anim = true })
--- settings and popovers: blur behind the card, not the dimmed or clear screen around it
-hl.layer_rule({ match = { namespace = "oblio-settings" }, blur = true, ignore_alpha = 0.5, no_anim = true })
-hl.layer_rule({ match = { namespace = "oblio-popup" }, blur = true, ignore_alpha = 0.5, no_anim = true })
-hl.layer_rule({ match = { namespace = "oblio-previews" }, blur = true, ignore_alpha = 0.5, no_anim = true })
--- windows flying into and out of the dock: shown at once, exactly over the window
-hl.layer_rule({ match = { namespace = "oblio-fx" }, no_anim = true })

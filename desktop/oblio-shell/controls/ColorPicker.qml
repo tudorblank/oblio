@@ -59,16 +59,17 @@ Scope {
             anchors.centerIn: parent
             width: 320
             height: content.implicitHeight + 2 * 20
+            readonly property var look: Styles.look("menus")
             radius: Theme.radius
-            color: Theme.popup
+            color: look.fill
             border.width: 1
-            border.color: Theme.border
+            border.color: look.line
             opacity: cp.shown ? 1 : 0
             scale: cp.shown ? 1 : 0.96
             focus: cp.shown
 
-            Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
-            Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Theme.ms(160); easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: Theme.ms(200); easing.type: Easing.OutCubic } }
 
             Keys.onEscapePressed: cp.shown = false
             Keys.onReturnPressed: cp.apply()

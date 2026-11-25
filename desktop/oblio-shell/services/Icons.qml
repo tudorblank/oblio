@@ -13,6 +13,7 @@ Singleton {
     readonly property string dock: "\u{f10a9}"
     readonly property string display: "\u{f0379}"
     readonly property string windows: "\u{f05af}"
+    readonly property string menu: "\u{f035c}"
     readonly property string appearance: "\u{f03d8}"
     readonly property string input: "\u{f030c}"
     readonly property string wallpaper: "\u{f0e09}"

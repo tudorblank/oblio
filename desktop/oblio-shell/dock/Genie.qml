@@ -96,8 +96,9 @@ Scope {
                 y: Math.round(cy - h / 2)
                 width: Math.max(1, Math.round(w))
                 height: Math.max(1, Math.round(h))
-                // fades as it reaches the icon, so it ends inside it, not on top of it
-                opacity: p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3
+                // as see-through as the window (its style); fades as it reaches the icon, so it ends
+                // inside it, not on top of it
+                opacity: Styles.appOpacity(toplevel?.wayland?.appId) * (p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3)
 
                 // one frame after the picture is up, tell windows.lua; it answers with go
                 onShownChanged: if (shown) settle.restart()

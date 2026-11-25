@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Picks an edge panel's shape from small previews, drawn with the panel's own Surface.
+// Picks an edge panel's shape from small previews, drawn with the panel's own Surface in its tint.
 import QtQuick
 import qs.services
 import qs.edges
@@ -10,7 +10,7 @@ Row {
     property string edge: "bottom"
     property string value
     property real roundness: 65
-    property string tintColor: "theme"
+    property color tint: Theme.solid
     signal picked(string value)
 
     spacing: 14
@@ -50,9 +50,8 @@ Row {
                         : (tile.vertical ? screen.height * 0.5 : screen.width * 0.42) + 2 * fil
                     edge: picker.edge
                     shape: tile.modelData.value
-                    material: "solid"
-                    opacityPercent: 85
-                    tintColor: picker.tintColor
+                    fill: Qt.rgba(picker.tint.r, picker.tint.g, picker.tint.b, 0.85)
+                    line: Theme.border
                     radius: Theme.rounded(picker.roundness, thickness)
                     fillet: fil
                     width: tile.vertical ? thickness : len

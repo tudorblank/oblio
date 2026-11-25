@@ -241,7 +241,7 @@ EdgePanel {
         flow: root.vertical ? Grid.TopToBottom : Grid.LeftToRight
         spacing: Math.round(root.iconSize * 0.3)
 
-        move: Transition { NumberAnimation { properties: "x,y"; duration: 180; easing.type: Easing.OutCubic } }
+        move: Transition { NumberAnimation { properties: "x,y"; duration: Theme.ms(180); easing.type: Easing.OutCubic } }
 
         Repeater {
             model: ScriptModel { values: root.shownList }

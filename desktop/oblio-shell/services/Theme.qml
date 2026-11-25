@@ -9,7 +9,7 @@ import Quickshell
 Singleton {
     id: t
 
-    readonly property string defaultAccent: "#b9e66c"
+    readonly property string defaultAccent: "#e6c784"
     readonly property bool dark: Settings.opts.themeMode !== "light"
     readonly property color accent: /^#[0-9a-fA-F]{6}$/.test(Settings.opts.accent) ? Settings.opts.accent : defaultAccent
     readonly property string accentHex: String(accent).slice(0, 7)
@@ -30,9 +30,13 @@ Singleton {
     // disabled one looks
     readonly property int controlHeight: 30
     readonly property real disabledOpacity: 0.4
-    // motion: how long the shell's moves take (controls/Anim.qml uses these, with one easing)
-    readonly property int motionQuick: 150
-    readonly property int motionNormal: 220
+    // motion: how long the shell's moves take at the animation speed set in Settings (0 with
+    // animations off): ms(t) for a move that takes t ms at the shell's own pace; controls/Anim.qml
+    // uses motionNormal, with one easing
+    readonly property real motion: Settings.opts.animations ? 100 / Math.max(10, Settings.opts.animationSpeed) : 0
+    function ms(t) { return Math.round(t * motion) }
+    readonly property int motionQuick: ms(150)
+    readonly property int motionNormal: ms(220)
     // type scale for the shell's own text
     readonly property int textCaption: 11
     readonly property int textLabel: 12
@@ -51,11 +55,12 @@ Singleton {
     readonly property int radius: 22
     function inner(padding) { return Math.max(4, radius - padding) }
 
-    // surfaces: window-like backgrounds; card/hover/hairline sit on top of them
+    // surfaces: window-like backgrounds; card/hover/hairline sit on top of them. The shell's own
+    // surfaces (bar, dock, menus ...) take theirs from their style (Styles.qml), in solid's color
+    // unless the style has a tint of its own; popup is for lists and labels drawn inside them
     readonly property color background: dark ? "#141417" : "#f4f4f6"
-    readonly property color panel: dark ? "#e8131316" : "#eef6f6f8"
-    readonly property color popup: dark ? "#f4161619" : "#f8fbfbfc"
     readonly property color solid: dark ? "#1c1c20" : "#f2f2f4"
+    readonly property color popup: dark ? "#f4161619" : "#f8fbfbfc"
     readonly property color card: dark ? "#0dffffff" : "#b3ffffff"
     readonly property color hover: dark ? "#0fffffff" : "#0c000000"
     readonly property color hairline: dark ? "#17ffffff" : "#16000000"

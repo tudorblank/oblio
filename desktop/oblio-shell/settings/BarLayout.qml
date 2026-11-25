@@ -226,7 +226,7 @@ Item {
                                     height: width
                                     radius: width / 2
                                     color: removeArea.containsMouse ? Theme.tint(Theme.danger, 0.18) : "transparent"
-                                    Behavior on color { ColorAnimation { duration: 120 } }
+                                    Behavior on color { ColorAnimation { duration: Theme.ms(120) } }
                                     Text {
                                         anchors.centerIn: parent
                                         text: Icons.close

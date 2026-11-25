@@ -35,7 +35,7 @@ ShellRoot {
     // the shell's palette (services/Theme.qml), in this user's mode and accent
     readonly property QtObject theme: QtObject {
         readonly property bool dark: look.mode !== "light"
-        readonly property color accent: /^#[0-9a-fA-F]{6}$/.test(look.accent) ? look.accent : "#b9e66c"
+        readonly property color accent: /^#[0-9a-fA-F]{6}$/.test(look.accent) ? look.accent : "#e6c784"
         readonly property color accentFg: root.luminance(accent) > 0.45 ? "#1a1a1d" : "#ffffff"
         readonly property color accentHover: Qt.lighter(accent, 1.12)
         readonly property color card: dark ? "#b8161619" : "#c8fbfbfc"

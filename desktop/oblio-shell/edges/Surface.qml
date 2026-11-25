@@ -1,22 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// What an edge panel (or one island of it) looks like: its shape and its tint. Drawn as if it sat
-// on the bottom edge, then turned to its real edge. The blur behind it is Hyprland's, switched per
-// panel by its layer namespace (EdgePanel); Oblio's own glass replaces it here later.
+// The shape of an edge panel (or one island of it), filled and outlined in its style's colors
+// (Styles.look). Drawn as if it sat on the bottom edge, then turned to its real edge. The blur
+// behind it is Hyprland's, by the style's rule for the panel's layer; Oblio's own glass goes here.
 //   shape     floating: an island away from the edge | attached: an island grown out of the
 //             edge, curving into it | full: the whole length of the edge
-//   tint      color (the theme's or a chosen one) at an opacity; 100 % is opaque
 import QtQuick
 import QtQuick.Shapes
-import qs.services
 
 Item {
     id: s
 
     property string edge: "bottom"
     property string shape: "floating"
-    property string material: "blur"    // solid | blur | glass
-    property real opacityPercent: 35
-    property string tintColor: "theme"  // or #rrggbb
+    property color fill
+    property color line
     property real radius: 10
     // attached: how far the curves into the edge reach past each end (s is that much longer)
     property real fillet: 0
@@ -26,14 +23,6 @@ Item {
     readonly property real thick: vertical ? width : height
     readonly property real r: Math.max(0, Math.min(radius, thick / 2, along / 2))
     readonly property real f: Math.max(0, Math.min(fillet, thick - r))
-
-    readonly property color fill: {
-        const c = Qt.color(tintColor === "theme" ? Theme.solid : tintColor)
-        // Hyprland only blurs under pixels it can see (ignore_alpha in windowrules.lua)
-        const a = Math.max(opacityPercent / 100, material === "solid" ? 0 : 0.02)
-        return Qt.rgba(c.r, c.g, c.b, a)
-    }
-    readonly property color line: opacityPercent >= 100 ? Theme.hairline : Theme.border
 
     Item {
         id: canon

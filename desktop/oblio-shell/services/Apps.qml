@@ -5,6 +5,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 
 Singleton {
     // the desktop entry for an id, or the best guess from an app id or name
@@ -30,5 +31,19 @@ Singleton {
     function appIcon(id, fallback) {
         const e = entry(id)
         return icon(e && e.icon ? e.icon : id, fallback)
+    }
+
+    // the apps there are, by name: the window class each opens (cls), installed ones and open
+    // windows of any other
+    readonly property var installed: {
+        const seen = new Set(), l = []
+        const add = (cls, name) => {
+            if (!cls || seen.has(cls.toLowerCase())) return
+            seen.add(cls.toLowerCase())
+            l.push({ cls, name })
+        }
+        for (const e of DesktopEntries.applications.values) if (!e.noDisplay) add(e.startupClass || e.id, e.name)
+        for (const t of Hyprland.toplevels.values) add(t.wayland?.appId ?? "", t.wayland?.appId ?? "")
+        return l.sort((a, b) => a.name.localeCompare(b.name))
     }
 }

@@ -28,7 +28,7 @@ hl.config({
             color        = 0xee1a1a1a,
         },
 
-        -- blur behind the shell (bar, dock, menus) and see-through windows
+        -- how blur looks wherever a style blurs (Settings > Appearance > Styles)
         blur = {
             enabled  = true,
             size     = 8,

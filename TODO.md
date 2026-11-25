@@ -57,7 +57,7 @@
       roundness; look = material (solid/blur) + tint color + opacity
 - [x] Shell menus block keybinds and clicks to windows (Hyprland submap), SUPER+Q closes them
 - [x] Dock: pinning, right-click menu, drag to rearrange and pin, one dot per window, any side edge,
-      icons at the start, center or end of a full or fixed-length dock
+      icons at the start, center or end of a full or fixed-length dock, live window previews on hover
 - [x] Settings panel (SUPER+I): display, bar, dock, windows, appearance, input; drag to move,
       resize from any edge, one dropdown open at a time
 - [x] Display settings: resolution, refresh rate, scale, rotation, arrangement, mirroring, keep-or-go-back

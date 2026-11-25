@@ -102,7 +102,8 @@ Item {
         color: Theme.popup
         border.width: 1
         border.color: Theme.border
-        opacity: mouse.containsMouse && !mouse.pressed && !item.dock.menuOpen && !item.dock.dragging ? 1 : 0
+        opacity: mouse.containsMouse && !mouse.pressed && !item.dock.menuOpen && !item.dock.dragging
+                 && item.dock.previewKey !== item.key ? 1 : 0
         visible: opacity > 0
 
         Behavior on opacity { NumberAnimation { duration: 150 } }
@@ -126,6 +127,9 @@ Item {
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
         threshold: 8
+        onContainsMouseChanged: item.dock.hoverIcon(item.key, item, containsMouse)
+        onPressedChanged: if (pressed) item.dock.pressIcon(item.key)
+        Component.onDestruction: item.dock.hoverIcon(item.key, item, false)
 
         // positions along the dock, and how far into the screen the pointer went past it
         function along(at) { const p = mapToItem(item.dock.listItem, at.x, at.y); return item.vertical ? p.y : p.x }

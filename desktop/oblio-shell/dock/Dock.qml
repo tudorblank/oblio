@@ -27,12 +27,76 @@ EdgePanel {
     contentLength: vertical ? list.implicitHeight : list.implicitWidth
     overflow: vertical ? 200 : 48   // room for the app names on hover
     empty: appKeys.length === 0
-    forceShown: menuOpen || dragging
+    forceShown: menuOpen || dragging || previewKey !== ""
 
     readonly property var pinned: Settings.opts.dockPinned
     readonly property string minimizedWorkspace: "special:minimized"
     readonly property bool menuOpen: menu.shown
     DockMenu { id: menu; dock: root }
+    DockPreviews { dock: root }
+
+    // window previews of the running app under the pointer: they open after a moment, follow the
+    // pointer to other running apps at once, and stay while the pointer moves over to them
+    property string hoverKey: ""
+    property Item hoverItem: null
+    property string previewKey: ""
+    property Item previewItem: null
+    property bool previewHovered: false
+    // a window was just closed from the card, which then shrinks: the pointer may end up outside
+    // it for a moment without that meaning "away"
+    property bool previewHeld: false
+    function holdPreview() { previewHeld = true; holdTimer.restart() }
+    // clicked: no previews for that icon until the pointer leaves it
+    property string quietKey: ""
+    function runningKey(k) { return k !== "" && (apps[k]?.windows.length ?? 0) > 0 }
+    function hoverIcon(key, item, on) {
+        if (on) { hoverKey = key; hoverItem = item }
+        else if (hoverKey === key) { hoverKey = ""; if (quietKey === key) quietKey = "" }
+        syncPreview()
+    }
+    function pressIcon(key) {
+        quietKey = key
+        syncPreview()
+    }
+    function showPreview(key) {
+        previewKey = key
+        previewItem = key ? hoverItem : null
+    }
+    function syncPreview() {
+        if (dragging || menuOpen || (previewKey && !runningKey(previewKey))) {
+            showTimer.stop()
+            showPreview("")
+            return
+        }
+        if (runningKey(hoverKey) && hoverKey !== quietKey) {
+            hideTimer.stop()
+            if (previewKey) showPreview(hoverKey)
+            else showTimer.restart()
+        } else {
+            showTimer.stop()
+            if (hoverKey) showPreview("")
+            else if (!previewHovered && !previewHeld) hideTimer.restart()
+        }
+    }
+    onPreviewHoveredChanged: syncPreview()
+    onDraggingChanged: syncPreview()
+    onMenuOpenChanged: syncPreview()
+    onAppsChanged: syncPreview()
+    Timer {
+        id: showTimer
+        interval: 450
+        onTriggered: if (root.runningKey(root.hoverKey) && root.hoverKey !== root.quietKey) root.showPreview(root.hoverKey)
+    }
+    Timer {
+        id: hideTimer
+        interval: 280
+        onTriggered: if (!root.previewHovered && !root.previewHeld && !root.hoverKey) root.showPreview("")
+    }
+    Timer {
+        id: holdTimer
+        interval: 1500
+        onTriggered: { root.previewHeld = false; root.syncPreview() }
+    }
 
     function appIdOf(t) {
         if (t.wayland && t.wayland.appId) return t.wayland.appId

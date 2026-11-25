@@ -118,3 +118,4 @@ hl.layer_rule({ match = { namespace = "oblio-notifications" }, blur = true, igno
 -- settings and popovers: blur behind the card, not the dimmed or clear screen around it
 hl.layer_rule({ match = { namespace = "oblio-settings" }, blur = true, ignore_alpha = 0.5, no_anim = true })
 hl.layer_rule({ match = { namespace = "oblio-popup" }, blur = true, ignore_alpha = 0.5, no_anim = true })
+hl.layer_rule({ match = { namespace = "oblio-previews" }, blur = true, ignore_alpha = 0.5, no_anim = true })

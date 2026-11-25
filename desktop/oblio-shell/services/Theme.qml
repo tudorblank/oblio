@@ -30,6 +30,9 @@ Singleton {
     // disabled one looks
     readonly property int controlHeight: 30
     readonly property real disabledOpacity: 0.4
+    // motion: how long the shell's moves take (controls/Anim.qml uses these, with one easing)
+    readonly property int motionQuick: 150
+    readonly property int motionNormal: 220
     // type scale for the shell's own text
     readonly property int textCaption: 11
     readonly property int textLabel: 12

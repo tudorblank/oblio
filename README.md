@@ -1,7 +1,8 @@
 <p align="center">
   <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/oblio%20logo%20full%20dark.png">
     <source media="(prefers-color-scheme: light)" srcset="assets/oblio%20logo%20full%20light.png">
-    <img src="assets/oblio%20logo%20full%20dark.png" alt="Oblio" width="480">
+    <img src="assets/oblio%20logo%20full%20light.png" alt="Oblio" width="480">
   </picture>
 </p>
 

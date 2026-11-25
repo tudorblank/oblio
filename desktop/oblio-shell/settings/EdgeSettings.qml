@@ -68,9 +68,19 @@ Column {
                 onPicked: v => es.set("Shape", v)
             }
         }
-        // a floating bar: each section continuous or scattered
+        // a floating bar: one island, or its sections apart, each continuous or scattered
+        SettingRow {
+            visible: es.islands && es.get("Shape") === "floating"
+            title: "Islands"
+            description: es.get("Islands") === "sections" ? "Each section stands on its own" : "One island holding everything"
+            Segmented {
+                options: [{ value: "bar", label: "One bar" }, { value: "sections", label: "Sections" }]
+                value: es.get("Islands")
+                onPicked: v => es.set("Islands", v)
+            }
+        }
         Repeater {
-            model: es.islands && es.get("Shape") === "floating" ? BarWidgets.lanes : []
+            model: es.islands && es.get("Shape") === "floating" && es.get("Islands") === "sections" ? BarWidgets.lanes : []
             SettingRow {
                 id: islandRow
                 required property string modelData

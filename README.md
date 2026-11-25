@@ -141,8 +141,8 @@ and Dock, set them up the same way:
   as from a bare screen edge. A side dock fits between the bar and the opposite edge.
 - Shape: floating (an island off the edge), attached (grown out of the edge, curving into it) or
   full (the whole edge), with corners from square to fully round. An island's length fits what it
-  holds, or is a fixed share of the edge. On a floating bar each section (left, middle, right) is
-  one island or one per widget.
+  holds, or is a fixed share of the edge. A floating bar is one island, or its sections (left,
+  middle, right) stand apart, each one island or one per widget.
 - Look: material solid or blur (Oblio's own glass comes later), a tint color (the theme's or your
   own) and its opacity. At 100% it's solid and nothing is blurred behind it.
 - Showing: always, auto-hide (the edge brings it back) or smart (hides while a window reaches into

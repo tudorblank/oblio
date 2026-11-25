@@ -15,12 +15,12 @@ EdgePanel {
 
     prefix: "bar"
 
-    // floating, each section is continuous or scattered (one island per widget); once any section
-    // is scattered the bar splits: every section is an island of its own, or a row of them
+    // floating: one island, or split into its sections; each section then is one island
+    // (continuous) or one per widget (scattered)
+    readonly property bool split: floating && o.barIslands === "sections"
     function scatteredLane(name) {
-        return floating && o["barIslands" + { start: "Start", center: "Center", end: "End" }[name]] === "scattered"
+        return split && o["barIslands" + { start: "Start", center: "Center", end: "End" }[name]] === "scattered"
     }
-    readonly property bool split: scatteredLane("start") || scatteredLane("center") || scatteredLane("end")
     readonly property bool spread: shape === "full" || o.barLength === "fixed"
     readonly property int laneGap: split ? 6 : 8
     padding: split ? 0 : floating ? 6 : 10

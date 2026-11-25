@@ -133,7 +133,9 @@ Singleton {
             property int barLengthPercent: 50
             property string barMode: "always"
             property int barSize: 32
-            // floating bar, per section: continuous | scattered (one island per widget)
+            // floating bar: one island (bar) or one per section (sections); each section then:
+            // continuous | scattered (one island per widget)
+            property string barIslands: "bar"
             property string barIslandsStart: "continuous"
             property string barIslandsCenter: "continuous"
             property string barIslandsEnd: "continuous"

@@ -32,7 +32,8 @@ BarWidget {
         lineHeight: 0.95
         color: Theme.text
         font.family: Theme.fontUi
-        font.pixelSize: w.vertical ? w.smallText : w.textSize
+        // a share of the bar's thickness (option size, %): never bigger than the bar
+        font.pixelSize: Math.max(8, Math.round(w.thickness * (w.opt("size") ?? 40) / 100 * (w.vertical ? 0.75 : 1)))
         font.weight: Font.Medium
         font.features: { "tnum": 1 }
     }

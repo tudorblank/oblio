@@ -16,6 +16,7 @@ Item {
     property bool island: true          // its own island when the bar is scattered
     property bool interactive: true     // hover highlight and clicks (scrolling works either way)
     property bool expand: false         // spacers: take the lane's free space
+    property real reveal: 1             // 0..1: how much of it is out (with its padding), for widgets that come and go
     property bool handlesRightClick: false
     property bool inScattered: false    // its section is one island per widget (set by the bar)
     property Component popup: null      // opened by a left click, next to the widget

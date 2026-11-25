@@ -99,7 +99,7 @@ Item {
                     // the chips in order (the Flow also holds the Repeater and the + chip)
                     function chips() { return flow.children.filter(c => c.uid !== undefined) }
                     width: parent.width
-                    height: flow.y + Math.max(flow.implicitHeight, Theme.controlHeight) + 14
+                    height: spacingRow.y + spacingRow.height + 12
 
                     Divider { visible: laneRow.index > 0; inset: 16; space: 1 }
 
@@ -330,6 +330,34 @@ Item {
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    // room between the island's widgets (not at its ends)
+                    Item {
+                        id: spacingRow
+                        x: 16
+                        y: flow.y + Math.max(flow.implicitHeight, Theme.controlHeight) + 10
+                        width: parent.width - 32
+                        height: 24
+                        Text {
+                            id: spacingLabel
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Spacing"
+                            color: Theme.subtext
+                            font.family: Theme.fontUi
+                            font.pixelSize: Theme.textLabel
+                        }
+                        ValueSlider {
+                            anchors.left: spacingLabel.right
+                            anchors.leftMargin: 14
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            from: 0
+                            to: 32
+                            unit: " px"
+                            value: laneRow.island?.spacing ?? 0
+                            onMoved: v => BarWidgets.setSpacing(laneRow.modelData, Math.round(v))
                         }
                     }
                 }

@@ -26,8 +26,10 @@ export PKGDEST="$repo" BUILDDIR="$build" SRCDEST="$build/sources"
 sign=()
 [[ -n $key ]] && sign=(--sign --key "$key")
 
+shopt -s nullglob   # desktop/packages may have none
 dirs=("$root"/base/packages/*/)
 [[ ${1:-} == base ]] || dirs+=("$root"/desktop/packages/*/)
+shopt -u nullglob
 for p in "${dirs[@]}"; do
     name="$(basename "$p")"
     version="$("$root/tools/package-version" "$name")"

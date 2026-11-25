@@ -57,11 +57,11 @@ hl.window_rule({ match = { class = "^(.*[Cc]alc.*)$" }, size = { "max(monitor_w,
 hl.window_rule({ match = { class = "^(.*satty.*)$", title = "^(Satty)$" }, float = true, min_size = { "max(monitor_w, monitor_h)*0.35", "min(monitor_w, monitor_h)*0.35" } })
 hl.window_rule({ match = { class = "^(.*\\.exe)$", float = true }, center = true, fullscreen_state = 0 }) -- Windows programs (Wine)
 
--- Thunar opens floating, under the pointer (its dialogs keep their own size)
+-- Files (Nautilus) opens floating, under the pointer (its dialogs keep their own size)
 hl.window_rule({
     match = {
-        class = "^([Tt]hunar)$",
-        title = "negative:^(File Operation Progress|Rename .*|Create New .*|.* - Properties|Bulk Rename.*|Preferences.*|Open With|Confirm .*|Attention)$",
+        class = "^(org\\.gnome\\.Nautilus)$",
+        title = "negative:^(Properties|.* Properties|Preferences|Rename.*|Open With.*|Select .*|Compress.*|Keyboard Shortcuts)$",
     },
     float = true,
     size  = { "max(monitor_w, monitor_h)*0.50", "min(monitor_w, monitor_h)*0.55" },

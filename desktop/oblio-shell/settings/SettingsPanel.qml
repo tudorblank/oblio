@@ -27,6 +27,7 @@ Scope {
         { title: "Appearance", icon: Icons.appearance, subtitle: "Light or dark, accent color, fonts and effects", content: lookPage },
         { title: "Wallpaper", icon: Icons.wallpaper, subtitle: "Pictures for the desktop and the lock screen", content: wallpaperPage },
         { title: "Input", icon: Icons.input, subtitle: "Mouse, touchpad and keyboard", content: inputPage },
+        { title: "Battery", icon: Icons.battery[8], subtitle: "Its state and the low and charged alerts", content: batteryPage },
     ]
 
     function open() {
@@ -512,6 +513,7 @@ Scope {
     Component { id: lookPage; AppearancePage {} }
 
     Component { id: inputPage; InputPage {} }
+    Component { id: batteryPage; BatteryPage {} }
 
     Component { id: wallpaperPage; WallpaperPage {} }
 }

@@ -18,6 +18,18 @@ BarWidget {
     readonly property string artist: player ? (player.trackArtist || "") : ""
     readonly property string art: player ? (player.trackArtUrl || "") : ""
     readonly property bool hidden: player === null || (opt("hideIdle") && !playing)
+    // it lingers a moment after it would hide (skipping and seeking pause the player for an
+    // instant), and slides open and shut; meanwhile it shows what it showed last
+    property bool shown: false
+    Component.onCompleted: shown = !hidden
+    onHiddenChanged: if (hidden) linger.restart(); else { linger.stop(); shown = true }
+    Timer { id: linger; interval: 1500; onTriggered: w.shown = !w.hidden }
+    property string keptTitle
+    property string keptArtist
+    property string keptArt
+    Binding { target: w; property: "keptTitle"; value: w.title; when: w.player !== null; restoreMode: Binding.RestoreNone }
+    Binding { target: w; property: "keptArtist"; value: w.artist; when: w.player !== null; restoreMode: Binding.RestoreNone }
+    Binding { target: w; property: "keptArt"; value: w.art; when: w.player !== null; restoreMode: Binding.RestoreNone }
 
     function clock(s) {
         s = Math.max(0, Math.floor(s))
@@ -25,7 +37,10 @@ BarWidget {
         return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`
     }
 
-    length: hidden ? 0 : vertical ? Math.round(thickness * 0.62) : row.implicitWidth
+    reveal: shown ? 1 : 0
+    Behavior on reveal { Anim {} }
+    length: (vertical ? Math.round(thickness * 0.62) : row.implicitWidth) * reveal
+    clip: true
     popup: panel
     popupWidth: 340
     onActivated: b => { if (b === Qt.MiddleButton && player) player.togglePlaying() }
@@ -33,10 +48,11 @@ BarWidget {
     Row {
         id: row
         anchors.centerIn: parent
+        opacity: w.reveal
         spacing: Math.round(w.thickness * 0.22)
 
         ClippingRectangle {
-            visible: w.opt("art") && w.art !== ""
+            visible: w.opt("art") && w.keptArt !== ""
             anchors.verticalCenter: parent.verticalCenter
             width: Math.round(w.thickness * 0.62)
             height: width
@@ -44,7 +60,7 @@ BarWidget {
             color: Theme.card
             Image {
                 anchors.fill: parent
-                source: w.art
+                source: w.keptArt
                 fillMode: Image.PreserveAspectCrop
                 sourceSize.width: 64
                 sourceSize.height: 64
@@ -52,7 +68,7 @@ BarWidget {
             }
         }
         Text {
-            visible: !(w.opt("art") && w.art !== "")
+            visible: !(w.opt("art") && w.keptArt !== "")
             anchors.verticalCenter: parent.verticalCenter
             text: w.playing ? Icons.music : Icons.pause
             color: Theme.text
@@ -65,7 +81,7 @@ BarWidget {
             visible: !w.vertical
             anchors.verticalCenter: parent.verticalCenter
             width: Math.min(Math.ceil(metrics.advanceWidth) + 1, w.opt("maxLength") - x)
-            text: w.artist ? `${w.title}  ·  ${w.artist}` : w.title
+            text: w.keptArtist ? `${w.keptTitle}  ·  ${w.keptArtist}` : w.keptTitle
             elide: Text.ElideRight
             color: Theme.text
             opacity: w.playing ? 1 : 0.6

@@ -16,6 +16,11 @@ BarWidget {
     readonly property var devices: adapter ? adapter.devices.values : []
     readonly property var connected: devices.filter(d => d.connected)
     function device(address) { return devices.find(d => d.address === address) ?? null }
+    // the name other devices see this computer by (BlueZ's alias; Quickshell only reads it)
+    function rename(name) {
+        name = name.trim()
+        if (adapter && name) Quickshell.execDetached(["busctl", "set-property", "org.bluez", adapter.dbusPath, "org.bluez.Adapter1", "Alias", "s", name])
+    }
 
     // looks for devices while the list is open; BlueZ only takes that once the adapter is on
     readonly property bool looking: on && popupOpen
@@ -30,8 +35,10 @@ BarWidget {
         id: row
         widget: w
         icon: !w.on ? Icons.bluetoothOff : w.connected.length ? Icons.bluetoothConnected : Icons.bluetooth
-        value: w.connected.length ? w.connected[0].name : ""
-        showValue: w.opt("name") && !w.vertical
+        readonly property var first: w.connected[0] ?? null
+        value: !first ? "" : [w.opt("name") ? first.name : "",
+                              w.opt("battery") && first.batteryAvailable ? Math.round(first.battery * 100) + "%" : ""].filter(s => s).join("  ")
+        showValue: !w.vertical
         color: w.on ? Theme.text : Theme.subtext
     }
 
@@ -80,6 +87,53 @@ BarWidget {
                     visible: w.adapter !== null
                     checked: w.on
                     onToggled: v => w.adapter.enabled = v
+                }
+            }
+
+            // this computer: its name for others, and whether they can find it
+            Column {
+                visible: w.on
+                x: 10
+                width: parent.width - 20
+                spacing: 6
+                bottomPadding: 6
+
+                Item {
+                    width: parent.width
+                    height: Theme.controlHeight
+                    Text {
+                        id: nameLabel
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Name"
+                        color: Theme.text
+                        font.family: Theme.fontUi
+                        font.pixelSize: Theme.textLabel
+                    }
+                    TextBox {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width - nameLabel.width - 16
+                        value: w.adapter ? w.adapter.name : ""
+                        placeholder: "This computer's name"
+                        onEdited: v => w.rename(v)
+                    }
+                }
+                Item {
+                    width: parent.width
+                    height: 28
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Visible to nearby devices"
+                        color: Theme.text
+                        font.family: Theme.fontUi
+                        font.pixelSize: Theme.textLabel
+                    }
+                    Toggle {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        checked: w.adapter !== null && w.adapter.discoverable
+                        onToggled: v => w.adapter.discoverable = v
+                    }
                 }
             }
 

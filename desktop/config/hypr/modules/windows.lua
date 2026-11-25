@@ -44,6 +44,7 @@ end
 local s = oblio.state or load() or {}
 s.floating = s.floating or {}  -- workspace id -> true when the workspace is in floating mode
 s.floated = s.floated or {}    -- address -> true for windows floated by floating mode
+s.placed = s.placed or {}      -- address -> its place in floating mode (relative to its monitor), kept while tiled
 s.saved = s.saved or {}        -- address -> where it was when minimized: workspace, floating, place, size
 s.order = s.order or {}        -- minimized addresses, oldest first
 -- s.desktop: addresses hidden by show_desktop, to bring back together
@@ -60,8 +61,9 @@ end
 local function sel(address) return "address:" .. address end
 local function win(address) return hl.get_window(sel(address)) end
 
-local function notify(text)
-    hl.notification.create({ text = text, duration = 1200, font_size = 14 })
+-- a short notification from the shell (a temporary one: it doesn't stay in the list)
+local function notify(title, body, icon)
+    hl.dispatch(hl.dsp.exec_cmd(string.format("notify-send -e -t 1500 -a Windows -i '%s' '%s' '%s'", icon, title, body)))
 end
 
 -- runs fn without Hyprland moving the pointer onto the windows it focuses
@@ -393,6 +395,7 @@ hl.on("window.close", function(w)
     if s.fx[w.address] then shell("drop", w.address) end
     s.fx[w.address], s.fx_n[w.address], s.waits[w.address] = nil, nil, nil
     s.floated[w.address] = nil
+    s.placed[w.address] = nil
     save()
 end)
 
@@ -418,13 +421,21 @@ local function floating_count(ws, except)
     return n
 end
 
--- floating mode places windows like a normal desktop: a comfortable size,
--- centered, each new one a step down and right of the last (cascade)
+-- floating mode places windows like a normal desktop: where the window was the last time this
+-- workspace floated, or else a comfortable size, centered, each new one a step down and right of
+-- the last (cascade)
 local function float_window(w)
     if not w or w.floating then return end
     local m = w.monitor
     local step = w.workspace and (floating_count(w.workspace, w.address) % 6) * 32 or 0
     hl.dispatch(hl.dsp.window.float({ action = "enable", window = sel(w.address) }))
+    local p = s.placed[w.address]
+    if p then
+        hl.dispatch(hl.dsp.window.resize({ x = p.width, y = p.height, window = sel(w.address) }))
+        hl.dispatch(hl.dsp.window.move({ x = p.x + (m and m.x or 0), y = p.y + (m and m.y or 0), window = sel(w.address) }))
+        s.floated[w.address] = true
+        return
+    end
     if m then
         hl.dispatch(hl.dsp.window.resize({
             x = math.floor(m.width / m.scale * 0.6),
@@ -443,6 +454,9 @@ local function tile_window(w)
     if not w or not s.floated[w.address] then return end
     s.floated[w.address] = nil
     if w.floating then
+        -- its floating place, for the next time this workspace floats
+        local m = w.monitor
+        s.placed[w.address] = { x = w.at.x - (m and m.x or 0), y = w.at.y - (m and m.y or 0), width = w.size.x, height = w.size.y }
         hl.dispatch(hl.dsp.window.float({ action = "disable", window = sel(w.address) }))
     end
 end
@@ -455,7 +469,8 @@ function oblio.toggle_mode()
     for _, w in ipairs(hl.get_workspace_windows(ws.id)) do
         if floating then float_window(w) else tile_window(w) end
     end
-    notify("Workspace " .. ws.id .. ": " .. (floating and "floating" or "tiling"))
+    if floating then notify("Floating windows", "Workspace " .. ws.id .. ": windows move freely, like on a desktop", "window-duplicate")
+    else notify("Tiled windows", "Workspace " .. ws.id .. ": windows share the screen side by side", "view-grid") end
 end
 
 hl.on("window.open", function(w)

@@ -150,7 +150,7 @@ Singleton {
             property bool notifyDnd: false
 
             // dock: pinned apps are desktop file ids (without .desktop)
-            property var dockPinned: ["Alacritty", "thunar"]
+            property var dockPinned: ["Alacritty", "org.gnome.Nautilus"]
             property string dockEdge: "bottom"
             property string dockShape: "floating"
             property int dockRoundness: 65
@@ -198,6 +198,12 @@ Singleton {
             property string wallpaperLock: ""
             property bool wallpaperLockSame: true
             property string wallpaperFolder: ""
+
+            // battery alerts (services/Battery.qml): low while discharging, high while charging (%)
+            property bool batteryAlertLow: true
+            property int batteryLow: 20
+            property bool batteryAlertHigh: false
+            property int batteryHigh: 80
 
             // input
             property real sensitivity: 0

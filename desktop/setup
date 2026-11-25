@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Oblio's desktop on any Arch-based system: Hyprland, Oblio's window management,
-# keybinds, shell (bar, dock, settings, notifications) and login screen, Alacritty, Thunar,
+# keybinds, shell (bar, dock, settings, notifications) and login screen, Alacritty, Files,
 # Zen, rofi. Run as your normal user; pacman and the system files go through sudo.
 #   desktop/setup            install packages, copy desktop/config/ into ~/.config and
 #                            desktop/oblio-shell/ to ~/.config/oblio-shell
@@ -47,11 +47,9 @@ packages=(
     fastfetch                    # system info with Oblio's logo (fastfetch in a terminal)
     xdg-utils                    # xdg-open: apps open links and files in the right program
     fuse2                        # AppImages
-    thunar                       # file manager
-    thunar-volman                # mounts USB drives and discs when plugged in
-    thunar-archive-plugin file-roller  # extract / compress from the right-click menu
-    tumbler                      # thumbnails in Thunar
-    gvfs                         # trash, phones, network shares in Thunar
+    nautilus                     # file manager (GNOME Files; extracts and compresses by itself)
+    ffmpegthumbnailer            # video thumbnails in Files
+    gvfs                         # trash, phones, network shares in Files and file pickers
     adw-gtk-theme                # GTK 3 apps in the same style as GTK 4 ones
     papirus-icon-theme           # icons for apps and the dock (Papirus-Dark / -Light)
     breeze-icons                 # icons for the login screen
@@ -67,8 +65,8 @@ packages=(
     inter-font                   # the login screen's font, and the fallback UI font
     ttf-nerd-fonts-symbols       # icons in the shell
 )
-# browser: Zen comes from the CachyOS repos; Oblio's GTK module from [oblio] (not on other systems)
-for p in zen-browser-bin oblio-gtk-module; do
+# browser: Zen comes from the CachyOS repos (not on other systems)
+for p in zen-browser-bin; do
     if pacman -Si "$p" &>/dev/null; then packages+=("$p"); fi
 done
 
@@ -197,23 +195,18 @@ if [[ $(cat "$icons/WhiteSur/.oblio-version" 2>/dev/null) != "$ws_commit" ]]; th
     fi
     rm -rf "${ws_tmp:?}"
 fi
-# Thunar like GNOME Files: header bar (its stylesheet: oblio-shell/theme/gtk-3.0/thunar.css),
-# no menu bar (Ctrl+M brings it back) or status bar, larger icons, a wider sidebar; only
-# where these were never set, so your own choices stay
-thunar_pref() {
-    xfconf-query -c thunar -p "$1" >/dev/null 2>&1 || xfconf-query -c thunar -p "$1" -n -t "$2" -s "$3" 2>/dev/null || true
-}
-thunar_pref /last-menubar-visible bool false
-thunar_pref /misc-use-csd bool true
-thunar_pref /last-statusbar-visible bool false
-thunar_pref /last-icon-view-zoom-level string THUNAR_ZOOM_LEVEL_150_PERCENT
-thunar_pref /last-separator-position int 215
-thunar_pref /last-toolbar-items string "back:1,forward:1,location-bar:1,view-switcher:1,search:1,menu:1,open-parent:0,open-home:0,new-tab:0,new-window:0,toggle-split-view:0,undo:0,redo:0,zoom-out:0,zoom-in:0,zoom-reset:0,view-as-icons:0,view-as-detailed-list:0,view-as-compact-list:0,reload:0"
-# USB drives and discs mount when plugged in (thunar-volman ships with it off)
-for p in /automount-drives/enabled /automount-media/enabled; do
-    xfconf-query -c thunar-volman -p "$p" -n -t bool -s true 2>/dev/null || true
-done
 
+# Files (Nautilus) gets WhiteSur's blue folder (org.xfce.filemanager, the icon the dock showed for
+# Thunar), not its Finder face
+for v in WhiteSur WhiteSur-dark; do
+    a="$icons/$v/apps/scalable" f=../../preferences/32/org.xfce.filemanager.svg
+    [[ -e $a/$f ]] || continue
+    if [[ $(readlink "$a/org.gnome.Nautilus.svg") != "$f" ]]; then
+        ln -sfn "$f" "$a/org.gnome.Nautilus.svg"
+        ln -sfn "$f" "$a/org.gnome.nautilus.svg"
+        gtk-update-icon-cache -qf "$icons/$v" 2>/dev/null || true
+    fi
+done
 msg "Installing the login screen"
 sudo install -Dm644 -t /usr/share/oblio/greeter "$here"/greeter/*.qml
 sudo install -Dm644 "$here/greeter/hyprland.lua" /etc/greetd/oblio-hyprland.lua
@@ -253,13 +246,6 @@ if systemctl --user -q is-active xdg-desktop-portal.service 2>/dev/null \
     && ! busctl --user introspect org.freedesktop.portal.Desktop /org/freedesktop/portal/desktop 2>/dev/null \
         | grep -q org.freedesktop.portal.Settings; then
     systemctl --user restart xdg-desktop-portal.service || true
-fi
-
-# oblio-gtk-module installed during a session: apps started from now on load it, also those
-# started over D-Bus (env.lua sets it at every login)
-if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} && -e /usr/lib/gtk-3.0/modules/liboblio-gtk.so ]]; then
-    hyprctl dispatch 'function() hl.env("GTK3_MODULES", "oblio-gtk") end' >/dev/null 2>&1 || true
-    dbus-update-activation-environment --systemd GTK3_MODULES=oblio-gtk 2>/dev/null || true
 fi
 
 # inside a running Hyprland: swap the running shell for the new one (last, so it sees the fonts)

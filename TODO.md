@@ -22,7 +22,6 @@
 - [ ] Clipboard history
 - [ ] Animations and look, using `hypr-config-temp` as inspiration
 - [ ] Login screen files as an `[oblio]` package (system files, now installed by setup with sudo)
-- [ ] Thunar light mode: the home icon in the path field is faint
 - [ ] Qt apps: progress bars and sliders take the soft selection tint (Qt uses one color for both);
       a Qt-only palette could keep them bright, at the cost of picking up accent changes only on restart
 
@@ -65,8 +64,7 @@
 - [x] Display settings: resolution, refresh rate, scale, rotation, arrangement, mirroring, keep-or-go-back
 - [x] Theme: light/dark, accent, fonts (SF Pro, JetBrains Mono) for the shell, GTK 3/4, Qt, browsers,
       icons (WhiteSur), terminal, Hyprland
-- [x] Thunar instead of Dolphin, styled like GNOME Files (oblio-gtk-module for its sidebar indent); USB
-      drives mount when plugged in
+- [x] Files (Nautilus) as the file manager, in Oblio's GTK theme; Thunar and oblio-gtk-module removed
 - [x] Login screen: greetd + Quickshell greeter, session picker, remembers user and session;
       redesigned like the shell (the user's lock screen wallpaper, accent and mode, one frosted card),
       later PAM prompts (one-time codes, new passwords) asked in the field

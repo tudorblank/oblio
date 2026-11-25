@@ -4,7 +4,7 @@
 local mod = oblio.vm and "ALT" or "SUPER"
 
 local terminal = "alacritty"
-local files    = "thunar"
+local files    = "nautilus --new-window"
 local browser  = "zen-browser"
 local launcher = oblio.shell .. "/scripts/launcher"   -- rofi; again closes it
 local settings = oblio.qs .. " ipc call settings toggle"

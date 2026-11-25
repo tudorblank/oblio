@@ -2,7 +2,7 @@
 // The bar's widgets: what exists (catalog, one file each in bar/widgets/) and what sits where.
 // Settings.opts.barWidgets is the list of the bar's islands, in order along it: an island is a
 // group of widgets, a uid, its style (continuous | scattered: one island per widget, on a bar
-// split into its islands) and its widgets (entries: uid, type and the widget's options). The
+// split into its islands), its spacing (px between its widgets, not at its ends) and its widgets (entries: uid, type and the widget's options). The
 // layout from before islands (three lists: start, center, end) reads as three islands.
 pragma Singleton
 
@@ -47,6 +47,8 @@ Singleton {
         { type: "clock", file: "Clock", name: "Clock", icon: "\u{f0954}",
           about: "Date and time; click for a calendar",
           options: [
+            { key: "size", label: "Size", kind: "number", default: 40, from: 25, to: 75, step: 5, unit: " %",
+              about: "Of the bar's thickness, so it always fits" },
             { key: "format", label: "Format", kind: "text", default: "ddd d MMM   HH:mm",
               about: "d dd ddd dddd: day · M MM MMM MMMM: month · yy yyyy: year · H HH (24 h) h hh AP (12 h) · mm: minutes · ss: seconds" },
             { key: "language", label: "Language", kind: "list", default: "en_US",
@@ -57,7 +59,8 @@ Singleton {
           options: [
             { key: "art", label: "Album art", kind: "toggle", default: true },
             { key: "maxLength", label: "Longest Size", kind: "number", default: 240, from: 80, to: 480, step: 20, unit: " px" },
-            { key: "hideIdle", label: "Hide when nothing plays", kind: "toggle", default: false },
+            { key: "hideIdle", label: "Hide when nothing plays", kind: "toggle", default: false,
+              about: "It stays a moment after playing stops, so skipping or seeking doesn't make it blink" },
           ] },
         { type: "tray", file: "Tray", name: "System tray", icon: "\u{f1294}",
           about: "Icons of apps running in the background",
@@ -70,14 +73,22 @@ Singleton {
           about: "Screen brightness; scroll to change (laptops)",
           options: [{ key: "value", label: "Show the percentage", kind: "toggle", default: true }] },
         { type: "battery", file: "Battery", name: "Battery", icon: "\u{f0079}",
-          about: "Charge and time left; click for power profiles",
-          options: [{ key: "value", label: "Show the percentage", kind: "toggle", default: true }] },
+          about: "Charge, charging or not, time left; click for power profiles",
+          options: [
+            { key: "value", label: "Show the percentage", kind: "toggle", default: true },
+            { key: "time", label: "Show the time left", kind: "toggle", default: false,
+              about: "Until empty, or until full while charging" },
+          ] },
         { type: "network", file: "Network", name: "Network", icon: "\u{f05a9}",
           about: "Cable and Wi-Fi; click to pick a network",
           options: [{ key: "name", label: "Show the network name", kind: "toggle", default: false }] },
         { type: "bluetooth", file: "Bluetooth", name: "Bluetooth", icon: "\u{f00af}",
           about: "Turn it on or off, connect and pair devices",
-          options: [{ key: "name", label: "Show the connected device", kind: "toggle", default: false }] },
+          options: [
+            { key: "name", label: "Show the connected device", kind: "toggle", default: false },
+            { key: "battery", label: "Show its battery", kind: "toggle", default: false,
+              about: "For devices that report it (headphones, mice, controllers)" },
+          ] },
         { type: "notifications", file: "Notifications", name: "Notifications", icon: "\u{f009a}",
           about: "Unread notifications, Do Not Disturb; click for the list",
           options: [{ key: "count", label: "Show the unread count", kind: "toggle", default: true }] },
@@ -177,6 +188,9 @@ Singleton {
             if (at < 0 || to < 0 || to >= l.length) return
             l.splice(to, 0, l.splice(at, 1)[0])
         })
+    }
+    function setSpacing(uid, px) {
+        change(l => { const i = l.find(i => i.uid === uid); if (i) i.spacing = px })
     }
     function setStyle(uid, style) {
         change(l => { const i = l.find(i => i.uid === uid); if (i) i.style = style })

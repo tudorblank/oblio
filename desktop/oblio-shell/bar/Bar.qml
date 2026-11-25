@@ -99,7 +99,7 @@ EdgePanel {
         readonly property var item: loader.item
         readonly property bool shows: item !== null && item.length > 0
         // continuous: room around each widget for its hover highlight; scattered: inside its island
-        readonly property real pad: item && item.island ? Math.round(root.thickness * (scattered ? 0.4 : 0.26)) : 0
+        readonly property real pad: item && item.island ? Math.round(root.thickness * (scattered ? 0.4 : 0.26)) * item.reveal : 0
         readonly property real natural: shows ? item.length + 2 * pad : 0
         readonly property bool stretchy: shows && item.expand && root.spread
         readonly property bool expanding: stretchy && lane !== undefined && lane.grows
@@ -192,7 +192,8 @@ EdgePanel {
             rows: root.vertical ? -1 : 1
             columns: root.vertical ? 1 : -1
             flow: root.vertical ? Grid.TopToBottom : Grid.LeftToRight
-            spacing: section.scattered ? 6 : 0
+            // between its widgets only: Grid leaves the ends alone
+            spacing: (section.scattered ? 6 : 0) + (BarWidgets.island(section.modelData)?.spacing ?? 0)
 
             Repeater {
                 model: ScriptModel { values: BarWidgets.uids(section.modelData) }

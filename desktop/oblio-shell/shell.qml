@@ -20,6 +20,8 @@ ShellRoot {
     readonly property var menus: Menus
     // the notification server starts with the shell, not when the bell first shows
     readonly property var notifications: Notifications
+    // battery alerts work without the battery widget on the bar
+    readonly property var battery: Battery
 
     Variants {
         model: Quickshell.screens

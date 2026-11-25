@@ -27,15 +27,17 @@ oblio.vm = virt ~= "" and virt ~= "none"
 oblio.nvidia = exists("/proc/driver/nvidia/version")
 -- NVIDIA is the only GPU (no AMD/Intel one next to it, as on PRIME laptops)
 oblio.nvidia_only = oblio.nvidia and output("cat /sys/class/drm/card*/device/vendor 2>/dev/null | sort -u") == "0x10de"
+-- more than one GPU (a PRIME laptop): the second one sleeps until something asks for it
+oblio.hybrid = tonumber(output("ls -d /sys/class/drm/card[0-9]* 2>/dev/null | grep -c 'card[0-9]*$'")) > 1
 
 -- Qt apps take colors, light/dark, accent, fonts and file dialogs from the GTK theme
 -- (Settings > Appearance), and follow it live
 hl.env("QT_QPA_PLATFORMTHEME", "gtk3")
 
--- oblio-gtk-module: fixes for GTK 3 apps that a stylesheet can't reach (Thunar's sidebar)
-if exists("/usr/lib/gtk-3.0/modules/liboblio-gtk.so") then
-    hl.env("GTK3_MODULES", "oblio-gtk")
-end
+-- GTK 4 draws with Vulkan by default, and starting Vulkan wakes every GPU: on a hybrid laptop each
+-- GTK 4 app (Files) waited ~1.4 s for the sleeping NVIDIA GPU (2.2 s to open, measured). OpenGL draws
+-- on the GPU that drives the screen and lets the other one sleep (0.7 s)
+if oblio.hybrid then hl.env("GSK_RENDERER", "ngl") end
 
 hl.env("XCURSOR_THEME", "capitaine-cursors")
 hl.env("XCURSOR_SIZE", "24")

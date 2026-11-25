@@ -42,6 +42,7 @@ packages=(
     xdg-desktop-portal-hyprland  # screen sharing, portals
     xdg-desktop-portal-gtk       # file pickers (Open/Save dialogs) for portal apps
     qt6-wayland                  # Qt apps run natively on Wayland
+    qt6-imageformats             # WebP and TIFF wallpapers
     alacritty                    # terminal
     xdg-utils                    # xdg-open: apps open links and files in the right program
     fuse2                        # AppImages
@@ -216,6 +217,9 @@ msg "Installing the login screen"
 sudo install -Dm644 -t /usr/share/oblio/greeter "$here"/greeter/*.qml
 sudo install -Dm644 "$here/greeter/hyprland.lua" /etc/greetd/oblio-hyprland.lua
 sudo install -d -o greeter -g greeter -m755 /var/lib/oblio-greeter
+# your lock screen wallpaper and look, copied there by the shell (the greeter can't read your home)
+sudo install -d -m755 /var/lib/oblio-greeter/users
+sudo install -d -o "$USER" -g "$(id -gn)" -m755 "/var/lib/oblio-greeter/users/$USER"
 if ! grep -q oblio-hyprland /etc/greetd/config.toml 2>/dev/null; then
     [[ -e /etc/greetd/config.toml ]] && sudo cp /etc/greetd/config.toml "/etc/greetd/config.toml.bak.$stamp"
     sudo install -Dm644 /dev/stdin /etc/greetd/config.toml <<'EOF'

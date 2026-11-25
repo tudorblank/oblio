@@ -11,6 +11,7 @@ import qs.bar
 import qs.dock
 import qs.settings
 import qs.notifications
+import qs.wallpaper
 
 ShellRoot {
     // starting it applies the theme to GTK, icons, fonts and the terminal
@@ -19,6 +20,15 @@ ShellRoot {
     readonly property var menus: Menus
     // the notification server starts with the shell, not when the bell first shows
     readonly property var notifications: Notifications
+
+    Variants {
+        model: Quickshell.screens
+
+        WallpaperWindow {
+            required property var modelData
+            screen: modelData
+        }
+    }
 
     Variants {
         model: Settings.opts.barEnabled ? Quickshell.screens : []

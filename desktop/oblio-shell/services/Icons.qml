@@ -15,6 +15,7 @@ Singleton {
     readonly property string windows: "\u{f05af}"
     readonly property string appearance: "\u{f03d8}"
     readonly property string input: "\u{f030c}"
+    readonly property string wallpaper: "\u{f0e09}"
     readonly property string power: "\u{f0425}"
     readonly property string sleep: "\u{f0904}"
     readonly property string logout: "\u{f0343}"
@@ -30,6 +31,10 @@ Singleton {
     readonly property string dot: "\u{f09de}"
     readonly property string forget: "\u{f09e7}"
     readonly property string disconnect: "\u{f0338}"
+    readonly property string trash: "\u{f0a7a}"
+    readonly property string image: "\u{f02e9}"
+    readonly property string folder: "\u{f024b}"
+    readonly property string edit: "\u{f03eb}"
 
     // bar widgets
     readonly property string workspaces: "\u{f0570}"

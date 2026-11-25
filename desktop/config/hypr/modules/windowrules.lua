@@ -44,6 +44,14 @@ local floating = {
 }
 for _, m in ipairs(floating) do hl.window_rule({ match = m, float = true }) end
 
+-- the shell's file pickers (Settings > Wallpaper)
+hl.window_rule({
+    match  = { class = "^(qs)$" },
+    float  = true,
+    center = true,
+    size   = { "max(monitor_w, monitor_h)*0.42", "min(monitor_w, monitor_h)*0.6" },
+})
+
 -- size and place a few apps
 hl.window_rule({ match = { class = "^(.*[Cc]alc.*)$" }, size = { "max(monitor_w, monitor_h)*0.17", "min(monitor_w, monitor_h)*0.43" } })
 hl.window_rule({ match = { class = "^(.*satty.*)$", title = "^(Satty)$" }, float = true, min_size = { "max(monitor_w, monitor_h)*0.35", "min(monitor_w, monitor_h)*0.35" } })
@@ -102,6 +110,8 @@ for _, name in ipairs({ "oblio-bar", "oblio-dock" }) do
     hl.layer_rule({ match = { namespace = name }, no_anim = true })
     hl.layer_rule({ match = { namespace = name .. "-blur" }, blur = true, ignore_alpha = 0.01, no_anim = true })
 end
+-- the wallpaper fades by itself
+hl.layer_rule({ match = { namespace = "oblio-wallpaper" }, no_anim = true })
 -- app launcher and notification cards: blurred behind
 hl.layer_rule({ match = { namespace = "rofi" }, blur = true, ignore_alpha = 0.02 })
 hl.layer_rule({ match = { namespace = "oblio-notifications" }, blur = true, ignore_alpha = 0.5, no_anim = true })

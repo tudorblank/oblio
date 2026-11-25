@@ -49,6 +49,9 @@ Singleton {
         OBLIO_FONT_ICONS: Theme.iconFont,
         OBLIO_FONT_SIZE: String(Theme.fontSize),
         OBLIO_RADIUS: String(Theme.radius),
+        OBLIO_LOCK_WALLPAPER: Wallpaper.lock,
+        // a new profile picture (~/.face) runs it again
+        OBLIO_FACE_VERSION: String(User.version),
     })
 
     onEnvChanged: debounce.restart()

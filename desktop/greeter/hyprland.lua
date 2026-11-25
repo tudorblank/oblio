@@ -33,6 +33,14 @@ if exists("/proc/driver/nvidia/version") and nvidia_only then
     hl.env("NVD_BACKEND", "direct")
 end
 
+-- every monitor at 100%, like the desktop (desktop/config/hypr/modules/monitors.lua)
+hl.monitor({
+    output   = "",
+    mode     = "preferred",
+    position = "auto",
+    scale    = 1,
+})
+
 hl.config({
     input = {
         kb_layout = layout,

@@ -92,9 +92,9 @@ What it provides:
 |---|---|
 | Compositor | `hyprland` with Oblio's config (Lua modules in `~/.config/hypr/modules/`) |
 | Shell | `quickshell` running Oblio's bar, dock, settings panel and notifications |
-| Login screen | `greetd` with Oblio's greeter (session picker, remembers your choice) |
+| Login screen | `greetd` with Oblio's greeter (your lock screen wallpaper and accent, session picker, remembers your choice) |
 | Apps | `alacritty` (terminal), `thunar` (files, with `thunar-volman` for USB drives, `thunar-archive-plugin` + `file-roller` for archives, `tumbler` thumbnails, `gvfs` trash and phones), `zen-browser-bin` (browser), `rofi` (app launcher, themed by Oblio) |
-| Desktop plumbing | `hyprpolkitagent` (password prompts), `xdg-desktop-portal-hyprland` (screen sharing), `xdg-desktop-portal-gtk` (file pickers), `xdg-utils` (opening links and files), `fuse2` (AppImages), `qt6-wayland`, `xorg-xhost` |
+| Desktop plumbing | `hyprpolkitagent` (password prompts), `xdg-desktop-portal-hyprland` (screen sharing), `xdg-desktop-portal-gtk` (file pickers), `xdg-utils` (opening links and files), `fuse2` (AppImages), `qt6-wayland`, `qt6-imageformats` (WebP wallpapers), `xorg-xhost` |
 | Tools | `grim` `slurp` `wl-clipboard` (screenshots), `hyprpicker` (color picker), `brightnessctl` `playerctl` (brightness and media keys), `ffmpeg` (H.264 video in the browser) |
 | Look | `adw-gtk-theme` (GTK apps), `oblio-gtk-module` (see below), WhiteSur icons (downloaded, see below), `papirus-icon-theme` (fallback icons), `capitaine-cursors`, `ttf-jetbrains-mono`, `inter-font`, `ttf-dejavu`, `ttf-nerd-fonts-symbols`, `breeze-icons` (login screen) |
 

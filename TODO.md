@@ -5,8 +5,6 @@
 - [ ] Make the shell stable and usable (current round), then an app launcher of Oblio's own
       (rofi for now), then Oblio's own glass blur on the GPU (refraction, shapes), replacing
       Hyprland's in `edges/Surface.qml`
-- [ ] Greeter: it answers every PAM prompt with the password (a visible-input or second prompt, like
-      an expired password or a one-time code, gets it too); fix with the redesign
 - [ ] A calendar app that syncs with the bar's clock widget (its calendar popup)
 - [ ] Wi-Fi passwords reach iwctl as an argument (visible to the user's own processes for a moment);
       an iwd agent over D-Bus would avoid that
@@ -21,10 +19,8 @@
 - [ ] Lock screen in the same style as the login screen
 - [ ] SUPER+M exits straight away; the bar's power widget asks first (lock needs a lock screen)
 - [ ] Keybind cheatsheet inside the desktop
-- [ ] Wallpaper
 - [ ] Clipboard history
 - [ ] Animations and look, using `hypr-config-temp` as inspiration
-- [ ] Greeter redesign (own theme, 100% scale like the desktop; leave alone until then)
 - [ ] Login screen files as an `[oblio]` package (system files, now installed by setup with sudo)
 - [ ] Thunar light mode: the home icon in the path field is faint
 - [ ] Qt apps: progress bars and sliders take the soft selection tint (Qt uses one color for both);
@@ -60,7 +56,8 @@
 - [x] Bar: widgets in three sections edited in Settings (add, drag, options), scattered islands,
       roundness; look = material (solid/blur) + tint color + opacity
 - [x] Shell menus block keybinds and clicks to windows (Hyprland submap), SUPER+Q closes them
-- [x] Dock: pinning, right-click menu, drag to rearrange and pin, one dot per window, any side edge
+- [x] Dock: pinning, right-click menu, drag to rearrange and pin, one dot per window, any side edge,
+      icons at the start, center or end of a full or fixed-length dock
 - [x] Settings panel (SUPER+I): display, bar, dock, windows, appearance, input; drag to move,
       resize from any edge, one dropdown open at a time
 - [x] Display settings: resolution, refresh rate, scale, rotation, arrangement, mirroring, keep-or-go-back
@@ -68,7 +65,11 @@
       icons (WhiteSur), terminal, Hyprland
 - [x] Thunar instead of Dolphin, styled like GNOME Files (oblio-gtk-module for its sidebar indent); USB
       drives mount when plugged in
-- [x] Login screen: greetd + Quickshell greeter, session picker, remembers user and session
+- [x] Login screen: greetd + Quickshell greeter, session picker, remembers user and session;
+      redesigned like the shell (the user's lock screen wallpaper, accent and mode, one frosted card),
+      later PAM prompts (one-time codes, new passwords) asked in the field
+- [x] Wallpaper: Settings > Wallpaper (folder, desktop and lock screen pictures, drag and drop,
+      applied on Apply); drawn by the shell
 - [x] Home folders on a fresh install (xdg-user-dirs)
 
 ## Later

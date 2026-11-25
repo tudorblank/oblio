@@ -168,6 +168,7 @@ Column {
             title: "Tint color"
             Swatches {
                 id: tints
+                pickerTitle: "Tint color"
                 colors: Theme.dark ? ["#26262c", "#1e2a3a", "#2a1e33", "#1e3328", "#3a2a1e"]
                                    : ["#e8e8ec", "#dde6f2", "#eadff0", "#dcebe0", "#f0e6da"]
                 value: es.get(es.colorKey)

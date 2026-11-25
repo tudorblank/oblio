@@ -25,6 +25,7 @@ Scope {
         { title: "Dock", icon: Icons.dock, subtitle: "Where it sits, its shape, its look and its icons", content: dockPage },
         { title: "Windows", icon: Icons.windows, subtitle: "Tiling, gaps, borders and focus", content: windowsPage },
         { title: "Appearance", icon: Icons.appearance, subtitle: "Light or dark, accent color, fonts and effects", content: lookPage },
+        { title: "Wallpaper", icon: Icons.wallpaper, subtitle: "Pictures for the desktop and the lock screen", content: wallpaperPage },
         { title: "Input", icon: Icons.input, subtitle: "Mouse, touchpad and keyboard", content: inputPage },
     ]
 
@@ -53,6 +54,7 @@ Scope {
             // closing the panel doesn't keep a display change nobody confirmed
             Displays.revert()
             Displays.discard()
+            Wallpaper.discard()
         }
     }
 
@@ -146,7 +148,8 @@ Scope {
 
     PanelWindow {
         id: win
-        visible: root.shown || dim.opacity > 0
+        // steps aside while a file picker (a normal window) is open
+        visible: (root.shown || dim.opacity > 0) && !Wallpaper.picking && !User.picking
         screen: root.screen
         anchors { top: true; bottom: true; left: true; right: true }
         exclusionMode: ExclusionMode.Ignore
@@ -173,7 +176,7 @@ Scope {
             id: card
             // dragged by its top strip, resized from any edge; keeps its place while the shell runs
             readonly property int minWidth: 640
-            readonly property int minHeight: 420
+            readonly property int minHeight: 480
             property bool placed: false
             function fit() {
                 // a hidden window's size is meaningless
@@ -232,15 +235,91 @@ Scope {
                 width: 200
                 spacing: 4
 
-                Text {
-                    font.family: Theme.fontUi
-                    leftPadding: 12
+                // who's logged in; hovering the picture offers to change it
+                Column {
+                    width: parent.width
                     topPadding: 10
-                    bottomPadding: 16
-                    text: "Settings"
-                    color: Theme.text
-                    font.pixelSize: 20
-                    font.weight: Font.DemiBold
+                    bottomPadding: 14
+                    spacing: 10
+
+                    Item {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: 68
+                        height: 68
+
+                        Avatar { size: 68 }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: "#8c000000"
+                            opacity: faceArea.containsMouse ? 1 : 0
+                            Behavior on opacity { NumberAnimation { duration: 140 } }
+
+                            Column {
+                                anchors.centerIn: parent
+                                spacing: 1
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: Icons.edit
+                                    color: "white"
+                                    font.family: Theme.iconFont
+                                    font.pixelSize: 18
+                                }
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: "Edit"
+                                    color: "white"
+                                    font.family: Theme.fontUi
+                                    font.pixelSize: Theme.textCaption
+                                    font.weight: Font.DemiBold
+                                }
+                            }
+                        }
+
+                        // a soft ring
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: -3
+                            radius: width / 2
+                            color: "transparent"
+                            border.width: 2
+                            border.color: faceArea.containsMouse ? Theme.accent : Theme.hairline
+                            Behavior on border.color { ColorAnimation { duration: 140 } }
+                        }
+
+                        MouseArea {
+                            id: faceArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: User.pick()
+                        }
+                    }
+
+                    Column {
+                        width: parent.width
+                        spacing: 1
+                        Text {
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            text: User.display
+                            color: Theme.text
+                            font.family: Theme.fontUi
+                            font.pixelSize: 16
+                            font.weight: Font.DemiBold
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            width: parent.width
+                            horizontalAlignment: Text.AlignHCenter
+                            visible: User.display !== User.name
+                            text: User.name
+                            color: Theme.subtext
+                            font.family: Theme.fontUi
+                            font.pixelSize: Theme.textLabel
+                        }
+                    }
                 }
 
                 Repeater {
@@ -412,6 +491,13 @@ Scope {
                 Button { text: "Go back"; onClicked: Displays.revert() }
                 Button { text: "Keep"; primary: true; onClicked: Displays.keep() }
             }
+            Banner {
+                visible: Wallpaper.dirty && root.pages[root.page].content === wallpaperPage
+                text: "Apply the wallpaper changes?"
+                accent: true
+                Button { text: "Cancel"; onClicked: Wallpaper.discard() }
+                Button { text: "Apply"; primary: true; onClicked: Wallpaper.apply() }
+            }
         }
     }
 
@@ -426,4 +512,6 @@ Scope {
     Component { id: lookPage; AppearancePage {} }
 
     Component { id: inputPage; InputPage {} }
+
+    Component { id: wallpaperPage; WallpaperPage {} }
 }

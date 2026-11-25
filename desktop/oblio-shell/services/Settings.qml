@@ -166,6 +166,9 @@ Singleton {
             property int dockSize: 56
             property bool dockMagnify: true
             property bool dockDivider: true
+            // where the icons sit along a dock longer than they need (full, or a fixed length):
+            // start (left / top) | center | end (right / bottom)
+            property string dockAlign: "center"
 
             // windows
             property string layout: "dwindle"
@@ -188,6 +191,13 @@ Singleton {
             property bool blur: true
             property int blurSize: 8
             property bool animations: true
+
+            // wallpaper (services/Wallpaper.qml): picture paths, "" = none; the lock screen shows
+            // the desktop's while wallpaperLockSame; the folder Settings lists ("" = Pictures/Wallpapers)
+            property string wallpaper: ""
+            property string wallpaperLock: ""
+            property bool wallpaperLockSame: true
+            property string wallpaperFolder: ""
 
             // input
             property real sensitivity: 0

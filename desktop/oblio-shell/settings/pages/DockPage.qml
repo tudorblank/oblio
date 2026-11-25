@@ -22,6 +22,21 @@ Column {
         title: "ICONS"
 
         SettingRow {
+            id: position
+            readonly property bool side: Settings.opts.dockEdge === "left" || Settings.opts.dockEdge === "right"
+            visible: Settings.opts.dockShape === "full" || Settings.opts.dockLength === "fixed"
+            title: "Position"
+            description: "Where the icons sit along the dock"
+            Segmented {
+                options: [{ value: "start", label: position.side ? "Top" : "Left" },
+                          { value: "center", label: "Center" },
+                          { value: "end", label: position.side ? "Bottom" : "Right" }]
+                value: Settings.opts.dockAlign
+                onPicked: v => Settings.set("dockAlign", v)
+            }
+        }
+
+        SettingRow {
             title: "Magnify on hover"
             Toggle {
                 checked: Settings.opts.dockMagnify

@@ -85,9 +85,18 @@ Item {
                 PathArc { x: att.w; y: att.h; radiusX: s.f; radiusY: s.f; direction: PathArc.Counterclockwise }
                 PathLine { x: att.w; y: att.h + 1 }
             }
+        }
+        // the outline is drawn opaque and faded as a whole: a see-through stroke drawn in pieces
+        // doubles up where they meet, which shows as bright dots at small roundness
+        Shape {
+            visible: s.shape === "attached"
+            anchors.fill: parent
+            preferredRendererType: Shape.CurveRenderer
+            opacity: s.line.a
+            layer.enabled: visible
             ShapePath {
                 fillColor: "transparent"
-                strokeColor: s.line
+                strokeColor: Qt.rgba(s.line.r, s.line.g, s.line.b, 1)
                 strokeWidth: 1
                 startX: 0; startY: att.h - 0.5
                 PathArc { x: s.f + 0.5; y: att.h - s.f; radiusX: s.f + 0.5; radiusY: s.f + 0.5; direction: PathArc.Counterclockwise }

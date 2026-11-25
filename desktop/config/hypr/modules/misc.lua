@@ -2,8 +2,9 @@
 
 hl.config({
     misc = {
-        force_default_wallpaper = -1,
-        disable_hyprland_logo   = false,
+        -- the shell draws the wallpaper (Settings > Wallpaper)
+        force_default_wallpaper = 0,
+        disable_hyprland_logo   = true,
         middle_click_paste      = false,
         -- a terminal hides while a window it started is open (an image viewer, mpv, ...)
         enable_swallow = true,

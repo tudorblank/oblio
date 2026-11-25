@@ -3,7 +3,8 @@
 # Pushes Oblio's theme to the rest of the system; the shell (services/SystemTheme.qml) runs it on
 # start and on every change, with Theme's values in OBLIO_* variables: MODE dark|light, ACCENT,
 # ACCENT_FG, ACCENT_NAMED (libadwaita's nearest named accent), BG, FG, SUBTEXT (#rrggbb), POPUP,
-# CARD, BORDER, HOVER (#rrggbbaa), FONT_UI, FONT_MONO, FONT_ICONS, FONT_SIZE, RADIUS.
+# CARD, BORDER, HOVER (#rrggbbaa), FONT_UI, FONT_MONO, FONT_ICONS, FONT_SIZE, RADIUS,
+# LOCK_WALLPAPER (a picture's path, or empty), FACE_VERSION (changes with the profile picture).
 
 set -euo pipefail
 
@@ -125,3 +126,20 @@ names=(black red green yellow blue magenta cyan white)
     printf '    ui-font: "%s 12";\n    search-font: "%s 15";\n    icon-font: "%s 15";\n}\n' \
         "$(quote "$ui")" "$(quote "$ui")" "$(quote "$OBLIO_FONT_ICONS")"
 } | put "$cfg/rofi/oblio-theme.rasi" || true
+
+# the login screen: it can't read home folders, so it gets this user's lock screen wallpaper,
+# profile picture and look in a folder of their own that desktop/setup makes
+greeter="/var/lib/oblio-greeter/users/$(id -un)"
+# copies SRC to the login screen's NAME, or removes NAME when there's no SRC
+share() {
+    if [[ -f $1 ]]; then
+        cmp -s "$1" "$greeter/$2" || { install -m644 "$1" "$greeter/$2.new" && mv -f "$greeter/$2.new" "$greeter/$2"; }
+    else
+        rm -f "$greeter/$2"
+    fi
+}
+if [[ -w $greeter ]]; then
+    share "${OBLIO_LOCK_WALLPAPER:-}" wallpaper
+    share "$HOME/.face" avatar
+    printf '{ "mode": "%s", "accent": "%s" }\n' "$mode" "$accent" | put "$greeter/look.json" || true
+fi

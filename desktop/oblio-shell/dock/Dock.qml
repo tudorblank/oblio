@@ -159,13 +159,15 @@ EdgePanel {
 
     // towards the screen (away from the edge): +1 or -1 along the depth axis
     readonly property real inward: edge === "bottom" || edge === "right" ? -1 : 1
+    // only a dock longer than its icons has room to place them
+    readonly property string align: shape === "full" || o.dockLength === "fixed" ? o.dockAlign : "center"
+    function place(room, size) { return align === "start" ? 0 : align === "end" ? room - size : (room - size) / 2 }
 
     // nudged off the edge a little, so icons and their dots sit centered together
     Grid {
         id: list
-        anchors.centerIn: parent
-        anchors.horizontalCenterOffset: root.vertical ? 2 * root.inward : 0
-        anchors.verticalCenterOffset: root.vertical ? 0 : 2 * root.inward
+        x: root.vertical ? (parent.width - width) / 2 + 2 * root.inward : root.place(parent.width, width)
+        y: root.vertical ? root.place(parent.height, height) : (parent.height - height) / 2 + 2 * root.inward
         rows: root.vertical ? -1 : 1
         columns: root.vertical ? 1 : -1
         flow: root.vertical ? Grid.TopToBottom : Grid.LeftToRight

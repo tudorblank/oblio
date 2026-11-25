@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="assets/oblio%20logo%20full%20dark.png" alt="Oblio" width="480">
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="assets/oblio%20logo%20full%20light.png">
+    <img src="assets/oblio%20logo%20full%20dark.png" alt="Oblio" width="480">
+  </picture>
 </p>
 
 A personal Arch Linux distribution built on CachyOS's repositories, kernels and tuning.

@@ -10,6 +10,7 @@
 // uses controls/Anim, so it all arrives together. A fresh card appears in place; a closing one
 // freezes and only fades and sinks back into the dock.
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
@@ -175,6 +176,7 @@ Scope {
                     readonly property var current: modelData ? root.describe(modelData.title, entry ? entry.name : appId, appId) : null
                     property var info: current ?? { title: "", note: "" }
                     onCurrentChanged: if (current) info = current
+                    readonly property bool minimized: modelData ? Windows.isMinimized(modelData) : false
                     width: root.tileWidth
                     height: root.tileHeight
                     radius: Theme.inner(root.pad)
@@ -183,6 +185,18 @@ Scope {
                     Behavior on color { ColorAnimation { duration: Theme.motionQuick } }
 
                     HoverHandler { id: hover }
+
+                    // a click brings a minimized window back (others: nothing yet); a middle click
+                    // closes it, like its X
+                    MouseArea {
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                        cursorShape: tile.minimized ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: m => {
+                            if (m.button === Qt.MiddleButton) root.dock.closeWindow(tile.modelData)
+                            else if (tile.minimized) root.dock.restoreWindow(tile.modelData)
+                        }
+                    }
 
                     Item {
                         id: head
@@ -251,10 +265,7 @@ Scope {
                                 anchors.margins: -4
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    root.dock.holdPreview()
-                                    root.dock.hypr(`function() oblio.close({ "${root.dock.address(tile.modelData)}" }) end`)
-                                }
+                                onClicked: root.dock.closeWindow(tile.modelData)
                             }
                         }
                     }
@@ -287,12 +298,22 @@ Scope {
                             height: Math.min(frame.height, frame.width * ratio)
                             captureSource: tile.modelData?.wayland ?? null
                             live: false
-                            Component.onCompleted: captureFrame()
+                            // a minimized window's picture in muted colors (Settings > Dock)
+                            layer.enabled: tile.minimized && Settings.opts.dockMutedMinimized
+                            layer.effect: MultiEffect { saturation: -0.7 }
                             Connections {
                                 target: frames
-                                function onTriggered() { if (shot.captureSource) shot.captureFrame() }
+                                function onTriggered() {
+                                    // a window that changes size loses its capture for good: start it again
+                                    if (!shot.hasContent && tile.modelData) {
+                                        shot.captureSource = null
+                                        shot.captureSource = Qt.binding(() => tile.modelData?.wayland ?? null)
+                                    }
+                                    if (shot.captureSource) shot.captureFrame()
+                                }
                             }
                         }
+
                     }
                 }
             }

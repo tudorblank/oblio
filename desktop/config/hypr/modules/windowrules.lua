@@ -104,6 +104,16 @@ hl.window_rule({
     float = true,
 })
 
+-- a window the shell is animating (windows.lua): invisible in its place while its picture flies
+hl.window_rule({
+    name     = "oblio-hidden",
+    match    = { tag = "oblio-hidden" },
+    opacity  = "0.0 override 0.0 override",
+    no_anim  = true,
+})
+-- held while it shows again, so it appears at once instead of fading in under the picture
+hl.window_rule({ name = "oblio-still", match = { tag = "oblio-still" }, no_anim = true })
+
 -- Oblio's shell. Edge panels animate themselves; one that isn't opaque and wants blur uses the
 -- "-blur" namespace (edges/EdgePanel.qml), blurred only where it's drawn
 for _, name in ipairs({ "oblio-bar", "oblio-dock" }) do
@@ -119,3 +129,5 @@ hl.layer_rule({ match = { namespace = "oblio-notifications" }, blur = true, igno
 hl.layer_rule({ match = { namespace = "oblio-settings" }, blur = true, ignore_alpha = 0.5, no_anim = true })
 hl.layer_rule({ match = { namespace = "oblio-popup" }, blur = true, ignore_alpha = 0.5, no_anim = true })
 hl.layer_rule({ match = { namespace = "oblio-previews" }, blur = true, ignore_alpha = 0.5, no_anim = true })
+-- windows flying into and out of the dock: shown at once, exactly over the window
+hl.layer_rule({ match = { namespace = "oblio-fx" }, no_anim = true })

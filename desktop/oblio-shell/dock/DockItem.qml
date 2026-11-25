@@ -17,7 +17,7 @@ Item {
     readonly property var entry: Apps.entry(app.id)
     readonly property bool running: app.windows.length > 0
     readonly property bool active: app.windows.some(t => t.wayland ? t.wayland.activated : t.activated)
-    readonly property bool allMinimized: running && app.windows.every(t => dock.isMinimized(t))
+    readonly property bool allMinimized: running && app.windows.every(t => Windows.isMinimized(t))
 
     width: dock.iconSize
     height: dock.iconSize

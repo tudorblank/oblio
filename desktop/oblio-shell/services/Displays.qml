@@ -132,7 +132,7 @@ Singleton {
     }
 
     function dispatch(lua) {
-        Quickshell.execDetached(["hyprctl", "dispatch", `function() ${lua} end`])
+        Hyprland.dispatch(`function() ${lua} end`)
         refresh()
     }
 

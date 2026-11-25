@@ -7,6 +7,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 
 Singleton {
     id: root
@@ -74,7 +75,7 @@ Singleton {
     Timer {
         id: liveTimer
         interval: 40
-        onTriggered: Quickshell.execDetached(["hyprctl", "dispatch", `function() ${root.hyprLua()} end`])
+        onTriggered: Hyprland.dispatch(`function() ${root.hyprLua()} end`)
     }
 
     // Settings > Display: one rule per monitor
@@ -169,6 +170,8 @@ Singleton {
             // where the icons sit along a dock longer than they need (full, or a fixed length):
             // start (left / top) | center | end (right / bottom)
             property string dockAlign: "center"
+            // previews of minimized windows in muted colors
+            property bool dockMutedMinimized: true
 
             // windows
             property string layout: "dwindle"

@@ -44,6 +44,14 @@ Column {
             }
         }
         SettingRow {
+            title: "Muted minimized windows"
+            description: "Previews of minimized windows show in faded colors"
+            Toggle {
+                checked: Settings.opts.dockMutedMinimized
+                onToggled: v => Settings.set("dockMutedMinimized", v)
+            }
+        }
+        SettingRow {
             title: "Divider"
             description: "A line between pinned apps and other open apps"
             Toggle {

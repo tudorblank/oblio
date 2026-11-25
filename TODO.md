@@ -46,7 +46,9 @@
 - [x] Two-part install: the ISO installs the base, `oblio-desktop` installs the desktop from GitHub
 - [x] Updates: signed [oblio] pacman repository built by GitHub Actions, `oblio-update`, desktop
       version tracking
-- [x] Hyprland: window management (minimize, show desktop, tiling/floating per workspace)
+- [x] Hyprland: window management (minimize, show desktop, tiling/floating per workspace); dock clicks
+      follow fixed rules (minimize only the focused window, focus goes back to the last visible one),
+      windows fly into and out of their dock icon
 - [x] NVIDIA on hybrid laptops: NVIDIA's GLX/VA-API variables only when NVIDIA is the only GPU
 - [x] Desktop-space engine (`edges/`): bar and dock as edge panels with space, shape, material and
       showing in one place; Settings > Bar / Dock

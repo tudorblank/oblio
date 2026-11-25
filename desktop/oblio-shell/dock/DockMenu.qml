@@ -56,8 +56,8 @@ Popover {
             Entry {
                 required property var modelData
                 text: modelData.title || menu.app.id
-                dim: menu.dock.isMinimized(modelData)
-                onActivated: menu.dock.focusWindow(modelData)
+                dim: Windows.isMinimized(modelData)
+                onActivated: Windows.focus(modelData)
             }
         }
 
@@ -78,7 +78,7 @@ Popover {
             visible: menu.app && menu.app.windows.length > 0
             text: menu.app && menu.app.windows.length > 1 ? "Quit (close " + menu.app.windows.length + " windows)" : "Quit"
             danger: true
-            onActivated: menu.dock.quit(menu.app)
+            onActivated: Windows.close(menu.app.windows)
         }
     }
 }

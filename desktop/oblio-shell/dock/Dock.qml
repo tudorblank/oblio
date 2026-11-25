@@ -30,10 +30,21 @@ EdgePanel {
     forceShown: menuOpen || dragging || previewKey !== ""
 
     readonly property var pinned: Settings.opts.dockPinned
-    readonly property string minimizedWorkspace: "special:minimized"
     readonly property bool menuOpen: menu.shown
     DockMenu { id: menu; dock: root }
     DockPreviews { dock: root }
+    Genie { dock: root }
+
+    // where a window's app icon is on this screen (minimize and restore fly to and from it); an
+    // app without an icon here uses the middle of the dock
+    function iconRect(address) {
+        const t = Hyprland.toplevels.values.find(t => "0x" + t.address === address)
+        const key = t ? appIdOf(t).toLowerCase() : ""
+        for (const c of list.children)
+            if (c.modelData === key) return screenRect(c)
+        const r = screenRect(list)
+        return Qt.rect(r.x + r.width / 2 - iconSize / 2, r.y + r.height / 2 - iconSize / 2, iconSize, iconSize)
+    }
 
     // window previews of the running app under the pointer: they open after a moment, follow the
     // pointer to other running apps at once, and stay while the pointer moves over to them
@@ -102,22 +113,6 @@ EdgePanel {
         if (t.wayland && t.wayland.appId) return t.wayland.appId
         const ipc = t.lastIpcObject
         return ipc && ipc.class ? ipc.class : ""
-    }
-
-    function isMinimized(t) {
-        return t.workspace !== null && t.workspace.name === minimizedWorkspace
-    }
-
-    function address(t) {
-        return t.address.startsWith("0x") ? t.address : "0x" + t.address
-    }
-
-    function hypr(code) {
-        Quickshell.execDetached(["hyprctl", "dispatch", code])
-    }
-
-    function lua(list) {
-        return "{ " + list.map(t => `"${address(t)}"`).join(", ") + " }"
     }
 
     // apps by key: pinned first, then everything else that has a window
@@ -202,12 +197,21 @@ EdgePanel {
         if (app.windows.length === 0) {
             if (entry) entry.execute()
         } else {
-            hypr(`function() oblio.toggle_app(${lua(app.windows)}) end`)
+            Windows.toggleApp(app.windows)
         }
     }
 
-    function focusWindow(t) { hypr(`function() oblio.focus("${address(t)}") end`) }
-    function quit(app)      { hypr(`function() oblio.close(${lua(app.windows)}) end`) }
+    // a minimized window's preview: brings that one back; the previews step aside for its flight
+    function restoreWindow(t) {
+        quietKey = previewKey
+        showPreview("")
+        Windows.restore(t)
+    }
+    // one window from its preview (its X, or a middle click): the previews stay while the rest move up
+    function closeWindow(t) {
+        holdPreview()
+        Windows.close([t])
+    }
 
     function togglePin(app) {
         const list = pinned.slice()

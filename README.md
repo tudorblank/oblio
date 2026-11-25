@@ -4,7 +4,8 @@ A personal Arch Linux distribution built on CachyOS's repositories, kernels and 
 It installs in two parts:
 
 1. **The base**: a complete, fast system with a terminal. This is what the Oblio ISO installs.
-2. **The Oblio desktop**: Hyprland with Oblio's shell (dock, settings, login screen), installed
+2. **The Oblio desktop**: Hyprland with Oblio's shell (bar, dock, settings, notifications) and
+   login screen, installed
    afterwards with one command, straight from this repository.
 
 ## Part 1: the base
@@ -33,6 +34,7 @@ What it installs:
 | CachyOS optimizations | `cachyos-settings` `ananicy-cpp` `cachyos-ananicy-rules` `cachyos-keyring` `cachyos-mirrorlist` `cachyos-rate-mirrors`, and `cachyos-v3-mirrorlist` or `cachyos-v4-mirrorlist` to match your CPU | ananicy-cpp, mirror ranking |
 | Hardware | `chwd` (picks and installs the right GPU drivers for your machine) `power-profiles-daemon` `acpi` (`acpi -b`: battery level and time left) `usbutils` `smartmontools` `nvme-cli` `hdparm` `ethtool` `dmidecode` `hwinfo` | power-profiles-daemon |
 | Network | `iwd` (Wi-Fi) with systemd-networkd and systemd-resolved, `ufw` (firewall: incoming blocked, outgoing allowed), `openssh` `inetutils` `bind` (dig) `modemmanager` `usb_modeswitch` (mobile data modems) | ufw, networkd, resolved, timesyncd, iwd |
+| Bluetooth | `bluez` `bluez-utils` | bluetooth |
 | Audio | `pipewire` `pipewire-audio` `pipewire-alsa` `pipewire-pulse` `pipewire-jack` `wireplumber` `rtkit` `sof-firmware` `alsa-firmware` `alsa-utils` | |
 | Filesystems | `btrfs-progs` `dosfstools` `exfatprogs` `ntfs-3g` `xfsprogs` `f2fs-tools` `jfsutils` `nilfs-utils` `mtools` `lvm2` `mdadm` `dmraid` `fsarchiver` | |
 | Command-line tools | `nano` `vim` `cachyos-micro-settings` `unzip` `zip` `7zip` `wget` `rsync` `ripgrep` `plocate` `pkgfile` (tells you which package has a missing command) `duf` `pv` `btop` `fastfetch` `tealdeer` (`tldr`: short command examples) | pkgfile list update |
@@ -44,7 +46,6 @@ Optional, picked in the installer (all on by default):
 
 | Component | Packages |
 |---|---|
-| Bluetooth | `bluez` `bluez-utils` |
 | Printing | `cups` `ipp-usb` `avahi` `nss-mdns` |
 | Firmware updates | `fwupd` |
 | Game controllers | `steam-devices` |
@@ -90,9 +91,9 @@ What it provides:
 | | Packages |
 |---|---|
 | Compositor | `hyprland` with Oblio's config (Lua modules in `~/.config/hypr/modules/`) |
-| Shell | `quickshell` running Oblio's dock and settings panel |
+| Shell | `quickshell` running Oblio's bar, dock, settings panel and notifications |
 | Login screen | `greetd` with Oblio's greeter (session picker, remembers your choice) |
-| Apps | `alacritty` (terminal), `thunar` (files, with `thunar-volman` for USB drives, `thunar-archive-plugin` + `file-roller` for archives, `tumbler` thumbnails, `gvfs` trash and phones), `zen-browser-bin` (browser), `hyprlauncher` (app launcher) |
+| Apps | `alacritty` (terminal), `thunar` (files, with `thunar-volman` for USB drives, `thunar-archive-plugin` + `file-roller` for archives, `tumbler` thumbnails, `gvfs` trash and phones), `zen-browser-bin` (browser), `rofi` (app launcher, themed by Oblio) |
 | Desktop plumbing | `hyprpolkitagent` (password prompts), `xdg-desktop-portal-hyprland` (screen sharing), `xdg-desktop-portal-gtk` (file pickers), `xdg-utils` (opening links and files), `fuse2` (AppImages), `qt6-wayland`, `xorg-xhost` |
 | Tools | `grim` `slurp` `wl-clipboard` (screenshots), `hyprpicker` (color picker), `brightnessctl` `playerctl` (brightness and media keys), `ffmpeg` (H.264 video in the browser) |
 | Look | `adw-gtk-theme` (GTK apps), `oblio-gtk-module` (see below), WhiteSur icons (downloaded, see below), `papirus-icon-theme` (fallback icons), `capitaine-cursors`, `ttf-jetbrains-mono`, `inter-font`, `ttf-dejavu`, `ttf-nerd-fonts-symbols`, `breeze-icons` (login screen) |
@@ -110,8 +111,8 @@ In a VM the main key is Alt instead of Super.
 
 | Keys | |
 |---|---|
-| SUPER+Enter / E / W / R | terminal / files / browser / launcher |
-| SUPER+I | settings: display, dock, windows, appearance (light/dark, accent, fonts), input |
+| SUPER+Enter / E / W / R | terminal / files / browser / app launcher (rofi; R again closes it) |
+| SUPER+I | settings: display, bar, dock, windows, appearance (light/dark, accent, fonts), input |
 | SUPER+Q | close window |
 | SUPER+D / SUPER+F | maximize / fullscreen |
 | SUPER+C / SUPER+ALT+C | minimize / restore last minimized (back where it was, same place and size) |
@@ -128,11 +129,41 @@ All keys: `~/.config/hypr/modules/binds.lua`.
 Dock: click opens an app; on a running app it focuses its window if it isn't focused, minimizes it
 if it is, and brings minimized windows back (to their workspace, place and size, focused); middle
 click opens a new window; right click opens a menu: the app's windows, New window, Pin to dock /
-Unpin from dock, Quit. Drag an icon to move it; dropping it left of the divider pins it there,
-right of it unpins it (the first app is pinned from the right-click menu). The dots under an icon
-show how many windows the app has open (up to four), in the accent color while it has focus. The dock never moves the pointer. It can always show,
-auto-hide (the bottom edge brings it back) or hide smartly (only while a window reaches into it),
-and it disappears when it has nothing to show (SUPER+I, Dock).
+Unpin from dock, Quit. Drag an icon to move it; dropping it before the divider pins it there,
+after it unpins it (the first app is pinned from the right-click menu). The dots beside an icon
+show how many windows the app has open (up to four), in the accent color while it has focus. The
+dock never moves the pointer, and it disappears when it has nothing to show.
+
+Bar and dock are edge panels, built on one engine (`desktop/oblio-shell/edges/`); SUPER+I, Bar
+and Dock, set them up the same way:
+
+- Space: each one reserves exactly what it covers, so tiled windows keep the same outer gap from it
+  as from a bare screen edge. A side dock fits between the bar and the opposite edge.
+- Shape: floating (an island off the edge), attached (grown out of the edge, curving into it) or
+  full (the whole edge), with corners from square to fully round. An island's length fits what it
+  holds, or is a fixed share of the edge. On a floating bar each section (left, middle, right) is
+  one island or one per widget.
+- Look: material solid or blur (Oblio's own glass comes later), a tint color (the theme's or your
+  own) and its opacity. At 100% it's solid and nothing is blurred behind it.
+- Showing: always, auto-hide (the edge brings it back) or smart (hides while a window reaches into
+  it).
+- Where: any edge for either; the edge the other one uses is greyed out.
+
+The bar's widgets sit in three sections (left, center, right; top, middle, bottom on a side bar);
+Settings > Bar adds them, drags them around and sets their options: workspaces, current app (icon,
+title), clock (any Qt date format, in a language of your choice; calendar), media player (art,
+seeking, controls), system tray, volume (speaker, microphone, and every app playing sound),
+brightness, battery (time left, power profile), network (cable and Wi-Fi through iwd: pick a
+network, type its password), Bluetooth (connect, pair), notifications, power (log out, sleep,
+restart, shut down), apps, settings, spacers (fixed, or stretching into the free room) and
+separators. A right click on the bar opens a menu with Settings.
+
+Notifications: the shell is the notification server. New ones show as cards in the corner for a few
+seconds (critical ones stay); all of them wait under the bell until dismissed. Do Not Disturb (in
+the bell's list, or a middle click on it) keeps the cards away.
+
+While a shell menu is open (settings, a bar or dock popover), keybinds don't reach the windows and a
+click outside only closes the menu. SUPER+Q, SUPER+I or Esc close it.
 
 Display (SUPER+I): resolution, refresh rate, scale, rotation, and with more than one screen, which
 ones are on, where they sit and mirroring. A change applies at once and goes back by itself after 15
@@ -187,7 +218,7 @@ a clone of this repository: trust the key, install the current packages, then up
 ```
 sudo pacman-key --add base/packages/oblio-keyring/oblio.gpg
 sudo pacman-key --lsign-key E2B2BA7A0B2272BCC7EAE55BC6FD18809924F914
-tools/build-packages && sudo pacman -U out/repo/*.pkg.tar.zst
+tools/build-packages base && sudo pacman -U out/repo/*.pkg.tar.zst
 oblio-update
 ```
 
@@ -216,12 +247,13 @@ base/         what an installed Oblio is made of
 desktop/      the Oblio desktop
   packages/     the desktop's own packages: oblio-gtk-module
   setup         installs it (packages, files, login screen)
-  config/       Hyprland's config, lands in ~/.config/hypr
-  oblio-shell/  Oblio's shell (dock, settings panel), lands in ~/.config/oblio-shell
+  config/       Hyprland's, rofi's and Alacritty's config, lands in ~/.config
+  oblio-shell/  Oblio's shell (bar, dock, settings, notifications), lands in ~/.config/oblio-shell
   greeter/      the login screen, lands in /usr/share/oblio/greeter
 tools/        installing and tooling
   installer/    oblio-install (the step-by-step installer), engine.sh (install steps), oblio-repos (CPU detection)
-  build-packages (also signs, for the [oblio] repository), package-version, oblio-vm (test VM)
+  build-packages (also signs, for the [oblio] repository; `base` builds only the base ones),
+  package-version, oblio-vm (test VM)
 iso/          the Oblio ISO: build-iso, and what it adds on top of Arch's live ISO
 .github/      workflows/packages.yml: builds, signs and publishes Oblio's packages
 ```

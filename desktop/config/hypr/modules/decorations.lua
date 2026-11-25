@@ -28,7 +28,7 @@ hl.config({
             color        = 0xee1a1a1a,
         },
 
-        -- frosted glass behind the dock, panels and see-through windows
+        -- blur behind the shell (bar, dock, menus) and see-through windows
         blur = {
             enabled  = true,
             size     = 8,

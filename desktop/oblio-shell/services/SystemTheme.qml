@@ -25,17 +25,33 @@ Singleton {
         return best
     }
 
-    readonly property var args: [
-        Theme.dark ? "dark" : "light",
-        Theme.accentHex,
-        Theme.luminance(Theme.accent) > 0.45 ? "#1a1a1a" : "#ffffff",
-        nearestNamed(Theme.accent),
-        Theme.fontUi,
-        Theme.fontMono,
-        String(Theme.fontSize),
-    ]
+    // #rrggbbaa: rofi's order (Qt's is #aarrggbb)
+    function alphaLast(c) {
+        const h = v => Math.round(v * 255).toString(16).padStart(2, "0")
+        return "#" + h(c.r) + h(c.g) + h(c.b) + h(c.a)
+    }
 
-    onArgsChanged: debounce.restart()
+    // everything apply-theme needs, from Theme: the one place these values live
+    readonly property var env: ({
+        OBLIO_MODE: Theme.dark ? "dark" : "light",
+        OBLIO_ACCENT: Theme.accentHex,
+        OBLIO_ACCENT_FG: Theme.accentFgHex,
+        OBLIO_ACCENT_NAMED: nearestNamed(Theme.accent),
+        OBLIO_BG: alphaLast(Theme.background).slice(0, 7),
+        OBLIO_FG: alphaLast(Theme.text).slice(0, 7),
+        OBLIO_SUBTEXT: alphaLast(Theme.subtext).slice(0, 7),
+        OBLIO_POPUP: alphaLast(Theme.popup),
+        OBLIO_CARD: alphaLast(Theme.card),
+        OBLIO_BORDER: alphaLast(Theme.border),
+        OBLIO_HOVER: alphaLast(Theme.hover),
+        OBLIO_FONT_UI: Theme.fontUi,
+        OBLIO_FONT_MONO: Theme.fontMono,
+        OBLIO_FONT_ICONS: Theme.iconFont,
+        OBLIO_FONT_SIZE: String(Theme.fontSize),
+        OBLIO_RADIUS: String(Theme.radius),
+    })
+
+    onEnvChanged: debounce.restart()
     Component.onCompleted: debounce.restart()
 
     Timer {
@@ -43,10 +59,13 @@ Singleton {
         interval: 250
         onTriggered: {
             if (apply.running) return restart()
-            apply.command = ["bash", Quickshell.shellDir + "/scripts/apply-theme"].concat(root.args)
+            apply.environment = root.env
             apply.running = true
         }
     }
 
-    Process { id: apply }
+    Process {
+        id: apply
+        command: ["bash", Quickshell.shellDir + "/scripts/apply-theme"]
+    }
 }

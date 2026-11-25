@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Builds Oblio's own packages (base/packages, desktop/packages) into a pacman repo: out/repo
-#   tools/build-packages                  unsigned, for the ISO
+#   tools/build-packages                  unsigned
+#   tools/build-packages base             only base/packages (no desktop ones: the ISO, old installs)
 #   OBLIO_SIGN_KEY=<fingerprint> tools/build-packages
 #                                         packages and database signed with that key (GitHub
 #                                         Actions does this for the online repo)
@@ -25,7 +26,9 @@ export PKGDEST="$repo" BUILDDIR="$build" SRCDEST="$build/sources"
 sign=()
 [[ -n $key ]] && sign=(--sign --key "$key")
 
-for p in "$root"/base/packages/*/ "$root"/desktop/packages/*/; do
+dirs=("$root"/base/packages/*/)
+[[ ${1:-} == base ]] || dirs+=("$root"/desktop/packages/*/)
+for p in "${dirs[@]}"; do
     name="$(basename "$p")"
     version="$("$root/tools/package-version" "$name")"
     # built from a copy, so the version set here never touches the repository

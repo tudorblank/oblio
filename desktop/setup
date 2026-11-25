@@ -2,15 +2,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Oblio's desktop on any Arch-based system: Hyprland, Oblio's window management,
-# keybinds, dock and login screen, Alacritty, Thunar, Zen. Run as your normal
-# user; pacman and the system files go through sudo.
+# keybinds, shell (bar, dock, settings, notifications) and login screen, Alacritty, Thunar,
+# Zen, rofi. Run as your normal user; pacman and the system files go through sudo.
 #   desktop/setup            install packages, copy desktop/config/ into ~/.config and
-#                            desktop/oblio-shell/ (dock, settings) to ~/.config/oblio-shell
+#                            desktop/oblio-shell/ to ~/.config/oblio-shell
 #   desktop/setup --greeter  make Oblio's login screen the login manager even when
 #                            another one (SDDM, GDM, ...) is already set up
 #
-# Every file in desktop/config/ lands at the same path under ~/.config; a file it
-# replaces is kept as NAME.bak.DATE. Your own changes from the settings panel
+# Every file in desktop/config/ lands at the same path under ~/.config; one you edited since
+# the last install is kept as NAME.bak.DATE first. Your own changes from the settings panel
 # (SUPER+I) live in ~/.config/hypr/settings.lua, which setup never touches.
 
 set -euo pipefail
@@ -37,7 +37,7 @@ packages=(
     hyprland                     # compositor (pulls in XWayland)
     quickshell                   # runs Oblio's shell (dock, settings) and login screen
     greetd                       # runs the login screen, then your session
-    hyprlauncher                 # app launcher
+    rofi                         # app launcher (SUPER+R)
     hyprpolkitagent              # password prompts for admin actions
     xdg-desktop-portal-hyprland  # screen sharing, portals
     xdg-desktop-portal-gtk       # file pickers (Open/Save dialogs) for portal apps
@@ -57,6 +57,7 @@ packages=(
     grim slurp wl-clipboard      # screenshots
     hyprpicker                   # color picker
     brightnessctl playerctl      # brightness and media keys
+    upower                       # battery in the bar
     ffmpeg                       # H.264/AAC video in the browser (Zen loads it at runtime)
     xorg-xhost                   # lets admin apps (GParted, ...) open windows
     capitaine-cursors            # mouse cursor
@@ -72,7 +73,8 @@ done
 mapfile -t missing < <(pacman -T "${packages[@]}" || true)
 if (( ${#missing[@]} )); then
     msg "Installing packages"
-    sudo pacman -S --needed --noconfirm "${missing[@]}"
+    # with a full sync: an install made days ago has package lists that point at removed files
+    sudo pacman -Syu --needed --noconfirm "${missing[@]}"
 fi
 
 # checksums of the config files setup installed last time, to tell your edits from
@@ -120,25 +122,22 @@ while IFS= read -r -d '' src; do
     printf '%s %s\n' "$(sha256sum < "$dst" | cut -d' ' -f1)" "$dst"
 done < <(find "$here/config" -type f -print0) > "$manifest"
 
-# older versions kept the shell in ~/.config/quickshell/oblio, its settings under an id
-# made from that path; the shell's id is "oblio" now
-old="$cfg/quickshell/oblio"
-state="${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/by-shell"
-old_id="$(printf '%s' "$old/shell.qml" | md5sum | cut -d' ' -f1)"
-if [[ -f $state/$old_id/settings.json && ! -e $state/oblio/settings.json ]]; then
-    mkdir -p "$state/oblio"
-    cp "$state/$old_id/settings.json" "$state/oblio/settings.json"
-fi
-if [[ -e $old || -L $old ]]; then
-    rm -rf "$old"
-    rmdir "$cfg/quickshell" 2>/dev/null || true
-fi
-
-
 # UI font: SF Pro, Apple's, which may not be redistributed, so it isn't in this repository and
 # comes from a pinned copy of github.com/sahibjotsaggu/San-Francisco-Pro-Fonts, checked against
 # known checksums. Without it the desktop uses Inter. (Light/dark, accent and fonts are applied
 # by the shell: Settings > Appearance.)
+# downloads URL to DEST only when it matches SHA256 (nothing is left behind otherwise)
+fetch() {
+    local url=$1 sum=$2 dest=$3
+    if curl -fsSL --max-time 300 -o "$dest.part" "$url" \
+        && [[ $(sha256sum "$dest.part" | cut -d' ' -f1) == "$sum" ]]; then
+        mv "$dest.part" "$dest"
+    else
+        rm -f "$dest.part"
+        return 1
+    fi
+}
+
 sf_commit=8bfea09aa6f1139479f80358b2e1e5c6dc991a58
 fonts="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/SF Pro"
 declare -A sf_sums=(
@@ -148,14 +147,9 @@ declare -A sf_sums=(
 for f in "${!sf_sums[@]}"; do
     [[ $(sha256sum "$fonts/$f" 2>/dev/null | cut -d' ' -f1) == "${sf_sums[$f]}" ]] && continue
     mkdir -p "$fonts"
-    if curl -fsSL --max-time 120 -o "$fonts/$f.part" \
-        "https://raw.githubusercontent.com/sahibjotsaggu/San-Francisco-Pro-Fonts/$sf_commit/$f" \
-        && [[ $(sha256sum "$fonts/$f.part" | cut -d' ' -f1) == "${sf_sums[$f]}" ]]; then
-        mv "$fonts/$f.part" "$fonts/$f"
-    else
-        rm -f "$fonts/$f.part"
-        printf 'warning: could not download %s, the desktop uses Inter instead\n' "$f" >&2
-    fi
+    fetch "https://raw.githubusercontent.com/sahibjotsaggu/San-Francisco-Pro-Fonts/$sf_commit/$f" \
+        "${sf_sums[$f]}" "$fonts/$f" \
+        || printf 'warning: could not download %s, the desktop uses Inter instead\n' "$f" >&2
 done
 fc-cache -f "$fonts" >/dev/null 2>&1 || true
 
@@ -170,9 +164,8 @@ if [[ $(cat "$icons/WhiteSur/.oblio-version" 2>/dev/null) != "$ws_commit" ]]; th
     # built next to its final place: moving it there is a rename that keeps the hard links
     mkdir -p "$icons"
     ws_tmp="$(mktemp -d "$icons/.whitesur.XXXXXX")"
-    if curl -fsSL --max-time 300 -o "$ws_tmp/ws.tar.gz" \
-        "https://codeload.github.com/vinceliuice/WhiteSur-icon-theme/tar.gz/$ws_commit" \
-        && [[ $(sha256sum "$ws_tmp/ws.tar.gz" | cut -d' ' -f1) == "$ws_sum" ]]; then
+    if fetch "https://codeload.github.com/vinceliuice/WhiteSur-icon-theme/tar.gz/$ws_commit" \
+        "$ws_sum" "$ws_tmp/ws.tar.gz"; then
         mkdir -p "$ws_tmp/src"
         tar -xzf "$ws_tmp/ws.tar.gz" -C "$ws_tmp/src" --strip-components=1
         w="$ws_tmp/src" t="$ws_tmp/WhiteSur"
@@ -266,8 +259,9 @@ fi
 
 # inside a running Hyprland: swap the running shell for the new one (last, so it sees the fonts)
 if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && command -v hyprctl >/dev/null; then
-    pkill -u "$USER" -f "^qs (-c oblio|-p '?$cfg/oblio-shell'?)$" || true
-    hyprctl dispatch "hl.dsp.exec_cmd(\"qs -p '$cfg/oblio-shell'\")" >/dev/null 2>&1 || true
+    pkill -u "$USER" -f "^qs -p '?$cfg/oblio-shell'?$" || true
+    # oblio.qs (env.lua): the one place that says how the shell starts
+    hyprctl dispatch 'function() hl.exec_cmd(oblio.qs) end' >/dev/null 2>&1 || true
 fi
 
 # which version of the desktop this is, for oblio-update: the commit oblio-desktop downloaded,

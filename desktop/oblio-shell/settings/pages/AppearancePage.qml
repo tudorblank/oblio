@@ -55,7 +55,7 @@ Column {
             text: tile.label
             color: tile.selected ? Theme.text : Theme.subtext
             font.family: Theme.fontUi
-            font.pixelSize: 12
+            font.pixelSize: Theme.textLabel
             font.weight: tile.selected ? Font.DemiBold : Font.Normal
         }
 
@@ -155,7 +155,7 @@ Column {
 
         SettingRow {
             title: "Blur"
-            description: "Frosted glass behind the dock, panels and see-through windows"
+            description: "Blurs what's behind the bar, dock, menus and see-through windows"
             Toggle {
                 checked: Settings.opts.blur
                 onToggled: v => Settings.set("blur", v)

@@ -347,7 +347,7 @@ pick_partitions() {
         pttype="$(lsblk -dno PTTYPE "$disk" | tr -d ' ')"
         mapfile -t parts < <(list_partitions "$disk")
 
-        screen "Partitions on $disk" "Oblio needs an EFI partition ($min_esp GB+, FAT32; Windows' can be shared) and a root partition ($min_root GB+, gets erased)."
+        screen "Partitions on $disk" "Oblio needs an EFI partition ($min_esp GB+, FAT32; one another system made can be shared if it's that big, Windows' usually isn't) and a root partition ($min_root GB+, gets erased)."
         show_layout "$disk"
         note "In cfdisk: [ New ] on free space, [ Type ] 'EFI System' for the EFI partition, then [ Write ] and" \
             "type yes (saved right away). [ Quit ] leaves without saving."
@@ -373,7 +373,7 @@ pick_partitions() {
             edit) edit_partitions "$disk"; continue ;;
         esac
 
-        screen "EFI partition" "Holds the bootloader and kernels. An existing one (e.g. from Windows) can be shared."
+        screen "EFI partition" "Holds the bootloader and kernels: $min_esp GB or more. An existing one can be shared if it's big enough (Windows' usually isn't)."
         esp="$(choose "EFI partition" "${parts[@]}")" || continue
         if (( $(bytes_of "$esp") < min_esp * gib )); then
             alert "$esp is $(size_of "$esp"). Oblio needs at least $min_esp GB for kernels and snapshots."
@@ -655,7 +655,8 @@ main() {
         return
     fi
 
-    command -v gum >/dev/null || pacman -Sy --noconfirm gum >/dev/null
+    command -v gum >/dev/null || pacman -Sy --noconfirm gum >/dev/null \
+        || { echo "The installer needs gum, and it couldn't be installed. Connect to the internet (iwctl) and run it again."; exit 1; }
     trap quit INT
 
     step_network

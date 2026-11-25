@@ -91,7 +91,7 @@ case "${1:-}" in
     run)     boot run ;;
     reset)
         read -rp "Delete the Oblio VM disk and UEFI variables? [y/N] " a
-        [[ $a == [yY] ]] && rm -f "$disk" "$vars" && echo "deleted" ;;
+        if [[ $a == [yY] ]]; then rm -f "$disk" "$vars"; echo "deleted"; else echo "kept"; fi ;;
     *)
         sed -n '4,7p' "$0" | sed 's/^# //' >&2
         exit 1 ;;

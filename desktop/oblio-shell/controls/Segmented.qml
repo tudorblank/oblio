@@ -5,12 +5,13 @@ import qs.services
 Rectangle {
     id: seg
 
-    property var options: []    // [{ value, label }]
+    property var options: []    // [{ value, label, disabled }]
     property var value
     signal picked(var value)
 
     implicitWidth: row.implicitWidth + 6
-    implicitHeight: 30
+    implicitHeight: Theme.controlHeight
+    opacity: enabled ? 1 : Theme.disabledOpacity
     radius: height / 2
     color: Theme.card
     border.width: 1
@@ -27,26 +28,29 @@ Rectangle {
             Rectangle {
                 required property var modelData
                 readonly property bool selected: modelData.value === seg.value
+                readonly property bool off: modelData.disabled ?? false
+                opacity: off ? Theme.disabledOpacity : 1
                 width: label.implicitWidth + 26
-                height: 24
+                height: seg.height - 6
                 radius: height / 2
                 color: selected ? Theme.accent : area.containsMouse ? Theme.hover : "transparent"
 
                 Behavior on color { ColorAnimation { duration: 140 } }
 
                 Text {
-                    font.family: Theme.fontUi
+                    font.family: Theme.fontFor(text)
                     id: label
                     anchors.centerIn: parent
                     text: parent.modelData.label
-                    color: parent.selected ? Theme.onAccent : Theme.text
-                    font.pixelSize: 12
+                    color: parent.selected ? Theme.accentFg : Theme.text
+                    font.pixelSize: Theme.textLabel
                     font.weight: Font.Medium
                 }
 
                 MouseArea {
                     id: area
                     anchors.fill: parent
+                    enabled: !parent.off
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: seg.picked(parent.modelData.value)

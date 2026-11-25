@@ -23,8 +23,19 @@ Singleton {
     function set(key, value) {
         if (adapter[key] === value) return
         adapter[key] = value
+        if (key === "barEdge" || key === "dockEdge" || key === "barEnabled") keepEdgesApart(key)
         saveTimer.restart()
         if (hyprKeys.includes(key)) liveTimer.restart()
+    }
+
+    // the bar and the dock never share an edge: the one that didn't just move goes to a free one
+    function keepEdgesApart(changed) {
+        const o = adapter
+        if (!o.barEnabled || o.barEdge !== o.dockEdge) return
+        const moveDock = changed !== "dockEdge"
+        const order = moveDock ? ["bottom", "left", "right", "top"] : ["top", "bottom", "left", "right"]
+        const free = order.find(e => e !== (moveDock ? o.barEdge : o.dockEdge))
+        o[moveDock ? "dockEdge" : "barEdge"] = free
     }
 
     function hyprLua() {
@@ -104,13 +115,55 @@ Singleton {
             // display: monitor key ("desc:..." or name) -> { resolution, rate, scale, transform, position, mirror, disabled }
             property var displays: ({})
 
+            // edge panels (edges/EdgePanel.qml), the same settings for each prefix:
+            //   Edge top|bottom|left|right, Shape floating|attached|full, Roundness 0..100 (square ..
+            //   round ends), Material solid|blur|glass, Opacity (of the tint, %; 100 = opaque),
+            //   Color / ColorLight theme|#rrggbb (the tint in dark / light mode), Length fit|fixed, LengthPercent (fixed: 0 just fits the
+            //   content, 100 spans the edge),
+            //   Mode always|autohide|smart, Size (thickness, px)
+            property bool barEnabled: true
+            property string barEdge: "top"
+            property string barShape: "full"
+            property int barRoundness: 65
+            property string barMaterial: "blur"
+            property int barOpacity: 35
+            property string barColor: "theme"
+            property string barColorLight: "theme"
+            property string barLength: "fit"
+            property int barLengthPercent: 50
+            property string barMode: "always"
+            property int barSize: 32
+            // floating bar, per section: continuous | scattered (one island per widget)
+            property string barIslandsStart: "continuous"
+            property string barIslandsCenter: "continuous"
+            property string barIslandsEnd: "continuous"
+            // services/BarWidgets.qml: the widgets in each section, { uid, type, ...its options }
+            property var barWidgets: ({
+                start: [{ uid: "workspaces", type: "workspaces" }, { uid: "window", type: "window" }],
+                center: [{ uid: "clock", type: "clock" }],
+                end: [{ uid: "media", type: "media" }, { uid: "tray", type: "tray" }, { uid: "notifications", type: "notifications" },
+                      { uid: "network", type: "network" }, { uid: "bluetooth", type: "bluetooth" }, { uid: "volume", type: "volume" },
+                      { uid: "brightness", type: "brightness" }, { uid: "battery", type: "battery" }, { uid: "power", type: "power" }],
+            })
+
+            // notifications: Do Not Disturb keeps them in the list without showing cards
+            property bool notifyDnd: false
+
             // dock: pinned apps are desktop file ids (without .desktop)
             property var dockPinned: ["Alacritty", "thunar"]
+            property string dockEdge: "bottom"
+            property string dockShape: "floating"
+            property int dockRoundness: 65
+            property string dockMaterial: "blur"
+            property int dockOpacity: 35
+            property string dockColor: "theme"
+            property string dockColorLight: "theme"
+            property string dockLength: "fit"
+            property int dockLengthPercent: 60
+            property string dockMode: "always"
             property int dockSize: 56
             property bool dockMagnify: true
-            property string dockMode: "always"   // always | autohide | smart
             property bool dockDivider: true
-            property int dockOpacity: 35
 
             // windows
             property string layout: "dwindle"

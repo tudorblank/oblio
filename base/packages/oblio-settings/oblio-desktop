@@ -5,6 +5,7 @@
 #   oblio-desktop                 then reboot to get the login screen
 #   oblio-desktop --greeter       also replace another login manager (SDDM, GDM, ...)
 #   oblio-desktop --update [SHA]  no questions, the given commit or the newest (oblio-update)
+#   oblio-desktop --latest        prints the newest commit (empty when GitHub can't be reached)
 # OBLIO_SOURCE=<tarball url> installs from somewhere else (tests).
 
 set -euo pipefail
@@ -12,15 +13,21 @@ set -euo pipefail
 repo=tudorblank/oblio
 red=$'\e[1;31m' bold=$'\e[1m' off=$'\e[0m'
 
+latest() {
+    curl -fsS --max-time 15 -H 'Accept: application/vnd.github.sha' \
+        "https://api.github.com/repos/$repo/commits/main" 2>/dev/null | grep -xE '[0-9a-f]{40}' || true
+}
+
 update=0 commit="" args=()
 while (( $# )); do
     case $1 in
         --greeter) args+=(--greeter) ;;
+        --latest) latest; exit 0 ;;
         --update)
             update=1
             if [[ ${2:-} =~ ^[0-9a-f]{40}$ ]]; then commit=$2; shift; fi
             ;;
-        *) echo "usage: oblio-desktop [--greeter] [--update [COMMIT]]" >&2; exit 1 ;;
+        *) echo "usage: oblio-desktop [--greeter] [--update [COMMIT]] | --latest" >&2; exit 1 ;;
     esac
     shift
 done
@@ -57,8 +64,7 @@ fi
 
 # the exact commit, so the installed desktop knows its version (oblio-update compares it)
 if [[ -z $commit && -z ${OBLIO_SOURCE:-} ]]; then
-    commit="$(curl -fsSL --max-time 15 "https://api.github.com/repos/$repo/commits/main" 2>/dev/null \
-        | sed -n 's/^  "sha": "\([0-9a-f]\{40\}\)",$/\1/p' | head -n1)" || true
+    commit="$(latest)"
 fi
 if [[ -n ${OBLIO_SOURCE:-} ]]; then
     source=$OBLIO_SOURCE

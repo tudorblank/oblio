@@ -13,8 +13,12 @@ Singleton {
     readonly property bool dark: Settings.opts.themeMode !== "light"
     readonly property color accent: /^#[0-9a-fA-F]{6}$/.test(Settings.opts.accent) ? Settings.opts.accent : defaultAccent
     readonly property string accentHex: String(accent).slice(0, 7)
-    // dark text on light accents, white on dark ones
-    readonly property color onAccent: luminance(accent) > 0.45 ? "#e6111114" : "#ffffff"
+    // dark text on light accents, white on dark ones (apply-theme gets the same, for GTK)
+    readonly property string accentFgHex: luminance(accent) > 0.45 ? "#1a1a1d" : "#ffffff"
+    readonly property color accentFg: accentFgHex
+    readonly property color accentHover: Qt.lighter(accent, 1.12)
+    // the accent as text or an icon on the theme's surfaces: darkened when it's too light to read
+    readonly property color accentText: !dark && luminance(accent) > 0.35 ? Qt.darker(accent, 1.9) : accent
 
     function luminance(c) {
         const f = v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
@@ -22,11 +26,33 @@ Singleton {
     }
     function tint(c, a) { return Qt.rgba(c.r, c.g, c.b, a) }
 
+    // one size for every control (buttons, fields, dropdowns, segmented, chips), and how a
+    // disabled one looks
+    readonly property int controlHeight: 30
+    readonly property real disabledOpacity: 0.4
+    // type scale for the shell's own text
+    readonly property int textCaption: 11
+    readonly property int textLabel: 12
+    readonly property int textBody: 13
+    readonly property int textTitle: 14
+    readonly property int textHeading: 22
+
+    // edge panels' corners: roundness 0..100 % of fully round ends, for a thickness
+    function rounded(percent, thick) { return Math.round(percent / 100 * thick / 2) }
+
+    // the settings' cards of rows (SettingGroup)
+    readonly property int groupRadius: 14
+
+    // corners of the shell's cards (settings, popovers, notifications, the launcher); something
+    // inside a card, padding away from its edge, follows the same curve with inner(padding)
+    readonly property int radius: 22
+    function inner(padding) { return Math.max(4, radius - padding) }
+
     // surfaces: window-like backgrounds; card/hover/hairline sit on top of them
     readonly property color background: dark ? "#141417" : "#f4f4f6"
     readonly property color panel: dark ? "#e8131316" : "#eef6f6f8"
     readonly property color popup: dark ? "#f4161619" : "#f8fbfbfc"
-    readonly property color glass: dark ? Qt.rgba(0.08, 0.08, 0.09, 1) : Qt.rgba(0.97, 0.97, 0.98, 1)
+    readonly property color solid: dark ? "#1c1c20" : "#f2f2f4"
     readonly property color card: dark ? "#0dffffff" : "#b3ffffff"
     readonly property color hover: dark ? "#0fffffff" : "#0c000000"
     readonly property color hairline: dark ? "#17ffffff" : "#16000000"
@@ -44,6 +70,10 @@ Singleton {
     readonly property string fontUi: installed(Settings.opts.fontUi, "Inter")
     readonly property string fontMono: installed(Settings.opts.fontMono, "monospace")
     readonly property int fontSize: Settings.opts.fontSize
+    // numbers (1920 × 1080, 165.01 Hz, 60 %, 90°) read best in the mono font
+    function fontFor(text) {
+        return /^[-+]?\d[\d.,:×x ]*\s*(%|°|Hz|px|s|ms|pt)?$/.test(String(text).trim()) ? fontMono : fontUi
+    }
 
     // ttf-nerd-fonts-symbols, or any other Nerd Font (Qt doesn't fall back to them by itself)
     readonly property string iconFont: families.includes("Symbols Nerd Font") ? "Symbols Nerd Font" : families.find(f => f.includes("Nerd Font")) ?? ""

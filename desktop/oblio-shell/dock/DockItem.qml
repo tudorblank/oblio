@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// One app in the dock: icon, name on hover, and a running indicator
-// (dot = running, pill = focused, faint dot = all windows minimized).
+// One app in the dock: icon, name on hover, and a dot per window on the edge side.
+// Follows the dock's edge: grows away from it, names appear on the windows' side.
 
 import QtQuick
-import Quickshell
 import qs.services
+import qs.controls
 
 Item {
     id: item
@@ -14,71 +14,88 @@ Item {
     // looked up by key, so this icon lives on while the dock's app list is recomputed
     readonly property var app: dock.apps[key] ?? { id: key, pinned: false, windows: [] }
 
-    // desktop entries load in the background after startup; touching the list
-    // re-runs the lookup once they arrive (byId alone never updates)
-    readonly property var entry: {
-        DesktopEntries.applications.values
-        return DesktopEntries.byId(app.id) ?? DesktopEntries.heuristicLookup(app.id)
-    }
+    readonly property var entry: Apps.entry(app.id)
     readonly property bool running: app.windows.length > 0
-    readonly property bool active: app.windows.some(t => t.activated)
+    readonly property bool active: app.windows.some(t => t.wayland ? t.wayland.activated : t.activated)
     readonly property bool allMinimized: running && app.windows.every(t => dock.isMinimized(t))
 
     width: dock.iconSize
     height: dock.iconSize
 
+    readonly property string edge: dock.edge
+    readonly property bool vertical: dock.vertical
+
     Image {
         id: icon
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
+        anchors.centerIn: parent
         width: item.dock.iconSize
         height: item.dock.iconSize
         sourceSize: Qt.size(item.dock.iconSize * 2, item.dock.iconSize * 2)
         smooth: true
         mipmap: true
-        source: Quickshell.iconPath(item.entry ? item.entry.icon : item.app.id, "application-x-executable")
-        transformOrigin: Item.Bottom
+        source: Apps.appIcon(item.app.id, "application-x-executable")
+        transformOrigin: item.edge === "left" ? Item.Left : item.edge === "right" ? Item.Right
+                       : item.edge === "top" ? Item.Top : Item.Bottom
         scale: item.dock.dragging ? 1 : mouse.pressed ? 0.92 : mouse.containsMouse && Settings.opts.dockMagnify ? 1.15 : 1
 
         Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
     }
 
-    // one dot per window (up to 4) under the icon: accent when the app has focus, soft white
-    // in the background, faint when all its windows are minimized
-    Row {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.bottom
-        anchors.topMargin: 3
-        spacing: 3
+    // one dot per window on the edge side of the icon, then a plus past dock.maxDots: accent when
+    // the app has focus, soft white in the background, faint when all its windows are minimized.
+    // Centered on the icon by its real size, on whole pixels.
+    Grid {
+        id: dots
+        readonly property int count: item.app.windows.length
+        readonly property color tint: item.active ? Theme.accentText : Theme.tint(Theme.text, 0.75)
+        readonly property int d: item.dock.dot
+        // the dots' line keeps its place when the (taller) plus shows up
+        readonly property int lineAt: item.dock.dotGap + Math.round(d / 2)
+        x: !item.vertical ? Math.round((item.width - width) / 2)
+           : item.edge === "left" ? -lineAt - Math.round(width / 2) : item.width + lineAt - Math.round(width / 2)
+        y: item.vertical ? Math.round((item.height - height) / 2)
+           : item.edge === "top" ? -lineAt - Math.round(height / 2) : item.height + lineAt - Math.round(height / 2)
+        rows: item.vertical ? -1 : 1
+        columns: item.vertical ? 1 : -1
+        flow: item.vertical ? Grid.TopToBottom : Grid.LeftToRight
+        spacing: item.dock.dotGap
+        horizontalItemAlignment: Grid.AlignHCenter
+        verticalItemAlignment: Grid.AlignVCenter
         opacity: item.allMinimized ? 0.35 : 1
 
         Behavior on opacity { NumberAnimation { duration: 200 } }
+        Behavior on x { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+        Behavior on y { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
         Repeater {
-            model: 4
+            model: Math.min(dots.count, item.dock.maxDots)
 
             Rectangle {
-                required property int index
-                readonly property bool shown: index < item.app.windows.length
-                width: shown ? 4 : 0
-                height: 4
-                radius: 2
-                color: item.active ? Theme.accent : Theme.tint(Theme.text, 0.75)
-                opacity: shown ? 1 : 0
-                scale: shown ? 1 : 0.3
+                width: dots.d
+                height: dots.d
+                radius: dots.d / 2
+                color: dots.tint
 
-                Behavior on width { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-                Behavior on opacity { NumberAnimation { duration: 180 } }
-                Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutBack } }
                 Behavior on color { ColorAnimation { duration: 200 } }
+                NumberAnimation on scale { from: 0.3; to: 1; duration: 220; easing.type: Easing.OutBack }
             }
+        }
+
+        // more windows than dots: a small plus, even sizes so it sits centered on the dots' line
+        PlusMark {
+            visible: dots.count > item.dock.maxDots
+            stroke: 2 * Math.max(1, Math.round(dots.d / 6))
+            width: 2 * Math.round(dots.d * 0.7)
+            height: width
+            color: dots.tint
         }
     }
 
-    // app name above the icon
+    // app name on the windows' side of the icon
     Rectangle {
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: -height - item.dock.pad - (mouse.containsMouse ? 12 : 6)
+        readonly property real away: item.dock.pad + (mouse.containsMouse ? 12 : 6)
+        x: item.edge === "left" ? parent.width + away : item.edge === "right" ? -width - away : (parent.width - width) / 2
+        y: item.edge === "bottom" ? -height - away : item.edge === "top" ? parent.height + away : (parent.height - height) / 2
         width: label.implicitWidth + 20
         height: label.implicitHeight + 10
         radius: height / 2
@@ -89,6 +106,7 @@ Item {
         visible: opacity > 0
 
         Behavior on opacity { NumberAnimation { duration: 150 } }
+        Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
         Behavior on y { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
         Text {
@@ -97,37 +115,32 @@ Item {
             anchors.centerIn: parent
             text: item.entry ? item.entry.name : item.app.id
             color: Theme.text
-            font.pixelSize: 12
+            font.pixelSize: Theme.textLabel
             font.weight: Font.Medium
         }
     }
 
-    MouseArea {
+    DragArea {
         id: mouse
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-        preventStealing: true
+        threshold: 8
 
-        // a left press that moves more than a few pixels becomes a drag, not a click
-        property point pressPos
-        property bool carrying: false
-        function rowX(m) { return mapToItem(item.dock.rowItem, m.x, m.y).x }
-        onPressed: m => { pressPos = Qt.point(m.x, m.y); carrying = false }
-        onPositionChanged: m => {
-            if (!(pressedButtons & Qt.LeftButton)) return
-            if (!carrying && Math.hypot(m.x - pressPos.x, m.y - pressPos.y) > 8) {
-                carrying = true
-                item.dock.startDrag(item.key, icon.source, rowX(m))
-            } else if (carrying) {
-                item.dock.moveDrag(rowX(m))
-            }
+        // positions along the dock, and how far into the screen the pointer went past it
+        function along(at) { const p = mapToItem(item.dock.listItem, at.x, at.y); return item.vertical ? p.y : p.x }
+        function inward(at) {
+            const l = item.dock.listItem, p = mapToItem(l, at.x, at.y)
+            return item.edge === "bottom" ? -p.y : item.edge === "top" ? p.y - l.height
+                 : item.edge === "left" ? p.x - l.width : -p.x
         }
-        // let go well above the dock: nothing changes
-        onReleased: m => { if (carrying) item.dock.endDrag(mapToItem(item.dock.rowItem, m.x, m.y).y < -item.dock.iconSize * 1.5) }
-        onCanceled: if (carrying) { carrying = false; item.dock.endDrag(true) }
+        onDragStarted: at => item.dock.startDrag(item.key, icon.source, along(at))
+        onDragMoved: at => item.dock.moveDrag(along(at))
+        // let go well away from the dock, into the screen: nothing changes
+        onDropped: at => item.dock.endDrag(inward(at) > item.dock.iconSize * 1.5)
+        onDragCanceled: item.dock.endDrag(true)
         onClicked: event => {
-            if (carrying) { carrying = false; return }
+            if (dragged) return
             if (event.button === Qt.MiddleButton) {
                 if (item.entry) item.entry.execute()
             } else if (event.button === Qt.RightButton) {

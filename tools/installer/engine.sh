@@ -12,7 +12,7 @@
 #   COMPONENTS                      array of component file names
 
 mnt=/mnt
-cachyos_key=F3B607488DB35A47
+cachyos_key=882DCFE48E2051D48E2562ABF3B607488DB35A47   # full fingerprint, not a short id
 log=/tmp/oblio-install.log
 live_conf=/tmp/oblio-pacman.conf
 live_mirrors=/tmp/oblio-pacman.d

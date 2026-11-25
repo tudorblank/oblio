@@ -11,6 +11,7 @@ Item {
     property real step: 1
     property int decimals: 0
     property string unit: ""
+    property bool muted: false          // drawn grey, still solid and movable
     signal moved(real value)
 
     readonly property real frac: Math.max(0, Math.min(1, (value - from) / (to - from)))
@@ -39,7 +40,8 @@ Item {
             width: knob.x + knob.width / 2
             height: 4
             radius: 2
-            color: Theme.accent
+            color: s.muted ? Theme.subtext : Theme.accent
+            Behavior on color { ColorAnimation { duration: 160 } }
         }
 
         Rectangle {
@@ -75,7 +77,7 @@ Item {
     }
 
     Text {
-        font.family: Theme.fontUi
+        font.family: Theme.fontMono
         id: label
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
@@ -83,7 +85,7 @@ Item {
         horizontalAlignment: Text.AlignRight
         text: s.value.toFixed(s.decimals) + s.unit
         color: Theme.subtext
-        font.pixelSize: 12
+        font.pixelSize: Theme.textLabel
         font.features: { "tnum": 1 }
     }
 }

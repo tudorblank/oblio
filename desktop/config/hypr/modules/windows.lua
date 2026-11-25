@@ -9,14 +9,32 @@ oblio = oblio or {}
 
 local MINIMIZED = "special:minimized"
 
-local s = oblio.state or {
-    floating = {},    -- workspace id -> true when the workspace is in floating mode
-    floated = {},     -- address -> true for windows floated by floating mode
-    saved = {},       -- address -> where it was when minimized: workspace, floating, place, size
-    order = {},       -- minimized addresses, oldest first
-    desktop = nil,    -- addresses hidden by show_desktop, to bring back together
-}
+-- a config reload starts a fresh Lua state: the state is kept in a file too (the runtime dir is
+-- emptied at logout) and read back here
+local STATE = (os.getenv("XDG_RUNTIME_DIR") or "/tmp") .. "/oblio-windows.lua"
+local function load()
+    local ok, t = pcall(dofile, STATE)
+    return ok and type(t) == "table" and t or nil
+end
+local function dump(v)
+    if type(v) ~= "table" then return type(v) == "string" and string.format("%q", v) or tostring(v) end
+    local out = {}
+    for k, x in pairs(v) do out[#out + 1] = "[" .. dump(k) .. "]=" .. dump(x) end
+    return "{" .. table.concat(out, ",") .. "}"
+end
+
+local s = oblio.state or load() or {}
+s.floating = s.floating or {}  -- workspace id -> true when the workspace is in floating mode
+s.floated = s.floated or {}    -- address -> true for windows floated by floating mode
+s.saved = s.saved or {}        -- address -> where it was when minimized: workspace, floating, place, size
+s.order = s.order or {}        -- minimized addresses, oldest first
+-- s.desktop: addresses hidden by show_desktop, to bring back together
 oblio.state = s
+
+local function save()
+    local f = io.open(STATE, "w")
+    if f then f:write("return ", dump(s)); f:close() end
+end
 
 local function sel(address) return "address:" .. address end
 local function win(address) return hl.get_window(sel(address)) end
@@ -91,10 +109,6 @@ end
 function oblio.restore_last()
     local address = s.order[#s.order]
     if address then oblio.restore(address) end
-end
-
-function oblio.restore_all()
-    for i = #s.order, 1, -1 do oblio.restore(s.order[i]) end
 end
 
 -- focuses a window without moving the pointer; a minimized one is restored first
@@ -172,7 +186,10 @@ end)
 
 -- a closed window is no longer minimized
 hl.on("window.close", function(w)
-    if w then forget(w.address) end
+    if not w then return end
+    forget(w.address)
+    s.floated[w.address] = nil
+    save()
 end)
 
 -- a floating window that gets focus comes to the front, however it got it (a click
@@ -226,10 +243,6 @@ local function tile_window(w)
     end
 end
 
-function oblio.is_floating(id)
-    return s.floating[id] == true
-end
-
 function oblio.toggle_mode()
     local ws = hl.get_active_workspace()
     if not ws or ws.special then return end
@@ -242,13 +255,25 @@ function oblio.toggle_mode()
 end
 
 hl.on("window.open", function(w)
-    if w and w.workspace and s.floating[w.workspace.id] then float_window(w) end
+    if w and w.workspace and s.floating[w.workspace.id] then float_window(w); save() end
 end)
 
 -- moving a window into or out of a floating workspace follows that workspace's mode
 hl.on("window.move_to_workspace", function(w, ws)
     if not w or not ws or ws.special then return end
     if s.floating[ws.id] then float_window(w) else tile_window(w) end
+    save()
 end)
+
+-- every oblio.* action saves the state when it's done
+for name, fn in pairs(oblio) do
+    if type(fn) == "function" then
+        oblio[name] = function(...)
+            local r = table.pack(fn(...))
+            save()
+            return table.unpack(r, 1, r.n)
+        end
+    end
+end
 
 return oblio

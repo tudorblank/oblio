@@ -3,7 +3,8 @@
 
 oblio = oblio or {}
 
--- Oblio's shell (dock, settings), copied here by desktop/setup
+-- Oblio's shell (bar, dock, settings, notifications), copied here by desktop/setup; oblio.qs is
+-- the one command that starts it (autostart, desktop/setup)
 oblio.shell = (os.getenv("XDG_CONFIG_HOME") or (os.getenv("HOME") .. "/.config")) .. "/oblio-shell"
 oblio.qs = "qs -p '" .. oblio.shell .. "'"
 
@@ -39,7 +40,6 @@ end
 hl.env("XCURSOR_THEME", "capitaine-cursors")
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
-
 
 -- only when NVIDIA drives everything: on a PRIME laptop these would send every video and
 -- X11 app to the NVIDIA GPU and keep it awake; there `prime-run APP` uses it for one app

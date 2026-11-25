@@ -33,8 +33,7 @@ state="${XDG_STATE_HOME:-$HOME/.local/state}/oblio-desktop/version"
 installed="$(cat "$state")"
 
 msg "Checking Oblio's desktop"
-latest="$(curl -fsSL --max-time 15 "https://api.github.com/repos/$repo/commits/main" 2>/dev/null \
-    | sed -n 's/^  "sha": "\([0-9a-f]\{40\}\)",$/\1/p' | head -n1)" || true
+latest="$(oblio-desktop --latest)"
 if [[ -z $latest ]]; then
     echo "Couldn't reach GitHub; the desktop wasn't checked."
     exit 0

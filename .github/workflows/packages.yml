@@ -58,7 +58,9 @@ jobs:
           gh release view repo >/dev/null 2>&1 || gh release create repo --latest=false \
             --title "Package repository" \
             --notes "Oblio's pacman repository [oblio]. Built automatically; see base/packages."
-          gh release upload repo "${files[@]}" --clobber
+          # packages first, the database last: an update mid-publish never sees packages missing
+          gh release upload repo *.pkg.tar.zst *.pkg.tar.zst.sig --clobber
+          gh release upload repo oblio.db oblio.db.sig oblio.files oblio.files.sig --clobber
           # old package versions go, so the repository holds only the current ones
           gh release view repo --json assets --jq '.assets[].name' | while read -r asset; do
             printf '%s\n' "${files[@]}" | grep -qxF "$asset" || gh release delete-asset repo "$asset" --yes

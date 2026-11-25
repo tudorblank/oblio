@@ -27,7 +27,7 @@ done
 [[ $EUID != 0 ]] || die "run as your normal user; sudo is only used for mkarchiso"
 [[ -d $releng ]] || die "install archiso first: sudo pacman -S archiso"
 
-"$root/tools/build-packages"
+"$root/tools/build-packages" base
 
 echo "==> Assembling the ISO profile"
 rm -rf "$profile"

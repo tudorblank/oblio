@@ -6,7 +6,7 @@ local mod = oblio.vm and "ALT" or "SUPER"
 local terminal = "alacritty"
 local files    = "thunar"
 local browser  = "zen-browser"
-local launcher = "hyprlauncher"
+local launcher = oblio.shell .. "/scripts/launcher"   -- rofi; again closes it
 local settings = oblio.qs .. " ipc call settings toggle"
 
 local function key(k, action, opts) hl.bind(mod .. " + " .. k, action, opts) end
@@ -95,15 +95,27 @@ key("S", region)
 key("Print", screen)
 hl.bind("Print", screen)
 
--- media keys
-local held = { locked = true, repeating = true }
+-- media keys, also while a shell menu is open
+local held = { locked = true, repeating = true, submap_universal = true }
 hl.bind("XF86AudioRaiseVolume",  run("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), held)
 hl.bind("XF86AudioLowerVolume",  run("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      held)
 hl.bind("XF86AudioMute",         run("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     held)
 hl.bind("XF86AudioMicMute",      run("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   held)
 hl.bind("XF86MonBrightnessUp",   run("brightnessctl -e4 -n2 set 5%+"),                  held)
 hl.bind("XF86MonBrightnessDown", run("brightnessctl -e4 -n2 set 5%-"),                  held)
-hl.bind("XF86AudioNext",  run("playerctl next"),       { locked = true })
-hl.bind("XF86AudioPause", run("playerctl play-pause"), { locked = true })
-hl.bind("XF86AudioPlay",  run("playerctl play-pause"), { locked = true })
-hl.bind("XF86AudioPrev",  run("playerctl previous"),   { locked = true })
+hl.bind("XF86AudioNext",  run("playerctl next"),       { locked = true, submap_universal = true })
+hl.bind("XF86AudioPause", run("playerctl play-pause"), { locked = true, submap_universal = true })
+hl.bind("XF86AudioPlay",  run("playerctl play-pause"), { locked = true, submap_universal = true })
+hl.bind("XF86AudioPrev",  run("playerctl previous"),   { locked = true, submap_universal = true })
+
+-- while a shell menu or the launcher is open, this submap is on: no keybind reaches the windows,
+-- SUPER+Q and SUPER+I close them (and leave the submap even if the shell doesn't answer)
+hl.define_submap("oblio-menu", function()
+    local function close()
+        hl.dispatch(hl.dsp.submap("reset"))
+        hl.exec_cmd(oblio.qs .. " ipc call menus close")
+        hl.exec_cmd("pkill -x rofi")
+    end
+    key("Q", close)
+    key("I", close)
+end)

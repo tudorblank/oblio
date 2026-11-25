@@ -28,7 +28,7 @@ Column {
         visible: !dp.mon
         text: "No displays found"
         color: Theme.subtext
-        font.pixelSize: 13
+        font.pixelSize: Theme.textBody
     }
 
     Segmented {
@@ -88,7 +88,6 @@ Column {
             title: "Rotation"
             Segmented {
                 enabled: dp.cfg && !dp.cfg.disabled && !dp.cfg.mirror
-                opacity: enabled ? 1 : 0.4
                 options: [{ value: 0, label: "Normal" }, { value: 1, label: "90°" }, { value: 2, label: "180°" }, { value: 3, label: "270°" }]
                 value: dp.cfg ? dp.cfg.transform : 0
                 onPicked: v => dp.edit({ transform: v })
@@ -114,7 +113,6 @@ Column {
             description: "Where it sits next to the other displays"
             Segmented {
                 enabled: dp.cfg && !dp.cfg.disabled && !dp.cfg.mirror
-                opacity: enabled ? 1 : 0.4
                 options: [{ value: "auto", label: "Auto" }, { value: "auto-left", label: "Left" }, { value: "auto-right", label: "Right" },
                           { value: "auto-up", label: "Above" }, { value: "auto-down", label: "Below" }]
                 value: dp.cfg ? dp.cfg.position : "auto"

@@ -2,6 +2,7 @@
 // One setting: title and description on the left, its control on the right.
 import QtQuick
 import qs.services
+import qs.controls
 
 Item {
     id: row
@@ -13,16 +14,7 @@ Item {
     width: parent ? parent.width : 0
     implicitHeight: Math.max(texts.implicitHeight, slot.height) + 26
 
-    Rectangle {
-        visible: row.Positioner.index > 0
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.leftMargin: 16
-        anchors.rightMargin: 16
-        height: 1
-        color: Theme.hairline
-    }
+    Divider { visible: row.Positioner.index > 0; inset: 16; space: 1 }
 
     Column {
         id: texts
@@ -38,7 +30,7 @@ Item {
             width: parent.width
             text: row.title
             color: Theme.text
-            font.pixelSize: 14
+            font.pixelSize: Theme.textTitle
             elide: Text.ElideRight
         }
 
@@ -48,7 +40,7 @@ Item {
             width: parent.width
             text: row.description
             color: Theme.subtext
-            font.pixelSize: 12
+            font.pixelSize: Theme.textLabel
             wrapMode: Text.WordWrap
         }
     }

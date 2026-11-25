@@ -7,7 +7,7 @@ Row {
     id: sw
 
     property string value
-    property var colors: ["#b9e66c", "#5b9cf5", "#a78bfa", "#f472b6", "#ef5350", "#fb923c", "#facc15", "#2dd4bf", "#e4e4e7"]
+    property var colors: [Theme.defaultAccent, "#5b9cf5", "#a78bfa", "#f472b6", "#ef5350", "#fb923c", "#facc15", "#2dd4bf", "#e4e4e7"]
     signal picked(string value)
 
     spacing: 8
@@ -78,9 +78,9 @@ Row {
             text: sw.value
             color: Theme.text
             selectionColor: Theme.accent
-            selectedTextColor: Theme.onAccent
+            selectedTextColor: Theme.accentFg
             font.family: Theme.fontMono
-            font.pixelSize: 11
+            font.pixelSize: Theme.textCaption
             maximumLength: 7
             validator: RegularExpressionValidator { regularExpression: /#?[0-9a-fA-F]{0,6}/ }
             onAccepted: {

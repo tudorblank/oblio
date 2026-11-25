@@ -1,0 +1,111 @@
+/* Oblio's app launcher (SUPER+R). Starts from an empty theme; colors, fonts and icons come from
+   oblio-theme.rasi, written by Oblio's settings (SUPER+I > Appearance). */
+@theme "/dev/null"
+
+configuration {
+    modi: "drun,run";
+    show-icons: true;
+    drun-display-format: "{name}";
+    display-drun: "";
+    display-run: "";
+    matching: "fuzzy";
+    sort: true;
+    sorting-method: "fzf";
+    case-sensitive: false;
+    hover-select: true;
+    me-select-entry: "";
+    me-accept-entry: [ MousePrimary ];
+    /* SUPER+R opens it, so it closes it too (Alt+R in a VM, where Alt is the main key) */
+    kb-cancel: "Escape,Super+r,Alt+r";
+}
+
+@import "oblio-theme.rasi"
+
+* {
+    font: @ui-font;
+    background-color: transparent;
+    text-color: @fg;
+    border-color: @line;
+    spacing: 0;
+    margin: 0;
+    padding: 0;
+}
+
+window {
+    location: center;
+    anchor: center;
+    y-offset: -8%;
+    width: 640px;
+    border: 1px solid;
+    border-radius: @radius;
+    background-color: @bg;
+}
+
+mainbox {
+    padding: 8px;
+    children: [ inputbar, divider, listview ];
+}
+
+/* the search line: big, no box around it */
+inputbar {
+    padding: 14px 16px 14px 18px;
+    spacing: 14px;
+    children: [ prompt, entry ];
+}
+prompt {
+    font: @icon-font;
+    text-color: @subtle;
+    vertical-align: 0.5;
+}
+entry {
+    font: @search-font;
+    placeholder: "Search apps";
+    placeholder-color: @subtle;
+    cursor: text;
+    vertical-align: 0.5;
+}
+
+divider {
+    expand: false;
+    border: 1px 0 0 0;
+    margin: 0 10px 8px 10px;
+}
+
+listview {
+    lines: 7;
+    columns: 1;
+    fixed-height: true;
+    scrollbar: false;
+    spacing: 2px;
+    padding: 0 0 2px 0;
+}
+
+element {
+    padding: 9px 14px;
+    spacing: 14px;
+    border-radius: @inner-radius;
+    cursor: pointer;
+}
+element normal.normal, element alternate.normal, element normal.active, element alternate.active {
+    background-color: transparent;
+}
+element selected.normal, element selected.active {
+    background-color: @selected;
+}
+element-icon {
+    size: 32px;
+    cursor: inherit;
+}
+element-text {
+    vertical-align: 0.5;
+    cursor: inherit;
+    highlight: bold;
+}
+
+message {
+    margin: 0 10px 8px 10px;
+    padding: 10px 14px;
+    border-radius: @inner-radius;
+    background-color: @card;
+}
+textbox { text-color: @subtle; }

@@ -2,13 +2,24 @@
 
 ## Next: the desktop
 
-- [ ] Shell: top bar (workspaces, clock, tray, battery, volume, brightness, Wi-Fi via iwd, Bluetooth)
-- [ ] Notifications (Quickshell server) and an on-screen display for volume/brightness
-- [ ] Daily update check with a notification (needs notifications)
+- [ ] Make the shell stable and usable (current round), then an app launcher of Oblio's own
+      (rofi for now), then Oblio's own glass blur on the GPU (refraction, shapes), replacing
+      Hyprland's in `edges/Surface.qml`
+- [ ] Greeter: it answers every PAM prompt with the password (a visible-input or second prompt, like
+      an expired password or a one-time code, gets it too); fix with the redesign
+- [ ] A calendar app that syncs with the bar's clock widget (its calendar popup)
+- [ ] Wi-Fi passwords reach iwctl as an argument (visible to the user's own processes for a moment);
+      an iwd agent over D-Bus would avoid that
+- [ ] Media widget: scrolling title, waveform style (needs cava or a PipeWire capture)
+- [ ] Tray menus in Oblio's own popover (they use Qt's menu now, outside the menu keybind mode)
+- [ ] On-screen display for volume and brightness keys
+- [ ] Later bar widgets (need more of the system first): keyboard layout, quick toggles (caffeine,
+      night light), system monitor, weather, clipboard, screenshot and color picker (with more
+      desktop packages), privacy indicators, devices. No control center.
+- [ ] Daily update check with a notification (the notification server is in now)
 - [ ] Idle and lid: lock, screen off, suspend
 - [ ] Lock screen in the same style as the login screen
-- [ ] Power menu (lock, log out, suspend, reboot, power off); SUPER+M exits straight away now
-- [ ] Launcher (Quickshell) to replace hyprlauncher
+- [ ] SUPER+M exits straight away; the bar's power widget asks first (lock needs a lock screen)
 - [ ] Keybind cheatsheet inside the desktop
 - [ ] Wallpaper
 - [ ] Clipboard history
@@ -41,8 +52,17 @@
       version tracking
 - [x] Hyprland: window management (minimize, show desktop, tiling/floating per workspace)
 - [x] NVIDIA on hybrid laptops: NVIDIA's GLX/VA-API variables only when NVIDIA is the only GPU
-- [x] Dock: pinning, right-click menu, drag to rearrange and pin, one dot per window
-- [x] Settings panel (SUPER+I): display, dock, windows, appearance, input
+- [x] Desktop-space engine (`edges/`): bar and dock as edge panels with space, shape, material and
+      showing in one place; Settings > Bar / Dock
+- [x] Bar on any edge (widgets lay out vertically on a side bar); right-click menu; network (iwd),
+      Bluetooth, notifications (server, cards, list, Do Not Disturb), apps in the volume popup;
+      rofi as the app launcher (themed by apply-theme); Bluetooth in the base for every install
+- [x] Bar: widgets in three sections edited in Settings (add, drag, options), scattered islands,
+      roundness; look = material (solid/blur) + tint color + opacity
+- [x] Shell menus block keybinds and clicks to windows (Hyprland submap), SUPER+Q closes them
+- [x] Dock: pinning, right-click menu, drag to rearrange and pin, one dot per window, any side edge
+- [x] Settings panel (SUPER+I): display, bar, dock, windows, appearance, input; drag to move,
+      resize from any edge, one dropdown open at a time
 - [x] Display settings: resolution, refresh rate, scale, rotation, arrangement, mirroring, keep-or-go-back
 - [x] Theme: light/dark, accent, fonts (SF Pro, JetBrains Mono) for the shell, GTK 3/4, Qt, browsers,
       icons (WhiteSur), terminal, Hyprland

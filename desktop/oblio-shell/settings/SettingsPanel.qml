@@ -15,14 +15,17 @@ Scope {
 
     property bool shown: false
     property int page: 0
+    // a page opens at its top
+    onPageChanged: flick.contentY = 0
     property var screen: Quickshell.screens[0]
 
     readonly property var pages: [
-        { title: "Display", icon: "\u{f0379}", subtitle: "Resolution, refresh rate, scale and arrangement", content: displayPage },
-        { title: "Dock", icon: "\u{f10a9}", subtitle: "Size, look and behavior of the dock", content: dockPage },
-        { title: "Windows", icon: "", subtitle: "Tiling, gaps, borders and focus", content: windowsPage },
-        { title: "Appearance", icon: "", subtitle: "Light or dark, accent color, fonts and effects", content: lookPage },
-        { title: "Input", icon: "", subtitle: "Mouse, touchpad and keyboard", content: inputPage },
+        { title: "Display", icon: Icons.display, subtitle: "Resolution, refresh rate, scale and arrangement", content: displayPage },
+        { title: "Bar", icon: Icons.bar, subtitle: "Its widgets, where it sits, its shape and its look", content: barPage },
+        { title: "Dock", icon: Icons.dock, subtitle: "Where it sits, its shape, its look and its icons", content: dockPage },
+        { title: "Windows", icon: Icons.windows, subtitle: "Tiling, gaps, borders and focus", content: windowsPage },
+        { title: "Appearance", icon: Icons.appearance, subtitle: "Light or dark, accent color, fonts and effects", content: lookPage },
+        { title: "Input", icon: Icons.input, subtitle: "Mouse, touchpad and keyboard", content: inputPage },
     ]
 
     function open() {
@@ -31,14 +34,111 @@ Scope {
         Displays.refresh()
         shown = true
     }
+    function close() { shown = false }
+    function openPage(title) {
+        const i = pages.findIndex(p => p.title.toLowerCase() === title.toLowerCase())
+        if (i >= 0) page = i
+        open()
+    }
+    Connections {
+        target: Menus
+        function onSettingsRequested(page) { root.openPage(page) }
+    }
 
-    // closing the panel doesn't keep a display change nobody confirmed
-    onShownChanged: if (!shown) { Displays.revert(); Displays.discard() }
+    onShownChanged: {
+        if (shown) {
+            Menus.add(root)
+        } else {
+            Menus.remove(root)
+            // closing the panel doesn't keep a display change nobody confirmed
+            Displays.revert()
+            Displays.discard()
+        }
+    }
+
+    // edges and corners resize: hx/hy say which side moves (-1 left/top, 1 right/bottom)
+    component Grip: MouseArea {
+        property int hx
+        property int hy
+        property point start
+        property rect from
+        readonly property int t: 8
+        x: hx < 0 ? -t / 2 : hx > 0 ? card.width - t / 2 : t
+        y: hy < 0 ? -t / 2 : hy > 0 ? card.height - t / 2 : t
+        width: hx === 0 ? card.width - 2 * t : t
+        height: hy === 0 ? card.height - 2 * t : t
+        z: 10
+        preventStealing: true
+        cursorShape: hx === 0 ? Qt.SizeVerCursor : hy === 0 ? Qt.SizeHorCursor
+                   : hx === hy ? Qt.SizeFDiagCursor : Qt.SizeBDiagCursor
+        onPressed: m => {
+            start = mapToItem(win.contentItem, m.x, m.y)
+            from = Qt.rect(card.x, card.y, card.width, card.height)
+        }
+        onPositionChanged: m => {
+            const p = mapToItem(win.contentItem, m.x, m.y)
+            const dx = p.x - start.x, dy = p.y - start.y
+            if (hx > 0) card.width = Math.max(card.minWidth, Math.min(from.width + dx, win.width - from.x - 8))
+            if (hy > 0) card.height = Math.max(card.minHeight, Math.min(from.height + dy, win.height - from.y - 8))
+            if (hx < 0) {
+                const w = Math.max(card.minWidth, Math.min(from.width - dx, from.x + from.width - 8))
+                card.x = from.x + from.width - w
+                card.width = w
+            }
+            if (hy < 0) {
+                const h = Math.max(card.minHeight, Math.min(from.height - dy, from.y + from.height - 8))
+                card.y = from.y + from.height - h
+                card.height = h
+            }
+        }
+    }
+
+    // a floating pill at the bottom of the panel: a message, a note, its buttons
+    component Banner: Rectangle {
+        property string text
+        property string note: ""
+        property bool accent: false
+        default property alias buttons: row.data
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 18
+        width: row.implicitWidth + 32
+        height: 50
+        radius: height / 2
+        color: Theme.popup
+        border.width: 1
+        border.color: accent ? Theme.tint(Theme.accent, 0.55) : Theme.hairline
+
+        Row {
+            id: row
+            anchors.centerIn: parent
+            spacing: 12
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: parent.parent.text
+                color: Theme.text
+                font.family: Theme.fontUi
+                font.pixelSize: Theme.textBody
+                font.weight: Font.Medium
+            }
+            Text {
+                visible: text !== ""
+                anchors.verticalCenter: parent.verticalCenter
+                text: parent.parent.note
+                color: Theme.subtext
+                font.family: Theme.fontUi
+                font.pixelSize: Theme.textLabel
+                font.features: { "tnum": 1 }
+            }
+        }
+    }
 
     IpcHandler {
         target: "settings"
         function toggle(): void { if (root.shown) root.shown = false; else root.open() }
         function open(): void { root.open() }
+        // qs -p ~/.config/oblio-shell ipc call settings page Bar
+        function page(title: string): void { root.openPage(title) }
         function close(): void { root.shown = false }
         // qs -p ~/.config/oblio-shell ipc call settings set gapsOut 10   (value is JSON: 10, true, '"#5b9cf5"')
         function set(key: string, value: string): void { Settings.set(key, JSON.parse(value)) }
@@ -58,7 +158,7 @@ Scope {
         Rectangle {
             id: dim
             anchors.fill: parent
-            color: "black"
+            color: Theme.scrim
             opacity: root.shown ? 0.3 : 0
 
             Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
@@ -71,10 +171,22 @@ Scope {
 
         Rectangle {
             id: card
-            anchors.centerIn: parent
-            width: Math.min(880, win.width - 40)
-            height: Math.min(600, win.height - 40)
-            radius: 22
+            // dragged by its top strip, resized from any edge; keeps its place while the shell runs
+            readonly property int minWidth: 640
+            readonly property int minHeight: 420
+            property bool placed: false
+            function fit() {
+                // a hidden window's size is meaningless
+                if (!win.visible || win.width < minWidth || win.height < minHeight) return
+                width = Math.max(Math.min(width, win.width - 16), Math.min(minWidth, win.width - 16))
+                height = Math.max(Math.min(height, win.height - 16), Math.min(minHeight, win.height - 16))
+                if (!placed) { x = (win.width - width) / 2; y = (win.height - height) / 2; placed = true }
+                x = Math.max(8, Math.min(x, win.width - width - 8))
+                y = Math.max(8, Math.min(y, win.height - height - 8))
+            }
+            width: 880
+            height: 600
+            radius: Theme.radius
             color: Theme.panel
             border.width: 1
             border.color: Theme.hairline
@@ -86,10 +198,29 @@ Scope {
             Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
 
             Keys.onEscapePressed: root.shown = false
-            onVisibleChanged: if (visible) forceActiveFocus()
+            onVisibleChanged: if (visible) { fit(); forceActiveFocus() }
+            Connections {
+                target: win
+                function onWidthChanged() { card.fit() }
+                function onHeightChanged() { card.fit() }
+            }
 
             // clicks on the card don't fall through to the dim layer
             MouseArea { anchors.fill: parent }
+
+            // the top strip moves the panel
+            Item {
+                width: parent.width
+                height: 64
+                DragHandler {
+                    target: card
+                    cursorShape: active ? Qt.ClosedHandCursor : Qt.ArrowCursor
+                    xAxis.minimum: 8
+                    xAxis.maximum: win.width - card.width - 8
+                    yAxis.minimum: 8
+                    yAxis.maximum: win.height - card.height - 8
+                }
+            }
 
             // sidebar
             Column {
@@ -122,7 +253,7 @@ Scope {
                         width: sidebar.width
                         height: 40
                         radius: 12
-                        color: selected ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.16) : area.containsMouse ? Theme.hover : "transparent"
+                        color: selected ? Theme.tint(Theme.accent, 0.16) : area.containsMouse ? Theme.hover : "transparent"
 
                         Behavior on color { ColorAnimation { duration: 140 } }
 
@@ -146,7 +277,7 @@ Scope {
                             anchors.verticalCenter: parent.verticalCenter
                             text: parent.modelData.title
                             color: parent.selected ? Theme.accent : Theme.text
-                            font.pixelSize: 14
+                            font.pixelSize: Theme.textTitle
                             font.weight: parent.selected ? Font.DemiBold : Font.Normal
                         }
 
@@ -193,7 +324,7 @@ Scope {
                         font.family: Theme.fontUi
                         text: root.pages[root.page].title
                         color: Theme.text
-                        font.pixelSize: 22
+                        font.pixelSize: Theme.textHeading
                         font.weight: Font.DemiBold
                     }
 
@@ -201,7 +332,7 @@ Scope {
                         font.family: Theme.fontUi
                         text: root.pages[root.page].subtitle
                         color: Theme.subtext
-                        font.pixelSize: 13
+                        font.pixelSize: Theme.textBody
                     }
                 }
 
@@ -209,7 +340,7 @@ Scope {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.margins: 22
-                    text: ""
+                    text: Icons.close
                     color: closeArea.containsMouse ? Theme.text : Theme.subtext
                     font.family: Theme.iconFont
                     font.pixelSize: 16
@@ -256,79 +387,37 @@ Scope {
                 }
             }
 
-            // display choices not applied yet; the page may be scrolled away from them
-            Rectangle {
+            Grip { hx: -1; hy: 0 }
+            Grip { hx: 1; hy: 0 }
+            Grip { hx: 0; hy: -1 }
+            Grip { hx: 0; hy: 1 }
+            Grip { hx: -1; hy: -1 }
+            Grip { hx: 1; hy: -1 }
+            Grip { hx: -1; hy: 1 }
+            Grip { hx: 1; hy: 1 }
+
+            // display choices not applied yet (the page may be scrolled away from them), and after a
+            // change: keep it, or it goes back by itself
+            Banner {
                 visible: Displays.dirty && Displays.pending === null && root.pages[root.page].content === displayPage
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 18
-                width: applyRow.implicitWidth + 32
-                height: 50
-                radius: 25
-                color: Theme.popup
-                border.width: 1
-                border.color: Theme.hairline
-
-                Row {
-                    id: applyRow
-                    anchors.centerIn: parent
-                    spacing: 12
-
-                    Text {
-                        font.family: Theme.fontUi
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Display changes not applied yet"
-                        color: Theme.text
-                        font.pixelSize: 13
-                        font.weight: Font.Medium
-                    }
-                    Button { text: "Cancel"; onClicked: Displays.discard() }
-                    Button { text: "Apply"; primary: true; onClicked: Displays.apply(Displays.current, Displays.edited) }
-                }
+                text: "Display changes not applied yet"
+                Button { text: "Cancel"; onClicked: Displays.discard() }
+                Button { text: "Apply"; primary: true; onClicked: Displays.apply(Displays.current, Displays.edited) }
             }
-
-            // after a display change: keep it, or it goes back by itself
-            Rectangle {
+            Banner {
                 visible: Displays.pending !== null
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 18
-                width: confirmRow.implicitWidth + 32
-                height: 50
-                radius: 25
-                color: Theme.popup
-                border.width: 1
-                border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.55)
-
-                Row {
-                    id: confirmRow
-                    anchors.centerIn: parent
-                    spacing: 12
-
-                    Text {
-                        font.family: Theme.fontUi
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Keep these display settings?"
-                        color: Theme.text
-                        font.pixelSize: 13
-                        font.weight: Font.Medium
-                    }
-                    Text {
-                        font.family: Theme.fontUi
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: Displays.pending ? `Going back in ${Displays.pending.left} s` : ""
-                        color: Theme.subtext
-                        font.pixelSize: 12
-                        font.features: { "tnum": 1 }
-                    }
-                    Button { text: "Go back"; onClicked: Displays.revert() }
-                    Button { text: "Keep"; primary: true; onClicked: Displays.keep() }
-                }
+                text: "Keep these display settings?"
+                note: Displays.pending ? `Going back in ${Displays.pending.left} s` : ""
+                accent: true
+                Button { text: "Go back"; onClicked: Displays.revert() }
+                Button { text: "Keep"; primary: true; onClicked: Displays.keep() }
             }
         }
     }
 
     Component { id: displayPage; DisplayPage {} }
+
+    Component { id: barPage; BarPage {} }
 
     Component { id: dockPage; DockPage {} }
 

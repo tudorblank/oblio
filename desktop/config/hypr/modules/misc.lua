@@ -7,7 +7,7 @@ hl.config({
         middle_click_paste      = false,
         -- a terminal hides while a window it started is open (an image viewer, mpv, ...)
         enable_swallow = true,
-        swallow_regex  = "^(Alacritty|kitty|foot|ghostty|org\\.wezfurlong\\.wezterm|[Kk]onsole)$",
+        swallow_regex  = "^(Alacritty|kitty|foot|ghostty|org\\.wezfurlong\\.wezterm)$",
         -- variable refresh rate for fullscreen games and videos
         vrr = 3,
     },

@@ -39,17 +39,14 @@ local floating = {
     { initial_title = "^(Open File)$" },
     { class = "^([Xx]dg-desktop-portal-gtk|hyprland-share-picker)$" },
     { class = "^(.*dialog.*)$" },
-    { title = "^(.*dialog.*)$" },
-    { class = "^(org\\.pulseaudio\\.pavucontrol|blueman-manager|nm-connection-editor|qt[56]ct|kvantummanager|nwg-look)$" },
-    { class = "^(org\\.kde\\.keditfiletype|.*[Cc]alc.*)$" },
+    { class = "^(org\\.pulseaudio\\.pavucontrol|blueman-manager|nwg-look)$" },
+    { class = "^(.*[Cc]alc.*)$" },
 }
 for _, m in ipairs(floating) do hl.window_rule({ match = m, float = true }) end
 
 -- size and place a few apps
 hl.window_rule({ match = { class = "^(.*[Cc]alc.*)$" }, size = { "max(monitor_w, monitor_h)*0.17", "min(monitor_w, monitor_h)*0.43" } })
-hl.window_rule({ match = { class = "^(org\\.kde\\.ark)$" }, size = { "max(monitor_w, monitor_h)*0.40", "min(monitor_w, monitor_h)*0.40" } })
 hl.window_rule({ match = { class = "^(.*satty.*)$", title = "^(Satty)$" }, float = true, min_size = { "max(monitor_w, monitor_h)*0.35", "min(monitor_w, monitor_h)*0.35" } })
-hl.window_rule({ match = { class = "^(.*[Ll]auncher.*)$" }, float = true })
 hl.window_rule({ match = { class = "^(.*\\.exe)$", float = true }, center = true, fullscreen_state = 0 }) -- Windows programs (Wine)
 
 -- Thunar opens floating, under the pointer (its dialogs keep their own size)
@@ -88,8 +85,8 @@ hl.window_rule({ match = { class = "^(steam)$", title = "^(Launching\\.{3})$" },
 
 -- these stay fully opaque if you lower window opacity in the settings
 hl.window_rule({ match = { class = "^(firefox|zen)$" }, opacity = "1.0 override" })
-hl.window_rule({ match = { class = "^(kitty|ghostty|[Kk]onsole|Alacritty|foot)$" }, opacity = "1.0 override" })
-hl.window_rule({ match = { class = "^(mpv|org\\.kde\\.haruna|.*plex.*|org\\.kde\\.gwenview|.*vlc.*)$" }, opacity = "1.0 override" })
+hl.window_rule({ match = { class = "^(kitty|ghostty|Alacritty|foot)$" }, opacity = "1.0 override" })
+hl.window_rule({ match = { class = "^(mpv|.*vlc.*)$" }, opacity = "1.0 override" })
 
 -- Hyprland's run dialog
 hl.window_rule({
@@ -99,7 +96,15 @@ hl.window_rule({
     float = true,
 })
 
--- Oblio's shell: frosted glass only where it's drawn; it animates itself, so no Hyprland animation on top
-hl.layer_rule({ match = { namespace = "oblio-dock" }, blur = true, ignore_alpha = 0.1, no_anim = true })
--- settings panel: blur behind the card, not the dimmed screen around it
+-- Oblio's shell. Edge panels animate themselves; one that isn't opaque and wants blur uses the
+-- "-blur" namespace (edges/EdgePanel.qml), blurred only where it's drawn
+for _, name in ipairs({ "oblio-bar", "oblio-dock" }) do
+    hl.layer_rule({ match = { namespace = name }, no_anim = true })
+    hl.layer_rule({ match = { namespace = name .. "-blur" }, blur = true, ignore_alpha = 0.01, no_anim = true })
+end
+-- app launcher and notification cards: blurred behind
+hl.layer_rule({ match = { namespace = "rofi" }, blur = true, ignore_alpha = 0.02 })
+hl.layer_rule({ match = { namespace = "oblio-notifications" }, blur = true, ignore_alpha = 0.5, no_anim = true })
+-- settings and popovers: blur behind the card, not the dimmed or clear screen around it
 hl.layer_rule({ match = { namespace = "oblio-settings" }, blur = true, ignore_alpha = 0.5, no_anim = true })
+hl.layer_rule({ match = { namespace = "oblio-popup" }, blur = true, ignore_alpha = 0.5, no_anim = true })

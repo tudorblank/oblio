@@ -10,7 +10,7 @@ Item {
 
     implicitWidth: 42
     implicitHeight: 24
-    opacity: enabled ? 1 : 0.4
+    opacity: enabled ? 1 : Theme.disabledOpacity
 
     Rectangle {
         anchors.fill: parent

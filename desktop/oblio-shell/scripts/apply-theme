@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Pushes Oblio's theme to the rest of the system; the shell runs it on start and on every change.
-#   apply-theme MODE ACCENT ACCENT_FG ADWAITA_ACCENT UI_FONT MONO_FONT SIZE
-# MODE dark|light, ACCENT/ACCENT_FG #rrggbb, ADWAITA_ACCENT one of libadwaita's named accents.
+# Pushes Oblio's theme to the rest of the system; the shell (services/SystemTheme.qml) runs it on
+# start and on every change, with Theme's values in OBLIO_* variables: MODE dark|light, ACCENT,
+# ACCENT_FG, ACCENT_NAMED (libadwaita's nearest named accent), BG, FG, SUBTEXT (#rrggbb), POPUP,
+# CARD, BORDER, HOVER (#rrggbbaa), FONT_UI, FONT_MONO, FONT_ICONS, FONT_SIZE, RADIUS.
 
 set -euo pipefail
 
-mode=$1 accent=$2 accent_fg=$3 named=$4 ui=$5 mono=$6 size=$7
+mode=$OBLIO_MODE accent=$OBLIO_ACCENT accent_fg=$OBLIO_ACCENT_FG named=$OBLIO_ACCENT_NAMED
+bg=$OBLIO_BG fg=$OBLIO_FG ui=$OBLIO_FONT_UI mono=$OBLIO_FONT_MONO size=$OBLIO_FONT_SIZE radius=$OBLIO_RADIUS
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
 themes="${XDG_DATA_HOME:-$HOME/.local/share}/themes"
@@ -27,11 +29,11 @@ put() {
 
 if [[ $mode == light ]]; then
     base=adw-gtk3 scheme=prefer-light icons=(WhiteSur Papirus-Light)
-    bg='#f4f4f6' fg='#1c1c21'
 else
     base=adw-gtk3-dark scheme=prefer-dark icons=(WhiteSur-dark Papirus-Dark)
-    bg='#141417' fg='#e6e6ea'
 fi
+# a value inside double quotes (TOML, rasi)
+quote() { sed 's/\\/\\\\/g; s/"/\\"/g' <<< "$1"; }
 # the first icon set that's installed (WhiteSur comes from setup, Papirus from the repos)
 icon=Adwaita
 for i in "${icons[@]}"; do
@@ -47,7 +49,7 @@ colors="@define-color accent_bg_color $accent;
 # open apps restyle at once.
 theme_css() {
     printf '@import url("file:///usr/share/themes/%s/%s/gtk.css");\n%s\n' "$base" "$1" "$colors"
-    # apps with a look of their own: theme/<gtk version>/<app>.css, scoped to that app's windows
+    # apps with a look of their own: theme/<gtk version>/<app>.css
     local f
     for f in "$here/../theme/$1"/*.css; do [[ -e $f ]] && cat "$f"; done
     return 0
@@ -55,7 +57,8 @@ theme_css() {
 current="$(gs_get gtk-theme)"
 next=Oblio
 [[ $current == Oblio ]] && next=Oblio-Alt
-if [[ $current != Oblio && $current != Oblio-Alt ]] || ! cmp -s <(theme_css gtk-3.0) "$themes/$current/gtk-3.0/gtk.css"; then
+if [[ $current != Oblio && $current != Oblio-Alt ]] || ! cmp -s <(theme_css gtk-3.0) "$themes/$current/gtk-3.0/gtk.css" \
+        || ! cmp -s <(theme_css gtk-4.0) "$themes/$current/gtk-4.0/gtk.css"; then
     for v in gtk-3.0 gtk-4.0; do theme_css $v | put "$themes/$next/$v/gtk.css" || true; done
     printf '[Desktop Entry]\nType=X-GNOME-Metatheme\nName=%s\n\n[X-GNOME-Metatheme]\nGtkTheme=%s\n' "$next" "$next" \
         | put "$themes/$next/index.theme" || true
@@ -90,8 +93,8 @@ put "$cfg/fontconfig/conf.d/50-oblio-fonts.conf" <<XML || true
 </fontconfig>
 XML
 
-# terminal: alacritty.toml imports this file and reloads when it changes
-toml() { sed 's/\\/\\\\/g; s/"/\\"/g' <<< "$1"; }
+# terminal: alacritty.toml imports this file and reloads when it changes; the ANSI colors are the
+# terminal's own
 if [[ $mode == light ]]; then
     normal=(  '#2b2b31' '#c8323b' '#3f7d14' '#9a6f00' '#2f6fd1' '#8a46c2' '#1a8282' '#d6d6dc')
     bright=(  '#6a6a74' '#e0444d' '#529a22' '#b88600' '#4a86e8' '#a05cd6' '#21a0a0' '#f4f4f6')
@@ -102,10 +105,23 @@ fi
 names=(black red green yellow blue magenta cyan white)
 {
     printf '# written by Oblio'"'"'s settings (SUPER+I > Appearance), edits here get overwritten\n\n'
-    printf '[font]\nsize = %s\nnormal = { family = "%s" }\n\n' "$size" "$(toml "$mono")"
+    printf '[font]\nsize = %s\nnormal = { family = "%s" }\n\n' "$size" "$(quote "$mono")"
     printf '[colors.primary]\nbackground = "%s"\nforeground = "%s"\n\n' "$bg" "$fg"
     printf '[colors.cursor]\ncursor = "%s"\ntext = "%s"\n\n' "$accent" "$bg"
     printf '[colors.selection]\nbackground = "%s"\ntext = "%s"\n\n' "$accent" "$accent_fg"
     printf '[colors.normal]\n'; for i in "${!names[@]}"; do printf '%s = "%s"\n' "${names[$i]}" "${normal[$i]}"; done
     printf '\n[colors.bright]\n'; for i in "${!names[@]}"; do printf '%s = "%s"\n' "${names[$i]}" "${bright[$i]}"; done
 } | put "$cfg/alacritty/oblio-theme.toml" || true
+
+# app launcher: rofi's config.rasi imports this (rofi colors are #rrggbbaa)
+{
+    printf '/* written by Oblio'"'"'s settings (SUPER+I > Appearance), edits here get overwritten */\n'
+    printf 'configuration { icon-theme: "%s"; }\n' "$(quote "$icon")"
+    printf '* {\n'
+    printf '    bg: %s;\n    fg: %s;\n    card: %s;\n    line: %s;\n    subtle: %s;\n    selected: %s;\n' \
+        "$OBLIO_POPUP" "$fg" "$OBLIO_CARD" "$OBLIO_BORDER" "$OBLIO_SUBTEXT" "$OBLIO_HOVER"
+    # the shell's card corners (Theme.radius); rows sit 8 px in, on the same curve
+    printf '    radius: %spx;\n    inner-radius: %spx;\n' "$radius" "$(( radius > 12 ? radius - 8 : 4 ))"
+    printf '    ui-font: "%s 12";\n    search-font: "%s 15";\n    icon-font: "%s 15";\n}\n' \
+        "$(quote "$ui")" "$(quote "$ui")" "$(quote "$OBLIO_FONT_ICONS")"
+} | put "$cfg/rofi/oblio-theme.rasi" || true

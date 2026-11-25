@@ -26,9 +26,6 @@ source=('mkinitcpio.conf'
         'editor.sh'
         'editor.fish')
 
-
-
-
 sha256sums=('7a4df2ccfa249f33c6269d84583639e80ea6fd6a3ead9f09c75fe6c87312367c'
             '9286a80166d3427f962c0714d4e5104d40a844aedade8f393c1213e909513955'
             'c7a5426644aeb65dcd705744f4bd8d1b0645e60e541541da5869dd7cc5948f79'

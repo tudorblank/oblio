@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# The app launcher (rofi). While it's open, window keybinds are off like in the shell's menus
+# (the "oblio-menu" submap in binds.lua): SUPER+Q, Esc or a click outside close it. Run again, it
+# closes.
+pkill -x rofi && exit 0
+hyprctl dispatch 'hl.dsp.submap("oblio-menu")' >/dev/null
+rofi -show drun "$@"
+# a shell menu can still be open: the shell knows which mode is right
+qs -p "$(dirname "$0")/.." ipc call menus sync 2>/dev/null || hyprctl dispatch 'hl.dsp.submap("reset")' >/dev/null

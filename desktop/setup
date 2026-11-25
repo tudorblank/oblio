@@ -44,6 +44,7 @@ packages=(
     qt6-wayland                  # Qt apps run natively on Wayland
     qt6-imageformats             # WebP and TIFF wallpapers
     alacritty                    # terminal
+    fastfetch                    # system info with Oblio's logo (fastfetch in a terminal)
     xdg-utils                    # xdg-open: apps open links and files in the right program
     fuse2                        # AppImages
     thunar                       # file manager

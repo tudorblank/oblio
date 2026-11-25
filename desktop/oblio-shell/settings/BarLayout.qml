@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Settings > Bar > Widgets: the bar's islands, in order along it, as rows of chips. Drag a chip to
 // move it (into another island too), × removes it, + adds one; a click on a chip shows its
-// options. Each island's header moves it along the bar, removes it, and (bar split into its
-// islands) picks continuous or scattered.
+// options. Drag an island by its header to move it along the bar; the header also removes it and
+// (bar split into its islands) picks continuous or scattered.
 import QtQuick
 import Quickshell
 import qs.services
@@ -22,8 +22,30 @@ Item {
     property int dropIndex: -1
     property var flows: ({})
     function endDrag() { dragging = ""; dropIsland = ""; dropIndex = -1 }
+
+    // dragging an island by its header: where it goes, before the island at islandTo
+    property string movingIsland: ""
+    property int islandTo: -1
+    property var rows: ({})
+    function islandAt(y) {
+        let i = 0
+        for (const uid of BarWidgets.islandUids) {
+            const r = rows[uid]
+            if (r && y > r.mapToItem(ed, 0, r.height / 2).y) i++
+        }
+        return i
+    }
+    // where a dragged island would go: an accent line along the top of its row
+    component IslandMark: Rectangle {
+        property bool on: false
+        visible: on
+        x: 16
+        width: parent.width - 32
+        height: 2
+        radius: 1
+        color: Theme.accent
+    }
     readonly property bool split: Settings.opts.barShape === "floating" && Settings.opts.barIslands === "sections"
-    readonly property bool side: Settings.opts.barEdge === "left" || Settings.opts.barEdge === "right"
 
     width: parent ? parent.width : 0
     height: content.implicitHeight
@@ -100,8 +122,12 @@ Item {
                     function chips() { return flow.children.filter(c => c.uid !== undefined) }
                     width: parent.width
                     height: spacingRow.y + spacingRow.height + 12
+                    opacity: ed.movingIsland === modelData ? 0.35 : 1
+                    Component.onCompleted: ed.rows[modelData] = laneRow
+                    Component.onDestruction: if (ed.rows[modelData] === laneRow) delete ed.rows[modelData]
 
                     Divider { visible: laneRow.index > 0; inset: 16; space: 1 }
+                    IslandMark { on: ed.movingIsland !== "" && ed.islandTo === laneRow.index }
 
                     Rectangle {
                         anchors.fill: parent
@@ -110,7 +136,7 @@ Item {
                         color: laneRow.dropHere ? Theme.tint(Theme.accent, 0.08) : "transparent"
                     }
 
-                    // Island N, then its style and its moves along the bar
+                    // Island N, dragged to move it along the bar, then its style
                     Item {
                         id: head
                         x: 16
@@ -118,12 +144,37 @@ Item {
                         width: parent.width - 32
                         height: Theme.controlHeight
 
-                        Text {
+                        DragArea {
+                            anchors.fill: parent
+                            cursorShape: carrying ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                            function follow(at) { ed.islandTo = ed.islandAt(mapToItem(ed, at.x, at.y).y) }
+                            onDragStarted: at => { ed.movingIsland = laneRow.modelData; follow(at) }
+                            onDragMoved: at => follow(at)
+                            onDropped: {
+                                // moving it rebuilds the rows: finish the drag first
+                                const uid = ed.movingIsland, to = ed.islandTo
+                                ed.movingIsland = ""
+                                ed.islandTo = -1
+                                BarWidgets.placeIsland(uid, to)
+                            }
+                            onDragCanceled: { ed.movingIsland = ""; ed.islandTo = -1 }
+                        }
+                        Row {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "Island " + (laneRow.index + 1)
-                            color: Theme.text
-                            font.family: Theme.fontUi
-                            font.pixelSize: Theme.textTitle
+                            spacing: 8
+                            Glyph {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: Icons.drag
+                                color: Theme.subtext
+                                size: 14
+                            }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "Island " + (laneRow.index + 1)
+                                color: Theme.text
+                                font.family: Theme.fontUi
+                                font.pixelSize: Theme.textTitle
+                            }
                         }
                         Row {
                             anchors.right: parent.right
@@ -138,19 +189,6 @@ Item {
                                 onPicked: v => BarWidgets.setStyle(laneRow.modelData, v)
                             }
                             Item { visible: ed.split; width: 6; height: 1 }
-                            IconButton {
-                                size: 28
-                                icon: ed.side ? Icons.chevronDown : Icons.chevronLeft
-                                rotation: ed.side ? 180 : 0
-                                enabled: laneRow.index > 0
-                                onClicked: BarWidgets.moveIsland(laneRow.modelData, -1)
-                            }
-                            IconButton {
-                                size: 28
-                                icon: ed.side ? Icons.chevronDown : Icons.chevronRight
-                                enabled: laneRow.index < BarWidgets.islandUids.length - 1
-                                onClicked: BarWidgets.moveIsland(laneRow.modelData, 1)
-                            }
                             IconButton {
                                 size: 28
                                 icon: Icons.trash
@@ -368,6 +406,7 @@ Item {
                 height: Theme.controlHeight + 16
 
                 Divider { inset: 16; space: 1 }
+                IslandMark { on: ed.movingIsland !== "" && ed.islandTo === BarWidgets.islandUids.length }
                 Rectangle {
                     anchors.fill: parent
                     anchors.margins: 4
@@ -400,7 +439,7 @@ Item {
         Text {
             leftPadding: 4
             width: parent.width
-            text: "Drag to rearrange, + to add, × to remove, click one for its options. Islands spread out along the bar in this order: the first at its start, the last at its end."
+            text: "Drag a widget to move it, + to add, × to remove, click one for its options. Drag an island by its name to move it: islands spread out along the bar in this order, the first at its start, the last at its end."
             wrapMode: Text.WordWrap
             color: Theme.subtext
             font.family: Theme.fontUi

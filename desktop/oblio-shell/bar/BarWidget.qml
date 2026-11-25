@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // What every bar widget (bar/widgets/) is: content as long as `length` along the bar (0 hides
-// it), as thick as the bar. On a side bar (vertical) the widget lays itself out in a column.
+// it), as thick as the bar. On a side bar (vertical) the widget lays itself out in a column. Every
+// size comes from m, the bar's one scale (BarWidgets.metrics); icons are Glyphs in an m.icon square.
 // The bar adds the padding, the hover highlight and, when scattered, its island.
 // A widget with a popup opens it on a left click; a right click opens the bar's menu unless the
 // widget handles it (handlesRightClick).
@@ -27,12 +28,7 @@ Item {
 
     readonly property bool vertical: bar ? bar.vertical : false
     readonly property real thickness: bar ? bar.thickness : 32
-    readonly property int textSize: Math.max(11, Math.round(thickness * 0.4))
-    // text on a side bar: smaller, so a value fits across it
-    readonly property int smallText: Math.max(9, Math.round(thickness * 0.3))
-    readonly property int iconSize: Math.max(12, Math.round(thickness * 0.5))
-    // between an icon and its value: the same for every widget
-    readonly property int gap: Math.round(thickness * 0.18)
+    readonly property var m: BarWidgets.metrics(thickness)
     readonly property bool hovered: hover.hovered
     readonly property bool popupOpen: bar !== null && bar.popupOwner === w
     function opt(key) { return BarWidgets.option(entry, key) }

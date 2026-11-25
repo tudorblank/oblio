@@ -39,7 +39,7 @@ BarWidget {
 
     reveal: shown ? 1 : 0
     Behavior on reveal { Anim {} }
-    length: (vertical ? Math.round(thickness * 0.62) : row.implicitWidth) * reveal
+    length: (vertical ? m.picture : row.implicitWidth) * reveal
     clip: true
     popup: panel
     popupWidth: 340
@@ -49,14 +49,14 @@ BarWidget {
         id: row
         anchors.centerIn: parent
         opacity: w.reveal
-        spacing: Math.round(w.thickness * 0.22)
+        spacing: w.m.gap
 
         ClippingRectangle {
             visible: w.opt("art") && w.keptArt !== ""
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.round(w.thickness * 0.62)
+            width: w.m.picture
             height: width
-            radius: Math.round(width * 0.22)
+            radius: w.m.pictureRadius
             color: Theme.card
             Image {
                 anchors.fill: parent
@@ -67,13 +67,11 @@ BarWidget {
                 asynchronous: true
             }
         }
-        Text {
+        Glyph {
             visible: !(w.opt("art") && w.keptArt !== "")
             anchors.verticalCenter: parent.verticalCenter
             text: w.playing ? Icons.music : Icons.pause
-            color: Theme.text
-            font.family: Theme.iconFont
-            font.pixelSize: w.iconSize
+            size: w.m.icon
         }
         TextMetrics { id: metrics; font: label.font; text: label.text }
         Text {
@@ -86,7 +84,7 @@ BarWidget {
             color: Theme.text
             opacity: w.playing ? 1 : 0.6
             font.family: Theme.fontUi
-            font.pixelSize: w.textSize
+            font.pixelSize: w.m.text
             font.weight: Font.Medium
         }
     }

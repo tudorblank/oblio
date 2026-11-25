@@ -34,7 +34,7 @@ BarWidget {
         flow: w.vertical ? Grid.TopToBottom : Grid.LeftToRight
         horizontalItemAlignment: Grid.AlignHCenter
         verticalItemAlignment: Grid.AlignVCenter
-        spacing: w.numbers ? 2 : Math.round(w.thickness * 0.16)
+        spacing: w.numbers ? 0 : w.m.gap
 
         Repeater {
             model: w.last
@@ -45,10 +45,9 @@ BarWidget {
                 readonly property int number: index + 1
                 readonly property bool current: number === w.active
                 readonly property bool occupied: w.windows(number) > 0
-                readonly property real dot: Math.round(w.thickness * 0.28)
                 // the current one is a longer pill along the bar
-                readonly property real along: w.numbers ? Math.round(w.thickness * 0.78) : current ? dot * 2.6 : dot
-                readonly property real across: w.numbers ? along : dot
+                readonly property real along: w.numbers ? w.m.cell : current ? w.m.pill : w.m.dot
+                readonly property real across: w.numbers ? w.m.cell : w.m.dot
                 width: w.vertical ? across : along
                 height: w.vertical ? along : across
 
@@ -71,7 +70,7 @@ BarWidget {
                     color: ws.current ? Theme.accentFg : Theme.text
                     opacity: ws.current || ws.occupied ? 1 : 0.45
                     font.family: Theme.fontUi
-                    font.pixelSize: w.textSize - 1
+                    font.pixelSize: w.m.text
                     font.weight: ws.current ? Font.Bold : Font.Medium
                     font.features: { "tnum": 1 }
                 }

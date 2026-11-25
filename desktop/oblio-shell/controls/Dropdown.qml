@@ -31,6 +31,7 @@ Item {
             spacing: 8
 
             Text {
+                id: currentLabel
                 text: dd.current ? dd.current.label : ""
                 color: Theme.text
                 font.family: Theme.fontFor(text)
@@ -38,6 +39,7 @@ Item {
                 font.weight: Font.Medium
             }
             Text {
+                anchors.baseline: currentLabel.baseline
                 text: dd.current?.tag ?? ""
                 color: Theme.accentText
                 font.family: Theme.fontUi
@@ -103,6 +105,7 @@ Item {
                 spacing: 8
 
                 Text {
+                    id: optionLabel
                     text: option.modelData.label
                     color: Theme.text
                     font.family: option.modelData.font ?? Theme.fontFor(text)
@@ -110,6 +113,7 @@ Item {
                     font.weight: option.selected ? Font.DemiBold : Font.Normal
                 }
                 Text {
+                    anchors.baseline: optionLabel.baseline
                     text: option.modelData.tag ?? ""
                     color: Theme.accentText
                     font.family: Theme.fontUi

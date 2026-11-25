@@ -19,8 +19,9 @@ EdgePanel {
     // floating: one surface, or split into its islands
     readonly property bool split: floating && o.barIslands === "sections"
     readonly property bool spread: shape === "full" || o.barLength === "fixed"
-    readonly property int laneGap: split ? 6 : 8
-    padding: split ? 0 : floating ? 6 : 10
+    readonly property var m: BarWidgets.metrics(thickness)
+    readonly property int laneGap: split ? m.gap : m.pad
+    padding: split ? 0 : floating ? m.gap : m.pad
     drawSurface: !split
 
     // the islands the bar draws when it's split: a section's, or a widget's
@@ -98,7 +99,7 @@ EdgePanel {
         readonly property var item: loader.item
         readonly property bool shows: item !== null && item.length > 0
         // continuous: room around each widget for its hover highlight; scattered: inside its island
-        readonly property real pad: item && item.island ? Math.round(root.thickness * (scattered ? 0.4 : 0.26)) * item.reveal : 0
+        readonly property real pad: item && item.island ? (scattered ? root.m.padIsland : root.m.pad) * item.reveal : 0
         readonly property real natural: shows ? item.length + 2 * pad : 0
         readonly property bool stretchy: shows && item.expand && root.spread
         readonly property bool expanding: stretchy && lane !== undefined && lane.grows
@@ -115,7 +116,7 @@ EdgePanel {
         Rectangle {
             visible: slot.item !== null && slot.item.interactive && slot.item.hovered
             anchors.fill: parent
-            anchors.margins: slot.scattered ? 3 : Math.round(root.thickness * 0.12)
+            anchors.margins: root.m.inset
             radius: root.rounded(height)
             color: Theme.hover
         }
@@ -151,7 +152,7 @@ EdgePanel {
         readonly property bool scattered: root.split && BarWidgets.island(modelData)?.style === "scattered"
         // a continuous island of a split bar is drawn as one, with room at its ends
         readonly property bool boxed: root.split && !scattered
-        readonly property real pad: boxed ? 6 : 0
+        readonly property real pad: boxed ? root.m.gap : 0
         // how long it is without expanding spacers, how long it may get, and where it starts
         readonly property real natural: {
             let n = 0, c = 0
@@ -192,7 +193,7 @@ EdgePanel {
             columns: root.vertical ? 1 : -1
             flow: root.vertical ? Grid.TopToBottom : Grid.LeftToRight
             // between its widgets only: Grid leaves the ends alone
-            spacing: (section.scattered ? 6 : 0) + (BarWidgets.island(section.modelData)?.spacing ?? 0)
+            spacing: (section.scattered ? root.m.gap : 0) + (BarWidgets.island(section.modelData)?.spacing ?? 0)
 
             Repeater {
                 model: ScriptModel { values: BarWidgets.uids(section.modelData) }

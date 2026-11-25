@@ -27,7 +27,7 @@ BarWidget {
             Item {
                 id: slot
                 required property var modelData
-                width: Math.round(w.thickness * 0.8)
+                width: w.m.cell
                 height: width
 
                 function menu() {
@@ -45,7 +45,7 @@ BarWidget {
                 }
                 IconImage {
                     anchors.centerIn: parent
-                    implicitSize: w.iconSize
+                    implicitSize: w.m.icon
                     source: slot.modelData.icon
                 }
                 MouseArea {

@@ -22,33 +22,33 @@ BarWidget {
     readonly property bool showTitle: opt("title") && !vertical
 
     interactive: false
-    length: !here ? 0 : vertical ? (showIcon ? iconSize : 0)
-        : Math.min((showIcon ? iconSize : 0) + (showIcon && showTitle ? gap : 0)
+    length: !here ? 0 : vertical ? (showIcon ? m.icon : 0)
+        : Math.min((showIcon ? m.icon : 0) + (showIcon && showTitle ? m.gap : 0)
                    + (showTitle ? Math.ceil(metrics.advanceWidth) + 1 : 0), opt("maxLength"))
 
     TextMetrics { id: metrics; font: label.font; text: w.title }
 
     Row {
         anchors.centerIn: parent
-        spacing: w.gap
+        spacing: w.m.gap
 
         IconImage {
             visible: w.showIcon
             anchors.verticalCenter: parent.verticalCenter
-            implicitSize: w.iconSize
+            implicitSize: w.m.icon
             source: w.iconSource
         }
         Text {
             id: label
             visible: w.showTitle
             anchors.verticalCenter: parent.verticalCenter
-            width: w.length - (w.showIcon ? w.iconSize + w.gap : 0)
+            width: w.length - (w.showIcon ? w.m.icon + w.m.gap : 0)
             text: w.title
             elide: Text.ElideRight
             color: Theme.text
             opacity: 0.8
             font.family: Theme.fontUi
-            font.pixelSize: w.textSize
+            font.pixelSize: w.m.text
         }
     }
 }

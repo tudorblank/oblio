@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// The bell: unread notifications (services/Notifications.qml), Do Not Disturb. The popup lists
-// them, newest first; opening it marks them read.
+// The bell: the notification history (services/Notifications.qml), with the unread count if its
+// option says so, and Do Not Disturb. The popup lists them, newest first; opening it marks them read.
 import QtQuick
 import Quickshell
 import qs.services
@@ -48,7 +48,7 @@ BarWidget {
                     font.weight: Font.DemiBold
                 }
                 Button {
-                    visible: Notifications.all.length > 0
+                    visible: Notifications.history.length > 0
                     anchors.right: parent.right
                     anchors.rightMargin: 6
                     anchors.verticalCenter: parent.verticalCenter
@@ -78,32 +78,32 @@ BarWidget {
             }
 
             Text {
-                visible: Notifications.all.length === 0
+                visible: Notifications.history.length === 0
                 width: parent.width
                 topPadding: 18
                 bottomPadding: 22
                 horizontalAlignment: Text.AlignHCenter
-                text: "Nothing new"
+                text: "No notifications"
                 color: Theme.subtext
                 font.family: Theme.fontUi
                 font.pixelSize: Theme.textLabel
             }
 
             ListView {
-                visible: Notifications.all.length > 0
+                visible: Notifications.history.length > 0
                 width: parent.width
                 height: Math.min(contentHeight, 460)
                 clip: true
                 spacing: 6
                 boundsBehavior: Flickable.StopAtBounds
-                model: ScriptModel { values: Notifications.all }
+                model: ScriptModel { values: Notifications.history; objectProp: "key" }
                 delegate: NotificationCard {
                     required property var modelData
                     width: ListView.view.width
-                    notification: modelData
+                    entry: modelData
                     compact: true
-                    color: Theme.card
-                    onClosed: modelData.dismiss()
+                    // a local first: removing it removes this card
+                    onClosed: { const key = modelData.key; Notifications.remove(key) }
                 }
             }
         }

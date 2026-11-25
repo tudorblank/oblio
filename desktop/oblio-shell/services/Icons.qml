@@ -36,6 +36,7 @@ Singleton {
     readonly property string image: "\u{f02e9}"
     readonly property string folder: "\u{f024b}"
     readonly property string edit: "\u{f03eb}"
+    readonly property string drag: "\u{f01dd}"
 
     // bar widgets
     readonly property string workspaces: "\u{f0570}"

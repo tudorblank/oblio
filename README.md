@@ -163,9 +163,12 @@ network, type its password), Bluetooth (connect, pair), notifications, power (lo
 restart, shut down), apps, settings, spacers (fixed, or stretching into the free room) and
 separators. A right click on the bar opens a menu with Settings.
 
-Notifications: the shell is the notification server. New ones show as cards in the corner for a few
-seconds (critical ones stay); all of them wait under the bell until dismissed. Do Not Disturb (in
-the bell's list, or a middle click on it) keeps the cards away.
+Notifications: the shell is the notification server. New ones show as cards in the corner for 7
+seconds (or as long as the app asks, 3 at least), counting down on a line along their bottom that
+stops while the pointer is on them, then fold away; critical ones stay. The bell keeps them all, across
+restarts, until you remove them, and can show how many are unread (an option of the widget); opening
+it marks them read. Notices that are only meant for the moment (the floating mode's, say) stay out
+of it. Do Not Disturb (in the bell's list, or a middle click on it) keeps the cards away.
 
 While a shell menu is open (settings, a bar or dock popover), keybinds don't reach the windows and a
 click outside only closes the menu. SUPER+Q, SUPER+I or Esc close it.

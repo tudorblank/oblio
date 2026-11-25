@@ -9,12 +9,12 @@ BarWidget {
     island: false
     interactive: false
     // nothing to separate between islands
-    length: inScattered ? 0 : 9
+    length: inScattered ? 0 : m.gap + 1
 
     Rectangle {
         anchors.centerIn: parent
-        width: w.vertical ? Math.round(w.thickness * 0.5) : 1
-        height: w.vertical ? 1 : Math.round(w.thickness * 0.5)
+        width: w.vertical ? w.m.icon : 1
+        height: w.vertical ? 1 : w.m.icon
         color: Theme.border
     }
 }

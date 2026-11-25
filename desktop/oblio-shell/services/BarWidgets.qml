@@ -115,6 +115,27 @@ Singleton {
 
     function info(type) { return catalog.find(c => c.type === type) ?? null }
 
+    // the bar's one scale: every widget, slot and island takes its sizes from these, each a share
+    // of the bar's thickness, so a thicker bar grows everything alike. Nothing on the bar sizes
+    // itself any other way
+    function metrics(thickness) {
+        const t = thickness
+        return {
+            icon: Math.max(12, Math.round(t * 0.44)),       // an icon's square: glyphs (Glyph), app and tray icons
+            text: Math.max(11, Math.round(t * 0.4)),        // text along the bar
+            smallText: Math.max(9, Math.round(t * 0.3)),    // text across a side bar
+            picture: Math.round(t * 0.62),                  // album art
+            pictureRadius: Math.round(t * 0.14),
+            cell: Math.round(t * 0.78),                     // a square to click inside a widget: a tray icon, a workspace
+            dot: Math.round(t * 0.28),                      // a workspace pill, across
+            pill: Math.round(t * 0.72),                     // the current workspace's pill, along
+            gap: Math.round(t * 0.18),                      // icon to value, item to item, island to island
+            pad: Math.round(t * 0.26),                      // a widget's room on each side, in a continuous island
+            padIsland: Math.round(t * 0.4),                 // the same, alone in its island (scattered)
+            inset: Math.round(t * 0.12),                    // the hover highlight, inside that room
+        }
+    }
+
     readonly property var islands: {
         const v = Settings.opts.barWidgets ?? []
         // (what the settings file gives back is a list, but not a JS Array)
@@ -182,11 +203,12 @@ Singleton {
     function removeIsland(uid) {
         if (islands.length > 1) change(l => l.splice(l.findIndex(i => i.uid === uid), 1))
     }
-    function moveIsland(uid, by) {
+    // to before the island now at index (the number of islands: the end)
+    function placeIsland(uid, index) {
         change(l => {
-            const at = l.findIndex(i => i.uid === uid), to = at + by
-            if (at < 0 || to < 0 || to >= l.length) return
-            l.splice(to, 0, l.splice(at, 1)[0])
+            const at = l.findIndex(i => i.uid === uid)
+            if (at < 0) return
+            l.splice(index > at ? index - 1 : index, 0, l.splice(at, 1)[0])
         })
     }
     function setSpacing(uid, px) {

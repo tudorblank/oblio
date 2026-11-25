@@ -1,23 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// One notification: app icon, app and time, summary, body, its picture, its actions. Clicking it
-// runs its default action (without one: seen(), the toast goes, the notification stays listed);
-// × dismisses it (closed()). Running an action closes the notification
-// (unless the app keeps it), which removes this card: handlers keep what they need in locals.
+// One notification entry (services/Notifications.qml): app icon, app and time, summary, body, its
+// picture, and its actions while the app still keeps it. Clicking it runs its default action
+// (without one: seen()); × is closed(). remaining (0..1, a card on its own) draws how long it has
+// left as a line along its bottom, shrinking to the left.
 import QtQuick
 import Quickshell.Widgets
-import Quickshell.Services.Notifications
 import qs.services
 import qs.controls
 
 Rectangle {
     id: card
 
-    required property var notification
-    readonly property var n: notification
+    required property var entry
     property bool compact: false        // in the list: fewer lines
+    property real remaining: -1         // -1: no countdown
     readonly property bool hovered: hover.hovered
-    readonly property var defaultAction: n.actions.find(a => a.identifier === "default") ?? null
-    readonly property var buttons: n.actions.filter(a => a.identifier !== "default")
+    readonly property var buttons: Notifications.live[entry.key] ? Notifications.actions(entry.key) : []
+    readonly property bool clickable: Notifications.live[entry.key]?.actions.some(a => a.identifier === "default") ?? false
     signal closed()
     signal seen()
 
@@ -29,18 +28,13 @@ Rectangle {
     radius: compact ? Theme.inner(8) : Theme.radius
     color: compact ? Theme.card : look.fill
     border.width: 1
-    border.color: n.urgency === NotificationUrgency.Critical ? Theme.tint(Theme.danger, 0.6) : compact ? Theme.hairline : look.line
+    border.color: entry.critical ? Theme.tint(Theme.danger, 0.6) : compact ? Theme.hairline : look.line
 
     HoverHandler { id: hover }
     MouseArea {
         anchors.fill: parent
-        cursorShape: card.defaultAction ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onClicked: {
-            if (!card.defaultAction) { card.seen(); return }
-            const n = card.n
-            card.defaultAction.invoke()
-            Notifications.hideToast(n)
-        }
+        cursorShape: card.clickable ? Qt.PointingHandCursor : Qt.ArrowCursor
+        onClicked: if (!Notifications.invoke(card.entry.key, "default")) card.seen()
     }
 
     Column {
@@ -59,7 +53,7 @@ Rectangle {
                 visible: source !== ""
                 anchors.verticalCenter: parent.verticalCenter
                 implicitSize: 16
-                source: Notifications.icon(card.n)
+                source: Notifications.icon(card.entry)
             }
             Text {
                 anchors.left: appIcon.visible ? appIcon.right : parent.left
@@ -67,7 +61,7 @@ Rectangle {
                 anchors.right: close.left
                 anchors.rightMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
-                text: (card.n.appName || "Notification") + "  ·  " + Notifications.ago(card.n)
+                text: card.entry.app + "  ·  " + Notifications.ago(card.entry)
                 elide: Text.ElideRight
                 color: Theme.subtext
                 font.family: Theme.fontUi
@@ -92,7 +86,7 @@ Rectangle {
                 spacing: 3
                 Text {
                     width: parent.width
-                    text: card.n.summary
+                    text: card.entry.summary
                     wrapMode: Text.Wrap
                     maximumLineCount: 2
                     elide: Text.ElideRight
@@ -104,7 +98,7 @@ Rectangle {
                 Text {
                     visible: text !== ""
                     width: parent.width
-                    text: card.n.body
+                    text: card.entry.body
                     textFormat: Text.StyledText
                     wrapMode: Text.Wrap
                     maximumLineCount: card.compact ? 2 : 5
@@ -119,14 +113,14 @@ Rectangle {
             }
             ClippingRectangle {
                 id: picture
-                visible: card.n.image !== ""
+                visible: (card.entry.image ?? "") !== ""
                 width: 48
                 height: 48
                 radius: 10
                 color: Theme.card
                 Image {
                     anchors.fill: parent
-                    source: card.n.image
+                    source: card.entry.image ?? ""
                     fillMode: Image.PreserveAspectCrop
                     sourceSize: Qt.size(96, 96)
                     asynchronous: true
@@ -144,13 +138,27 @@ Rectangle {
                 Button {
                     required property var modelData
                     text: modelData.text
-                    onClicked: {
-                        const n = card.n
-                        modelData.invoke()
-                        Notifications.hideToast(n)
-                    }
+                    onClicked: Notifications.invoke(card.entry.key, modelData.identifier)
                 }
             }
+        }
+    }
+
+    // the time left, along the bottom inside the corners
+    Rectangle {
+        visible: card.remaining >= 0
+        x: Theme.radius / 2
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 5
+        width: parent.width - Theme.radius
+        height: 3
+        radius: height / 2
+        color: Theme.hairline
+        Rectangle {
+            width: parent.width * Math.max(0, card.remaining)
+            height: parent.height
+            radius: parent.radius
+            color: Theme.accent
         }
     }
 }

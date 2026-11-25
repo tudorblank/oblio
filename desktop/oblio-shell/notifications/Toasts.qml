@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // New notifications as cards in the corner of the focused screen, on the bar's side (top or
-// bottom). Each one goes after its timeout (5 s when the app doesn't say), but not while the
-// pointer is on it; critical ones stay until dismissed.
+// bottom). Each one counts down its time (Notifications.timeout) on a line along its bottom, paused
+// while the pointer is on it, then folds away; critical ones stay until closed.
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
-import Quickshell.Services.Notifications
 import qs.services
+import qs.controls
 
 PanelWindow {
     id: win
@@ -29,22 +29,46 @@ PanelWindow {
         spacing: 8
 
         Repeater {
-            model: ScriptModel { values: Notifications.toasts }
+            model: ScriptModel { values: Notifications.toasts; objectProp: "key" }
 
-            NotificationCard {
+            // the card, folding its room away as it goes
+            Item {
                 id: toast
                 required property var modelData
-                notification: modelData
-                // hiding it removes this card: keep the notification in a local first
-                onClosed: { const n = modelData; Notifications.hideToast(n); if (!n.transient) n.dismiss() }
-                onSeen: Notifications.hideToast(modelData)
+                readonly property bool critical: modelData.critical
+                property bool leaving: false
+                function leave() { leaving = true }
+                width: list.width
+                height: leaving ? 0 : card.height
+                clip: leaving
+                opacity: leaving ? 0 : 1
 
+                Behavior on height { Anim {} }
+                Behavior on opacity { Anim {} }
+                // gone from the list once folded (a local first: hiding it removes this toast)
                 Timer {
-                    running: toast.n.urgency !== NotificationUrgency.Critical && !toast.hovered
-                    interval: toast.n.expireTimeout > 0 ? toast.n.expireTimeout : 5000
-                    onTriggered: Notifications.hideToast(toast.modelData)
+                    running: toast.leaving
+                    interval: Theme.motionNormal
+                    onTriggered: { const key = toast.modelData.key; Notifications.hideToast(key) }
                 }
-                NumberAnimation on opacity { from: 0; to: 1; duration: Theme.ms(180); easing.type: Easing.OutCubic }
+
+                NotificationCard {
+                    id: card
+                    entry: toast.modelData
+                    remaining: toast.critical ? -1 : timeLeft
+                    property real timeLeft: 1
+                    onClosed: toast.leave()
+                    onSeen: toast.leave()
+
+                    NumberAnimation on timeLeft {
+                        running: !toast.critical
+                        paused: running && card.hovered
+                        from: 1; to: 0
+                        duration: Notifications.timeout(toast.modelData)
+                        onFinished: toast.leave()
+                    }
+                    NumberAnimation on opacity { from: 0; to: 1; duration: Theme.ms(180); easing.type: Easing.OutCubic }
+                }
             }
         }
     }

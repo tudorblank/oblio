@@ -17,6 +17,30 @@ Rectangle {
     readonly property bool hasApps: style.targets.some(t => Styles.isApp(t))
     readonly property var paint: Styles.paint(style, 0.01)
     property bool renaming: false
+    readonly property bool glassOn: style.material === "glass" && Glass.available
+    readonly property bool blurOn: style.material !== "solid"
+
+    // a group's heading inside the card
+    component Heading: SectionLabel {
+        leftPadding: 16
+        topPadding: 14
+        bottomPadding: 2
+    }
+    // a slider row for one of the style's numbers
+    component Slider: SettingRow {
+        id: row
+        property string key
+        property real from: 0
+        property real to: 100
+        property real step: 1
+        property int decimals: 0
+        property string unit: ""
+        ValueSlider {
+            from: row.from; to: row.to; step: row.step; decimals: row.decimals; unit: row.unit
+            value: card.style[row.key]
+            onMoved: v => card.set({ [row.key]: row.decimals ? Number(v.toFixed(row.decimals)) : Math.round(v) })
+        }
+    }
     function set(changes) { Styles.set(uid, changes) }
 
     width: parent ? parent.width : 0
@@ -124,7 +148,7 @@ Rectangle {
                     anchors.margins: 5
                     radius: 6
                     color: card.paint.fill
-                    border.width: 1
+                    border.width: card.paint.lineWidth
                     border.color: card.paint.line
                 }
             }
@@ -189,22 +213,14 @@ Rectangle {
         SettingRow {
             title: "Material"
             description: card.style.material === "solid" ? "Nothing blurred behind it"
-                : "What's behind it, blurred. Glass, Oblio's own, comes next"
+                : !Glass.available ? `Hyprland's blur for now, in Default's look: ${Glass.status}`
+                : card.style.material === "blur" ? "What's behind it, blurred"
+                : "Bends the light at its edges, frosted inside"
             Segmented {
-                options: [{ value: "solid", label: "Solid" }, { value: "blur", label: "Blur" }, { value: "glass", label: "Glass", disabled: true }]
+                options: [{ value: "solid", label: "Solid" }, { value: "blur", label: "Blur" }, { value: "glass", label: "Glass" }]
                 value: card.style.material
                 // opaque hides the blur: make it see-through so the choice shows
                 onPicked: v => card.set(v !== "solid" && card.style.opacity >= 100 ? { material: v, opacity: 70 } : { material: v })
-            }
-        }
-        SettingRow {
-            visible: card.style.material === "blur"
-            title: "Blur strength"
-            description: "Shared by every blur style for now: Hyprland's blur has one strength"
-            ValueSlider {
-                from: 1; to: 16
-                value: Settings.opts.blurSize
-                onMoved: v => Settings.set("blurSize", Math.round(v))
             }
         }
         SettingRow {
@@ -240,6 +256,90 @@ Rectangle {
                 value: card.style.opacity
                 onMoved: v => card.set({ opacity: Math.round(v) })
             }
+        }
+
+        // the outline around a shell part, whatever its material
+        Heading { text: "OUTLINE" }
+        Slider { title: "Width"; description: card.style.outlineWidth > 0 ? "Around the shell's parts; apps keep their window border" : "No outline"; key: "outlineWidth"; from: 0; to: 4; step: 0.5; decimals: 1; unit: " px" }
+        Slider { visible: card.style.outlineWidth > 0; title: "Opacity"; key: "outlineOpacity"; from: 0; to: 100; unit: "%" }
+        SettingRow {
+            visible: card.style.outlineWidth > 0
+            title: "Color"
+            description: card.style.outlineColor === "theme" ? "White in dark mode, black in light" : "A color of your own"
+            Segmented {
+                options: [{ value: "theme", label: "Theme" }, { value: "custom", label: "Custom" }]
+                value: card.style.outlineColor === "theme" ? "theme" : "custom"
+                onPicked: v => card.set({ outlineColor: v === "theme" ? "theme" : outlineColors.colors[0] })
+            }
+        }
+        SettingRow {
+            visible: card.style.outlineWidth > 0 && card.style.outlineColor !== "theme"
+            title: "Outline color"
+            Swatches {
+                id: outlineColors
+                pickerTitle: "Outline color"
+                colors: [Theme.accentHex, "#ffffff", "#000000", "#9ca3af", "#5b9cf5"]
+                value: card.style.outlineColor
+                onPicked: v => card.set({ outlineColor: v })
+            }
+        }
+
+        // blur and glass: how blurred and what color what's behind is
+        Column {
+            visible: card.blurOn
+            width: parent.width
+
+            Heading { text: "BLUR" }
+            Slider { title: "Strength"; description: "How blurred what's behind it is"; key: "blur"; from: 0; to: 12; step: 0.1; decimals: 1 }
+            Slider { title: "Brightness"; key: "brightness"; from: 50; to: 150; unit: "%" }
+            Slider { title: "Saturation"; key: "saturation"; from: 0; to: 200; unit: "%" }
+            Slider { title: "Contrast"; key: "contrast"; from: 50; to: 150; unit: "%" }
+            Slider { title: "Noise"; description: "A fine grain, like frosted glass"; key: "noise"; from: 0; to: 100; unit: "%" }
+        }
+
+        // glass: refraction and highlight
+        Column {
+            visible: card.glassOn
+            width: parent.width
+
+            Heading { text: "REFRACTION" }
+            SettingRow {
+                title: "Mode"
+                description: card.style.refractionMode === "concave" ? "Pulled toward the middle, like a magnifier's rim"
+                    : "Bent in along each edge, like a thick glass slab"
+                Segmented {
+                    options: [{ value: "bulge", label: "Bulge" }, { value: "concave", label: "Concave" }]
+                    value: card.style.refractionMode
+                    onPicked: v => card.set({ refractionMode: v })
+                }
+            }
+            Slider { title: "Strength"; description: "How strongly the edges bend what's behind"; key: "refraction"; from: 0; to: 100; step: 5; unit: "%" }
+            Slider { title: "Edge size"; description: "How far in from the edge the bending reaches"; key: "edge"; from: 2; to: 80; unit: " px" }
+            Slider { title: "Falloff"; description: "Low: a soft curve deep inside. High: it hugs the rim"; key: "falloff"; from: 0.2; to: 5; step: 0.1; decimals: 1 }
+            SettingRow {
+                title: "Own corner radius"
+                description: card.style.cornerRadius >= 0 ? "The bending follows its own corners" : "The bending follows the shape's corners"
+                Toggle {
+                    checked: card.style.cornerRadius >= 0
+                    onToggled: v => card.set({ cornerRadius: v ? 24 : -1 })
+                }
+            }
+            Slider { visible: card.style.cornerRadius >= 0; title: "Corner radius"; key: "cornerRadius"; from: 0; to: 100; unit: " px" }
+            Slider { title: "RGB fringing"; description: "Colors split apart where the edge bends light"; key: "fringing"; from: 0; to: 100; unit: "%" }
+
+            Heading { text: "HIGHLIGHT" }
+            Slider { title: "Size"; description: "The lit line along the rim"; key: "highlightSize"; from: 0; to: 12; step: 0.5; decimals: 1; unit: " px" }
+            Slider { title: "Direction"; description: "Where the light comes from (0° is above)"; key: "highlightAngle"; from: 0; to: 360; step: 5; unit: "°" }
+            Slider { title: "Opacity"; description: "How bright the line is"; key: "highlightOpacity"; from: 0; to: 100; unit: "%" }
+            SettingRow {
+                title: "Follows the pointer"
+                description: "The rim lights up where the pointer is"
+                Toggle {
+                    checked: card.style.highlightFollow
+                    onToggled: v => card.set({ highlightFollow: v })
+                }
+            }
+            Slider { visible: card.style.highlightFollow; title: "Strength"; description: "How much the rim lights up around the pointer"; key: "highlightStrength"; from: 0; to: 100; unit: "%" }
         }
 
         // what it applies to

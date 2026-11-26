@@ -3,7 +3,7 @@
 #
 # Oblio's desktop on any Arch-based system: Hyprland, Oblio's window management,
 # keybinds, shell (bar, dock, settings, notifications) and login screen, Alacritty, Files,
-# Zen, rofi. Run as your normal user; pacman and the system files go through sudo.
+# Zen. Run as your normal user; pacman and the system files go through sudo.
 #   desktop/setup            install packages, copy desktop/config/ into ~/.config and
 #                            desktop/oblio-shell/ to ~/.config/oblio-shell
 #   desktop/setup --greeter  make Oblio's login screen the login manager even when
@@ -37,7 +37,6 @@ packages=(
     hyprland                     # compositor (pulls in XWayland)
     quickshell                   # runs Oblio's shell (dock, settings) and login screen
     greetd                       # runs the login screen, then your session
-    rofi                         # app launcher (SUPER+R)
     hyprpolkitagent              # password prompts for admin actions
     xdg-desktop-portal-hyprland  # screen sharing, portals
     xdg-desktop-portal-gtk       # file pickers (Open/Save dialogs) for portal apps
@@ -64,6 +63,7 @@ packages=(
     ttf-dejavu                   # a font, the base system has none
     inter-font                   # the login screen's font, and the fallback UI font
     ttf-nerd-fonts-symbols       # icons in the shell
+    gcc make pkgconf             # build Oblio's glass (a Hyprland plugin) for this Hyprland
 )
 # browser: Zen comes from the CachyOS repos (not on other systems)
 for p in zen-browser-bin; do
@@ -207,6 +207,38 @@ for v in WhiteSur WhiteSur-dark; do
         gtk-update-icon-cache -qf "$icons/$v" 2>/dev/null || true
     fi
 done
+# glass: oblio-glass (desktop/glass), a Hyprland plugin, built here because a plugin must match the
+# installed Hyprland exactly; rebuilt when its source or Hyprland changes, kept in
+# ~/.local/share/oblio-glass. Hyprland loads it when it starts (modules/glass.lua); a failed build
+# leaves glass styles drawing as blur
+glass="${XDG_DATA_HOME:-$HOME/.local/share}/oblio-glass"
+glass_stamp="$( (cd "$here/glass" && find src protocols Makefile -type f ! -name '*.o' ! -name '*.so' \
+    ! -name '*-protocol.[ch]' | LC_ALL=C sort | xargs sha256sum; pacman -Q hyprland) | sha256sum | cut -d' ' -f1)"
+if [[ $(cat "$glass/stamp" 2>/dev/null) != "$glass_stamp" ]]; then
+    msg "Building Oblio's glass for Hyprland $(pacman -Q hyprland | cut -d' ' -f2)"
+    build="$(mktemp -d)"
+    cp -r "$here/glass/." "$build/"
+    jobs=$(nproc); (( jobs > 4 )) && jobs=4
+    if make -C "$build" clean >/dev/null 2>&1; make -C "$build" -j"$jobs" > "$build/build.log" 2>&1; then
+        mkdir -p "$glass"
+        install -m755 "$build/oblio-glass.so" "$glass/.oblio-glass.so.new"
+        mv -f "$glass/.oblio-glass.so.new" "$glass/oblio-glass.so"
+        echo "$glass_stamp" > "$glass/stamp"
+        rm -rf "$build"
+        # inside a running Hyprland the new build goes live: the old one out, this one in, then a
+        # config reload (it gives the plugin its styles back, and the shell sends its shapes again)
+        if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && command -v hyprctl >/dev/null; then
+            if hyprctl plugin list 2>/dev/null | grep -q '^Plugin oblio-glass'; then
+                hyprctl plugin unload "$glass/oblio-glass.so" >/dev/null 2>&1 || true
+                hyprctl plugin load "$glass/oblio-glass.so" >/dev/null 2>&1 || true
+            fi
+            hyprctl reload >/dev/null 2>&1 || true
+        fi
+    else
+        printf 'Oblio'"'"'s glass did not build (log: %s): glass styles draw as blur\n' "$build/build.log" >&2
+    fi
+fi
+
 msg "Installing the login screen"
 sudo install -Dm644 -t /usr/share/oblio/greeter "$here"/greeter/*.qml
 sudo install -Dm644 "$here/greeter/hyprland.lua" /etc/greetd/oblio-hyprland.lua

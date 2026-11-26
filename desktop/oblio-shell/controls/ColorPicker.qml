@@ -4,15 +4,13 @@
 import QtQuick
 import QtQuick.Shapes
 import Quickshell
-import Quickshell.Wayland
 import qs.services
 
 Scope {
     id: cp
 
     property string title: "Color"
-    property var screen: Quickshell.screens[0]
-    property bool shown: false
+    property alias shown: overlay.shown
     property string initial: "#ffffff"
     property real hue: 0
     property real sat: 0
@@ -24,8 +22,7 @@ Scope {
     function open(value, screen) {
         initial = value
         setHex(value)
-        if (screen) cp.screen = screen
-        shown = true
+        overlay.open(screen)
     }
     function setHex(value) {
         const c = Qt.color(value)
@@ -38,32 +35,17 @@ Scope {
         shown = false
     }
 
-    PanelWindow {
-        id: win
-        visible: cp.shown || card.opacity > 0
-        screen: cp.screen
-        anchors { top: true; bottom: true; left: true; right: true }
-        exclusionMode: ExclusionMode.Ignore
-        color: "transparent"
-        WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: cp.shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-        WlrLayershell.namespace: "oblio-popup"
+    Overlay {
+        id: overlay
+        part: "menus"
+        fading: card
 
-        MouseArea {
-            anchors.fill: parent
-            onPressed: cp.shown = false
-        }
-
-        Rectangle {
+        Card {
             id: card
+            part: "menus"
             anchors.centerIn: parent
             width: 320
             height: content.implicitHeight + 2 * 20
-            readonly property var look: Styles.look("menus")
-            radius: Theme.radius
-            color: look.fill
-            border.width: 1
-            border.color: look.line
             opacity: cp.shown ? 1 : 0
             scale: cp.shown ? 1 : 0.96
             focus: cp.shown

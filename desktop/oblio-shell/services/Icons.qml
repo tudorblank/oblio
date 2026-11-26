@@ -8,6 +8,7 @@ import Quickshell
 Singleton {
     // shell and session
     readonly property string apps: "\u{f003b}"
+    readonly property string search: "\u{f0349}"
     readonly property string settings: "\u{f0493}"
     readonly property string bar: "\u{f1513}"
     readonly property string dock: "\u{f10a9}"

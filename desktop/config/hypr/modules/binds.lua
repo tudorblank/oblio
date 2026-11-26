@@ -6,7 +6,7 @@ local mod = oblio.vm and "ALT" or "SUPER"
 local terminal = "alacritty"
 local files    = "nautilus --new-window"
 local browser  = "zen-browser"
-local launcher = oblio.shell .. "/scripts/launcher"   -- rofi; again closes it
+local search   = oblio.qs .. " ipc call search toggle"
 local settings = oblio.qs .. " ipc call settings toggle"
 
 local function key(k, action, opts) hl.bind(mod .. " + " .. k, action, opts) end
@@ -16,7 +16,7 @@ local function run(cmd) return hl.dsp.exec_cmd(cmd) end
 key("Return", run(terminal))
 key("E",      run(files))
 key("W",      run(browser))
-key("R",      run(launcher))
+key("R",      run(search))
 key("I",      run(settings))
 
 -- windows
@@ -108,14 +108,15 @@ hl.bind("XF86AudioPause", run("playerctl play-pause"), { locked = true, submap_u
 hl.bind("XF86AudioPlay",  run("playerctl play-pause"), { locked = true, submap_universal = true })
 hl.bind("XF86AudioPrev",  run("playerctl previous"),   { locked = true, submap_universal = true })
 
--- while a shell menu or the launcher is open, this submap is on: no keybind reaches the windows,
--- SUPER+Q and SUPER+I close them (and leave the submap even if the shell doesn't answer)
+-- while a shell menu (settings, search, a popup) is open, this submap is on: no keybind reaches
+-- the windows; SUPER+Q, SUPER+I and SUPER+R close them (and leave the submap even if the shell
+-- doesn't answer)
 hl.define_submap("oblio-menu", function()
     local function close()
         hl.dispatch(hl.dsp.submap("reset"))
         hl.exec_cmd(oblio.qs .. " ipc call menus close")
-        hl.exec_cmd("pkill -x rofi")
     end
     key("Q", close)
     key("I", close)
+    key("R", close)
 end)

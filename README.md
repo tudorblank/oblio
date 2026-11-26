@@ -99,7 +99,7 @@ What it provides:
 | Compositor | `hyprland` with Oblio's config (Lua modules in `~/.config/hypr/modules/`) |
 | Shell | `quickshell` running Oblio's bar, dock, settings panel and notifications |
 | Login screen | `greetd` with Oblio's greeter (your lock screen wallpaper and accent, session picker, remembers your choice) |
-| Apps | `alacritty` (terminal), `thunar` (files, with `thunar-volman` for USB drives, `thunar-archive-plugin` + `file-roller` for archives, `tumbler` thumbnails, `gvfs` trash and phones), `zen-browser-bin` (browser), `rofi` (app launcher, themed by Oblio) |
+| Apps | `alacritty` (terminal), `nautilus` (files: extracts and compresses by itself, with `ffmpegthumbnailer` for video thumbnails and `gvfs` for trash, phones and network shares), `zen-browser-bin` (browser); finding and opening apps is the shell's own Search |
 | Desktop plumbing | `hyprpolkitagent` (password prompts), `xdg-desktop-portal-hyprland` (screen sharing), `xdg-desktop-portal-gtk` (file pickers), `xdg-utils` (opening links and files), `fuse2` (AppImages), `qt6-wayland`, `qt6-imageformats` (WebP wallpapers), `xorg-xhost` |
 | Tools | `grim` `slurp` `wl-clipboard` (screenshots), `hyprpicker` (color picker), `brightnessctl` `playerctl` (brightness and media keys), `ffmpeg` (H.264 video in the browser) |
 | Look | `adw-gtk-theme` (GTK apps), `oblio-gtk-module` (see below), WhiteSur icons (downloaded, see below), `papirus-icon-theme` (fallback icons), `capitaine-cursors`, `ttf-jetbrains-mono`, `inter-font`, `ttf-dejavu`, `ttf-nerd-fonts-symbols`, `breeze-icons` (login screen) |
@@ -117,7 +117,8 @@ In a VM the main key is Alt instead of Super.
 
 | Keys | |
 |---|---|
-| SUPER+Enter / E / W / R | terminal / files / browser / app launcher (rofi; R again closes it) |
+| SUPER+Enter / E / W | terminal / files / browser |
+| SUPER+R | Search: apps by name, description or keyword (R again, Esc or a click outside closes it) |
 | SUPER+I | settings: display, bar, dock, windows, appearance (light/dark, accent, fonts), input |
 | SUPER+Q | close window |
 | SUPER+D / SUPER+F | maximize / fullscreen |
@@ -186,16 +187,39 @@ switch light/dark live and take a new accent when they next start. The shell app
 `Oblio-Alt` in `~/.local/share/themes`, built on adw-gtk3), fontconfig defaults and the terminal's
 colors.
 
-Styles (Appearance): a style is a look, made of a material (solid, or blur with its strength;
-Oblio's own glass comes later), a tint color (the theme's or your own, one for dark mode and one for
-light) and an opacity. Every part of the shell (bar, dock, menus, settings, the app launcher) follows
+Styles (Appearance): a style is a look, made of a material (solid, blur, or glass), a tint color (the theme's or your own, one for dark mode and one for
+light) and an opacity. Every part of the shell (bar, dock, menus, settings, search) follows
 Default, the one style that's always there, until you give it a style you made. Menus are everything
 the shell opens for a moment: the bar's popups, right-click menus, the dock's window previews,
 notification cards. Apps keep their own look until you add them to a style (one app, or all apps at
 once). Something in a style can't be added to another one. For an app, opacity is the whole
-window's and the tint stays the shell's; blur strength is one for every blur style for now
-(Hyprland's blur has one). Changes apply at once: the shell draws its parts in their style and
-gives Hyprland one named rule per part or app (`~/.config/hypr/settings.lua`).
+window's and the tint stays the shell's. Every style has an outline around the shell's parts (width,
+opacity, color: the theme's or your own; 0 px for none). Blur and glass styles each have their own blur strength and
+color (brightness, saturation, contrast, noise); a glass style also has refraction (bulge or concave,
+strength, edge size, falloff, its own corner radius, RGB fringing) and a highlight along the rim
+(size, direction, opacity, and, if you like, a glow that follows the pointer). Windows' drop shadow
+(opacity, size, spread) is set there too. Changes apply at once: the
+shell draws its parts in their style and gives Hyprland one named rule per part or app
+(`~/.config/hypr/settings.lua`).
+
+Blur and glass are Oblio's own: oblio-glass (`desktop/glass`), a Hyprland plugin based on
+[hyprglass](https://github.com/hyprnux/hyprglass). Glass bends what's behind at the edges, frosts
+the inside and lights the rim; blur is the same with no bending and no light. Both work behind app
+windows and the shell's own surfaces alike: the shell sends the exact shape of every bar island,
+dock, menu and card, so each gets its own edge, and nothing around them is touched. A plugin must
+match Hyprland exactly, so `desktop/setup` builds it on the machine (again after a Hyprland update)
+and Hyprland loads it when it starts; until then Hyprland's own blur draws every blur and glass
+style, in the Default style's look, converted so it looks the same (blur strength, tint, opacity,
+brightness, contrast and noise match; Hyprland can only add saturation, never take it away).
+
+Search (SUPER+R): a pill a little way down the screen that widens as you type, with the apps that
+match in a card under it (by name first, then description and keywords). Up and Down or Tab pick,
+Enter opens. Its width, how many results it shows, how far down it opens and whether it shows each
+app's description are in Settings > Search; its look is a style like any other part of the shell.
+
+The shell's parts (bar, dock, menus, settings, search) are defined in one place,
+`desktop/oblio-shell/services/Parts.qml`: a part's name, icon, layers and options. Styles, Hyprland's
+rules for its layers and a Settings page for its options all come from that entry.
 
 Animations (Appearance): on or off, and their speed, for windows, workspaces and the shell alike.
 
@@ -206,13 +230,8 @@ The look:
   checksum-verified copy into `~/.local/share/fonts`, and the desktop uses Inter if that fails.
 - Icons: WhiteSur (GPL-3.0), also downloaded at a pinned version and checked; setup copies its files
   itself instead of running its installer, and falls back to Papirus.
-- Thunar is styled close to GNOME Files: header bar, no menu bar (Ctrl+M shows it), the sidebar as a
-  rounded card with its entries close under the headings, soft accent selections.
 - Apps with a look of their own: CSS first. A stylesheet per app in
-  `desktop/oblio-shell/theme/gtk-3.0/` (Thunar's is there) goes on top of the theme. Only what a
-  stylesheet can't reach goes in `oblio-gtk-module` (`desktop/packages/oblio-gtk-module`): one small
-  GTK 3 module, a regular package from `[oblio]`, loaded into GTK 3 apps through `GTK3_MODULES` and
-  touching only the widgets it names (today: the indent Thunar's code puts in front of sidebar entries).
+  `desktop/oblio-shell/theme/gtk-3.0/` (or `gtk-4.0/`) goes on top of the theme.
 - Your own terminal settings go in `~/.config/alacritty/local.toml`; Oblio's never touch it.
 
 A floating window comes to the front when it gets focus. Floating windows always stay above tiled
@@ -266,10 +285,10 @@ base/         what an installed Oblio is made of
                 in the installer), pacman.conf (Cachy repos filled in per CPU), btrfs.conf, limine.conf
   packages/     Oblio's own packages: oblio-keyring, oblio-hooks, oblio-settings
 desktop/      the Oblio desktop
-  packages/     the desktop's own packages: oblio-gtk-module
+  glass/        oblio-glass, the Hyprland plugin that draws blur and glass (setup builds it)
   setup         installs it (packages, files, login screen)
-  config/       Hyprland's, rofi's and Alacritty's config, lands in ~/.config
-  oblio-shell/  Oblio's shell (bar, dock, settings, notifications), lands in ~/.config/oblio-shell
+  config/       Hyprland's, Alacritty's and fastfetch's config, lands in ~/.config
+  oblio-shell/  Oblio's shell (bar, dock, settings, search, notifications), lands in ~/.config/oblio-shell
   greeter/      the login screen, lands in /usr/share/oblio/greeter
 tools/        installing and tooling
   installer/    oblio-install (the step-by-step installer), engine.sh (install steps), oblio-repos (CPU detection)

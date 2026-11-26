@@ -8,8 +8,12 @@ import Quickshell.Widgets
 import qs.services
 import qs.controls
 
-Rectangle {
+Card {
     id: card
+    part: "menus"
+    namespace: "oblio-notifications"
+    // on its own (a toast) it's glass when menus are; in the bell's list it's a card on glass
+    glass: !compact
 
     required property var entry
     property bool compact: false        // in the list: fewer lines
@@ -24,10 +28,9 @@ Rectangle {
     height: content.implicitHeight + 24
     // in the bell's list it's a card inside a popover, 8 px from its edge; on its own (a toast) it's
     // a menu, in the menus' style
-    readonly property var look: Styles.look("menus")
     radius: compact ? Theme.inner(8) : Theme.radius
     color: compact ? Theme.card : look.fill
-    border.width: 1
+    border.width: compact || entry.critical ? 1 : look.lineWidth
     border.color: entry.critical ? Theme.tint(Theme.danger, 0.6) : compact ? Theme.hairline : look.line
 
     HoverHandler { id: hover }

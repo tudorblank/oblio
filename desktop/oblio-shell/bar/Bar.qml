@@ -30,7 +30,14 @@ EdgePanel {
         shape: "floating"
         fill: root.look.fill
         line: root.look.line
+        lineWidth: root.look.lineWidth
         radius: root.rounded(root.thickness)
+        GlassShape {
+            anchors.fill: parent
+            namespace: "oblio-bar"
+            part: "bar"
+            radius: parent.radius
+        }
     }
     forceShown: popover.shown
 

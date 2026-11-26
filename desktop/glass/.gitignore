@@ -1,0 +1,4 @@
+*.o
+*.so
+src/item-helper/*-protocol.c
+src/item-helper/*-protocol.h

@@ -466,66 +466,15 @@ Item {
                     Repeater {
                         model: ed.selectedInfo.options.filter(o => (o.section ?? "") === section.modelData)
 
-                        SettingRow {
-                            id: optionRow
+                        OptionRow {
                             required property var modelData
-                            readonly property var value: BarWidgets.option(ed.selectedEntry, modelData.key)
+                            option: modelData
+                            value: BarWidgets.option(ed.selectedEntry, modelData.key)
                             // the last one on in its keepOne set can't be turned off
-                            readonly property bool locked: modelData.keepOne !== undefined && value === true
+                            locked: modelData.keepOne !== undefined && value === true
                                 && !ed.selectedInfo.options.some(o => o.key !== modelData.key && o.keepOne === modelData.keepOne
                                                                      && BarWidgets.option(ed.selectedEntry, o.key) === true)
-                            title: modelData.label
-                            description: modelData.about ?? ""
-
-                            Loader {
-                                sourceComponent: ({ toggle: toggleControl, choice: choiceControl, list: listControl,
-                                                    text: textControl })[optionRow.modelData.kind] ?? numberControl
-                            }
-                            Component {
-                                id: toggleControl
-                                Toggle {
-                                    checked: optionRow.value
-                                    enabled: !optionRow.locked
-                                    onToggled: v => BarWidgets.setOption(ed.selected, optionRow.modelData.key, v)
-                                }
-                            }
-                            Component {
-                                id: choiceControl
-                                Segmented {
-                                    options: optionRow.modelData.choices
-                                    value: optionRow.value
-                                    onPicked: v => BarWidgets.setOption(ed.selected, optionRow.modelData.key, v)
-                                }
-                            }
-                            Component {
-                                id: listControl
-                                Dropdown {
-                                    width: 220
-                                    options: optionRow.modelData.choices
-                                    value: optionRow.value
-                                    onPicked: v => BarWidgets.setOption(ed.selected, optionRow.modelData.key, v)
-                                }
-                            }
-                            Component {
-                                id: textControl
-                                TextBox {
-                                    width: 220
-                                    mono: true
-                                    value: optionRow.value
-                                    onEdited: v => BarWidgets.setOption(ed.selected, optionRow.modelData.key, v)
-                                }
-                            }
-                            Component {
-                                id: numberControl
-                                ValueSlider {
-                                    from: optionRow.modelData.from
-                                    to: optionRow.modelData.to
-                                    step: optionRow.modelData.step ?? 1
-                                    unit: optionRow.modelData.unit ?? ""
-                                    value: optionRow.value
-                                    onMoved: v => BarWidgets.setOption(ed.selected, optionRow.modelData.key, v)
-                                }
-                            }
+                            onPicked: v => BarWidgets.setOption(ed.selected, modelData.key, v)
                         }
                     }
                 }

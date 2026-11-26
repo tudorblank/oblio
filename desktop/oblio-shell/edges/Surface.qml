@@ -14,6 +14,7 @@ Item {
     property string shape: "floating"
     property color fill
     property color line
+    property real lineWidth: 1
     property real radius: 10
     // attached: how far the curves into the edge reach past each end (s is that much longer)
     property real fillet: 0
@@ -23,6 +24,9 @@ Item {
     readonly property real thick: vertical ? width : height
     readonly property real r: Math.max(0, Math.min(radius, thick / 2, along / 2))
     readonly property real f: Math.max(0, Math.min(fillet, thick - r))
+    // the outline sits inside the shape: its middle is half its width in
+    readonly property real w: Math.min(lineWidth, thick / 2)
+    readonly property real h: w / 2
 
     Item {
         id: canon
@@ -31,25 +35,25 @@ Item {
         height: s.thick
         rotation: s.edge === "top" ? 180 : s.edge === "left" ? 90 : s.edge === "right" ? -90 : 0
 
-        // floating: rounded all round, hairline all round
+        // floating: rounded all round, outlined all round
         Shape {
             visible: s.shape === "floating"
             anchors.fill: parent
             preferredRendererType: Shape.CurveRenderer
             ShapePath {
                 fillColor: s.fill
-                strokeColor: s.line
-                strokeWidth: 1
-                PathRectangle { x: 0.5; y: 0.5; width: canon.width - 1; height: canon.height - 1; radius: s.r }
+                strokeColor: s.w > 0 ? s.line : "transparent"
+                strokeWidth: s.w
+                PathRectangle { x: s.h; y: s.h; width: canon.width - s.w; height: canon.height - s.w; radius: Math.max(0, s.r - s.h) }
             }
         }
 
-        // full: a plain strip, hairline on the side facing the windows
+        // full: a plain strip, outlined on the side facing the windows
         Rectangle {
             visible: s.shape === "full"
             anchors.fill: parent
             color: s.fill
-            Rectangle { width: parent.width; height: 1; color: s.line }
+            Rectangle { width: parent.width; height: s.w; color: s.line }
         }
 
         // attached: rounded outer corners, the sides curving out into the edge (_/‾‾\_)
@@ -78,7 +82,7 @@ Item {
         // the outline is drawn opaque and faded as a whole: a see-through stroke drawn in pieces
         // doubles up where they meet, which shows as bright dots at small roundness
         Shape {
-            visible: s.shape === "attached"
+            visible: s.shape === "attached" && s.w > 0
             anchors.fill: parent
             preferredRendererType: Shape.CurveRenderer
             opacity: s.line.a
@@ -86,15 +90,15 @@ Item {
             ShapePath {
                 fillColor: "transparent"
                 strokeColor: Qt.rgba(s.line.r, s.line.g, s.line.b, 1)
-                strokeWidth: 1
-                startX: 0; startY: att.h - 0.5
-                PathArc { x: s.f + 0.5; y: att.h - s.f; radiusX: s.f + 0.5; radiusY: s.f + 0.5; direction: PathArc.Counterclockwise }
-                PathLine { x: s.f + 0.5; y: s.r }
-                PathArc { x: s.f + s.r; y: 0.5; radiusX: Math.max(0, s.r - 0.5); radiusY: Math.max(0, s.r - 0.5) }
-                PathLine { x: att.w - s.f - s.r; y: 0.5 }
-                PathArc { x: att.w - s.f - 0.5; y: s.r; radiusX: Math.max(0, s.r - 0.5); radiusY: Math.max(0, s.r - 0.5) }
-                PathLine { x: att.w - s.f - 0.5; y: att.h - s.f }
-                PathArc { x: att.w; y: att.h - 0.5; radiusX: s.f + 0.5; radiusY: s.f + 0.5; direction: PathArc.Counterclockwise }
+                strokeWidth: s.w
+                startX: 0; startY: att.h - s.h
+                PathArc { x: s.f + s.h; y: att.h - s.f; radiusX: s.f + s.h; radiusY: s.f + s.h; direction: PathArc.Counterclockwise }
+                PathLine { x: s.f + s.h; y: s.r }
+                PathArc { x: s.f + s.r; y: s.h; radiusX: Math.max(0, s.r - s.h); radiusY: Math.max(0, s.r - s.h) }
+                PathLine { x: att.w - s.f - s.r; y: s.h }
+                PathArc { x: att.w - s.f - s.h; y: s.r; radiusX: Math.max(0, s.r - s.h); radiusY: Math.max(0, s.r - s.h) }
+                PathLine { x: att.w - s.f - s.h; y: att.h - s.f }
+                PathArc { x: att.w; y: att.h - s.h; radiusX: s.f + s.h; radiusY: s.f + s.h; direction: PathArc.Counterclockwise }
             }
         }
     }

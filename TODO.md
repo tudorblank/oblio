@@ -2,9 +2,8 @@
 
 ## Next: the desktop
 
-- [ ] Make the shell stable and usable (current round), then an app launcher of Oblio's own
-      (rofi for now), then Oblio's own glass on the GPU (refraction, shapes): the Glass material of
-      Styles, drawn where the shell draws a style's surface (`edges/Surface.qml` and the cards)
+- [x] Search (SUPER+R): Oblio's own app search in the shell, replacing rofi
+- [ ] Search: more than apps (files, settings pages, calculations, commands)
 - [ ] A calendar app that syncs with the bar's clock widget (its calendar popup)
 - [ ] Wi-Fi passwords reach iwctl as an argument (visible to the user's own processes for a moment);
       an iwd agent over D-Bus would avoid that
@@ -53,7 +52,7 @@
       in one place; Settings > Bar / Dock
 - [x] Bar on any edge (widgets lay out vertically on a side bar); right-click menu; network (iwd),
       Bluetooth, notifications (server, cards, list, Do Not Disturb), apps in the volume popup;
-      rofi as the app launcher (themed by apply-theme); Bluetooth in the base for every install
+      Bluetooth in the base for every install
 - [x] Bar: widgets in three sections edited in Settings (add, drag, options), scattered islands,
       roundness
 - [x] Shell menus block keybinds and clicks to windows (Hyprland submap), SUPER+Q closes them
@@ -63,11 +62,17 @@
       resize from any edge, one dropdown open at a time
 - [x] Display settings: resolution, refresh rate, scale, rotation, arrangement, mirroring, keep-or-go-back
 - [x] Styles (Appearance): the one place for material, tint, opacity and blur strength; Default
-      holds every shell part (bar, dock, menus, settings, launcher) until one goes to a style you
+      holds every shell part (bar, dock, menus, settings, search) until one goes to a style you
       made; apps only when added (one, or all); a target is in one style; Hyprland gets one named
       rule per target
 - [x] Animations (Appearance): on or off and their speed, for Hyprland, the shell and window flights
-- [ ] Blur strength per style for real (Hyprland's blur strength is global): with Oblio's own glass
+- [x] Glass (oblio-glass, a Hyprland plugin forked from hyprglass): exact shapes from the shell,
+      live styles (own blur strength and refraction per glass style), apps by tag; built by setup
+- [x] Blur styles drawn by oblio-glass too (own strength and color per style; no tap cap, edges
+      repeat past the screen); Hyprland's blur follows Default as the fallback, matched by measurement
+- [ ] Glass optics of our own (GLASS.md section 6): squircle Snell bezel, clamped travel, tint as
+      absorption, rim in the backdrop's colour, colour fringing only in motion
+- [ ] Glass: rebuild automatically after a Hyprland update (today: run desktop/setup)
 - [x] Theme: light/dark, accent, fonts (SF Pro, JetBrains Mono) for the shell, GTK 3/4, Qt, browsers,
       icons (WhiteSur), terminal, Hyprland
 - [x] Files (Nautilus) as the file manager, in Oblio's GTK theme; Thunar and oblio-gtk-module removed

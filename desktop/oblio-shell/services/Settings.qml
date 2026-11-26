@@ -17,7 +17,7 @@ Singleton {
 
     readonly property var hyprKeys: [
         "layout", "gapsIn", "gapsOut", "borderSize", "rounding", "focusKeyboard", "focusScroll",
-        "accent", "themeMode", "blurSize", "animations", "animationSpeed",
+        "accent", "themeMode", "animations", "animationSpeed", "shadowOpacity", "shadowSize", "shadowSpread",
         "sensitivity", "naturalScroll", "touchpadNaturalScroll", "repeatRate", "repeatDelay",
     ]
 
@@ -54,7 +54,13 @@ Singleton {
     },
     decoration = {
         rounding = ${o.rounding},
-        blur = { size = ${o.blurSize} },
+        -- black only ever darkens what's under it, like a shadow multiplied over the desktop
+        shadow = {
+            enabled = ${o.shadowOpacity > 0},
+            range = ${o.shadowSize},
+            render_power = ${o.shadowSpread},
+            color = 0x${Math.round(o.shadowOpacity / 100 * 255).toString(16).padStart(2, "0")}000000,
+        },
     },
     input = {
         follow_mouse = ${o.focusKeyboard ? 1 : o.focusScroll ? 2 : 0},
@@ -86,7 +92,7 @@ if oblio and oblio.animate then oblio.animate(${(100 / o.animationSpeed).toFixed
     }
 
     // settings.lua: Hyprland's settings, monitors and the style rules (services/Styles.qml), also
-    // written at start so a Hyprland reload gets what the shell has
+    // written (and applied) at start so Hyprland has what the shell has
     function writeHypr() {
         hyprFile.setText("-- written by Oblio's settings (SUPER+I), edits here get overwritten\n"
             + hyprLua() + displaysLua() + "\n" + Styles.hyprRules + "\n")
@@ -115,8 +121,9 @@ if oblio and oblio.animate then oblio.animate(${(100 / o.animationSpeed).toFixed
         path: Quickshell.statePath("settings.json")
         watchChanges: true
         onFileChanged: reload()
-        onLoaded: root.writeHypr()
-        onLoadFailed: root.writeHypr()
+        // at start (and when the file changes) Hyprland gets them live too, not only at its next reload
+        onLoaded: { root.writeHypr(); liveTimer.restart() }
+        onLoadFailed: { root.writeHypr(); liveTimer.restart() }
 
         JsonAdapter {
             id: adapter
@@ -189,17 +196,23 @@ if oblio and oblio.animate then oblio.animate(${(100 / o.animationSpeed).toFixed
             property string fontUi: "SF Pro"
             property string fontMono: "JetBrains Mono"
             property int fontSize: 11            // points, for apps; the shell scales its own text
-            // blur strength: Hyprland has one for every blur style
-            property int blurSize: 8
             // animations, and their speed (% of their own pace: 200 = twice as fast), for windows,
             // workspaces and the shell (Theme.ms)
             property bool animations: true
             property int animationSpeed: 100
+            // windows' drop shadow: opacity (%, 0 = none), size (px), spread (1 soft .. 4 hard edge)
+            property int shadowOpacity: 93
+            property int shadowSize: 4
+            property int shadowSpread: 3
+
+            // the shell's parts' options (services/Parts.qml), by part then key: only the ones changed
+            property var parts: ({})
 
             // styles (services/Styles.qml): Default first, then the ones made in Settings; targets are
-            // shell parts ("bar", "dock", "menus", "settings", "launcher"), "apps" or "app:CLASS"
+            // shell parts (services/Parts.qml), "apps" or "app:CLASS"
             property var styles: [
-                { uid: "default", name: "Default", material: "blur", opacity: 30, tint: "theme", tintLight: "theme", targets: [] },
+                { uid: "default", name: "Default", material: "blur", opacity: 30, tint: "theme", tintLight: "theme",
+                  blur: 6, contrast: 89, saturation: 112, noise: 6, targets: [] },
             ]
 
             // wallpaper (services/Wallpaper.qml): picture paths, "" = none; the lock screen shows

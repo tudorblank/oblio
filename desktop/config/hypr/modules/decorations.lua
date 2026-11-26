@@ -25,10 +25,10 @@ hl.config({
             enabled      = true,
             range        = 4,
             render_power = 3,
-            color        = 0xee1a1a1a,
+            color        = 0xee000000, -- black: it only darkens what's under it
         },
 
-        -- how blur looks wherever a style blurs (Settings > Appearance > Styles)
+        -- Hyprland's blur until the shell starts: then it takes the Default style's look (services/Styles.qml)
         blur = {
             enabled  = true,
             size     = 8,

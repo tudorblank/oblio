@@ -4,14 +4,12 @@
 // The content goes inside, with width: parent.width; the card follows its height.
 import QtQuick
 import Quickshell
-import Quickshell.Wayland
 import qs.services
 
 Scope {
     id: pop
 
-    property var screen: Quickshell.screens[0]
-    property bool shown: false
+    property alias shown: overlay.shown
     property real cardWidth: 280
     property real padding: 8
     // what it opens from, in the screen's coordinates, and the screen edge that thing sits on:
@@ -22,42 +20,25 @@ Scope {
     default property alias content: inner.data
 
     function open(screen, target, edge, owner) {
-        pop.screen = screen
         pop.target = target
         pop.edge = edge
         pop.owner = owner ?? null
-        shown = true
+        overlay.open(screen)
     }
-    function close() { shown = false }
+    function close() { overlay.close() }
     // on screen, fading out included: content can stay loaded until then
-    readonly property bool showing: win.visible
+    readonly property bool showing: overlay.showing
 
-    onShownChanged: {
-        if (shown) Menus.add(pop)
-        else { Menus.remove(pop); owner = null }
-    }
-    Component.onDestruction: Menus.remove(pop)
+    onShownChanged: if (!shown) owner = null
 
-    PanelWindow {
-        id: win
-        visible: pop.shown || card.opacity > 0
-        screen: pop.screen
-        anchors { top: true; bottom: true; left: true; right: true }
-        exclusionMode: ExclusionMode.Ignore
-        color: "transparent"
-        WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: pop.shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-        WlrLayershell.namespace: "oblio-popup"
+    Overlay {
+        id: overlay
+        part: "menus"
+        fading: card
 
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.AllButtons
-            onPressed: pop.close()
-            onWheel: {}
-        }
-
-        Rectangle {
+        Card {
             id: card
+            part: "menus"
             readonly property real gap: 8
             readonly property real cx: pop.target.x + pop.target.width / 2
             readonly property real cy: pop.target.y + pop.target.height / 2
@@ -66,18 +47,13 @@ Scope {
             x: {
                 const want = pop.edge === "left" ? pop.target.x + pop.target.width + gap
                     : pop.edge === "right" ? pop.target.x - width - gap : cx - width / 2
-                return Math.max(gap, Math.min(want, win.width - width - gap))
+                return Math.max(gap, Math.min(want, overlay.window.width - width - gap))
             }
             y: {
                 const want = pop.edge === "top" ? pop.target.y + pop.target.height + gap
                     : pop.edge === "bottom" ? pop.target.y - height - gap : cy - height / 2
-                return Math.max(gap, Math.min(want, win.height - height - gap))
+                return Math.max(gap, Math.min(want, overlay.window.height - height - gap))
             }
-            readonly property var look: Styles.look("menus")
-            radius: Theme.radius
-            color: look.fill
-            border.width: 1
-            border.color: look.line
             opacity: pop.shown ? 1 : 0
             focus: pop.shown
 

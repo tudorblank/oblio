@@ -1,0 +1,111 @@
+# Oblio glass Plugin
+
+CXX ?= g++
+CC ?= gcc
+WAYLAND_SCANNER ?= wayland-scanner
+CXXFLAGS = -fPIC -g -O2 -std=c++23
+# Never ask for an executable stack, whatever an object or the linker defaults to:
+# glibc 2.41+ refuses to load such a library.
+LDFLAGS = -shared -Wl,-z,noexecstack
+INCLUDES = $(shell pkg-config --cflags hyprland pixman-1 libdrm)
+LIBS = $(shell pkg-config --libs hyprland) -ldl
+
+# Shown by `hyprctl plugin list`. Release builds pass OBLIO_GLASS_VERSION; other
+# builds describe their own checkout (never an enclosing repository), keeping
+# only characters safe in a C string. Changing it needs `make clean`.
+ifndef OBLIO_GLASS_VERSION
+OBLIO_GLASS_VERSION := $(shell [ -e .git ] && git describe --tags --dirty 2>/dev/null | sed 's/^v//' | tr -cd 'A-Za-z0-9._+-')
+endif
+ifeq ($(OBLIO_GLASS_VERSION),)
+OBLIO_GLASS_VERSION := dev
+endif
+CXXFLAGS += -DOBLIO_GLASS_VERSION='"$(OBLIO_GLASS_VERSION)"'
+
+# Keeps two loaded copies from sharing their globals. GCC only, whatever CXX calls it: clang has no such flag.
+ifneq ($(shell $(CXX) --version 2>/dev/null | grep -c 'Free Software Foundation'),0)
+	CXXFLAGS += --no-gnu-unique
+endif
+
+TARGET = oblio-glass.so
+SOURCES = src/main.cpp src/LoadGuard.cpp src/GlassDecoration.cpp src/GlassPassElement.cpp src/GlassRenderer.cpp src/GlassLayerSurface.cpp src/GlassLayerPassElement.cpp src/GlassLayerCompositeElement.cpp src/BackgroundDamageObserver.cpp src/PluginConfig.cpp src/ShaderManager.cpp src/Diagnostics.cpp src/GlassSubsurfaceState.cpp src/GlassSubsurfacePassElement.cpp src/GlassSubsurfaceCompositeElement.cpp src/ItemHints.cpp src/MemfdLoad.cpp src/GlassSnapshotElement.cpp src/Frost.cpp src/Contour.cpp src/GeometryEvents.cpp
+OBJ = $(SOURCES:.cpp=.o)
+HEADERS = $(wildcard src/*.hpp)
+
+# ── oblio_glass_item_v1 protocol helper ────────────────────────────────────────
+# Built as its own shared library and embedded (via ItemHelperBlob.S) inside
+# oblio-glass.so, so it can be dlopen'd with RTLD_NODELETE and outlive a plugin
+# reload. Depends only on
+# libwayland-server, never on Hyprland headers.
+
+PROTOCOL_XML    = protocols/oblio-glass-item-v1.xml
+ITEM_HELPER_DIR = src/item-helper
+PROTOCOL_HEADER = $(ITEM_HELPER_DIR)/oblio-glass-item-v1-server-protocol.h
+PROTOCOL_CODE   = $(ITEM_HELPER_DIR)/oblio-glass-item-v1-protocol.c
+
+HELPER_SO       = $(ITEM_HELPER_DIR)/oblio-glass-item-helper.so
+HELPER_SOURCES  = $(ITEM_HELPER_DIR)/helper.c $(PROTOCOL_CODE)
+HELPER_OBJ      = $(HELPER_SOURCES:.c=.o)
+
+WAYLAND_SERVER_CFLAGS = $(shell pkg-config --cflags wayland-server)
+WAYLAND_SERVER_LIBS   = $(shell pkg-config --libs wayland-server)
+
+ITEM_HELPER_BLOB_OBJ = src/ItemHelperBlob.o
+
+all: $(TARGET)
+
+%.o : %.cpp $(HEADERS)
+	@echo "[$(CXX)] $<"
+	@$(CXX) -c $(CXXFLAGS) $(INCLUDES) $< -o $@
+
+$(PROTOCOL_HEADER): $(PROTOCOL_XML)
+	@echo "[wayland-scanner] server-header $<"
+	@$(WAYLAND_SCANNER) server-header $< $@
+
+$(PROTOCOL_CODE): $(PROTOCOL_XML)
+	@echo "[wayland-scanner] private-code $<"
+	@$(WAYLAND_SCANNER) private-code $< $@
+
+# helper.c includes the generated server header; every helper object depends
+# on it existing first, not just the .c file the pattern rule already covers.
+$(HELPER_OBJ): $(PROTOCOL_HEADER)
+
+$(ITEM_HELPER_DIR)/%.o: $(ITEM_HELPER_DIR)/%.c
+	@echo "[$(CC)] $<"
+	@$(CC) -c -fPIC -O2 -std=c11 $(WAYLAND_SERVER_CFLAGS) -I$(ITEM_HELPER_DIR) $< -o $@
+
+$(HELPER_SO): $(HELPER_OBJ)
+	@echo "Linking $(HELPER_SO)..."
+	@$(CC) -shared -fPIC -Wl,-z,noexecstack -o $@ $(HELPER_OBJ) $(WAYLAND_SERVER_LIBS)
+
+# .incbin's path is relative to this Makefile's own working directory (the
+# repo root), the same base every other SOURCES path here is written against.
+$(ITEM_HELPER_BLOB_OBJ): src/ItemHelperBlob.S $(HELPER_SO)
+	@echo "[as] $<"
+	@$(CC) -c $< -o $@
+
+$(TARGET): $(OBJ) $(ITEM_HELPER_BLOB_OBJ)
+	@echo "Linking $(TARGET)..."
+	@$(CXX) $(LDFLAGS) $(OBJ) $(ITEM_HELPER_BLOB_OBJ) -o $@ $(LIBS)
+	@echo "Done!"
+
+# ── tests (no Hyprland needed) ───────────────────────────────────────────────
+TEST_DIR = tests/build
+
+$(TEST_DIR):
+	@mkdir -p $@
+
+$(TEST_DIR)/libmemfd-test-a.so: tests/MemfdTestLibrary.c | $(TEST_DIR)
+	@$(CC) -shared -fPIC -Wl,-z,noexecstack $< -o $@
+$(TEST_DIR)/libmemfd-test-b.so: tests/MemfdTestLibrary.c | $(TEST_DIR)
+	@$(CC) -shared -fPIC -Wl,-z,noexecstack -DSECOND $< -o $@
+$(TEST_DIR)/memfd-load-test: tests/MemfdLoadTest.cpp src/MemfdLoad.cpp src/MemfdLoad.hpp | $(TEST_DIR)
+	@$(CXX) -g -O1 -std=c++23 -fsanitize=address,undefined tests/MemfdLoadTest.cpp src/MemfdLoad.cpp -o $@ -ldl
+
+test: $(TEST_DIR)/memfd-load-test $(TEST_DIR)/libmemfd-test-a.so $(TEST_DIR)/libmemfd-test-b.so
+	$(TEST_DIR)/memfd-load-test $(TEST_DIR)/libmemfd-test-a.so $(TEST_DIR)/libmemfd-test-b.so
+
+clean:
+	rm -f $(OBJ) $(TARGET) $(ITEM_HELPER_BLOB_OBJ) $(HELPER_OBJ) $(HELPER_SO) $(PROTOCOL_HEADER) $(PROTOCOL_CODE)
+	rm -rf $(TEST_DIR)
+
+.PHONY: all clean test

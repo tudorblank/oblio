@@ -207,6 +207,38 @@ Column {
     }
 
     SettingGroup {
+        title: "WINDOW SHADOW"
+
+        SettingRow {
+            title: "Opacity"
+            description: Settings.opts.shadowOpacity > 0 ? "How dark the shadow under windows is" : "No shadow"
+            ValueSlider {
+                from: 0; to: 100; unit: "%"
+                value: Settings.opts.shadowOpacity
+                onMoved: v => Settings.set("shadowOpacity", Math.round(v))
+            }
+        }
+        SettingRow {
+            title: "Size"
+            description: "How far it reaches around the window"
+            ValueSlider {
+                from: 1; to: 60; unit: " px"
+                value: Settings.opts.shadowSize
+                onMoved: v => Settings.set("shadowSize", Math.round(v))
+            }
+        }
+        SettingRow {
+            title: "Spread"
+            description: "Soft fades out gently, hard keeps a firm edge"
+            Segmented {
+                options: [{ value: 1, label: "Soft" }, { value: 2, label: "Medium" }, { value: 3, label: "Firm" }, { value: 4, label: "Hard" }]
+                value: Settings.opts.shadowSpread
+                onPicked: v => Settings.set("shadowSpread", v)
+            }
+        }
+    }
+
+    SettingGroup {
         title: "ANIMATIONS"
 
         SettingRow {

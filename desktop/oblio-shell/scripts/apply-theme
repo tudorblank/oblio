@@ -2,14 +2,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Pushes Oblio's theme to the rest of the system; the shell (services/SystemTheme.qml) runs it on
 # start and on every change, with Theme's values in OBLIO_* variables: MODE dark|light, ACCENT,
-# ACCENT_FG, ACCENT_NAMED (libadwaita's nearest named accent), BG, FG, SUBTEXT (#rrggbb), LAUNCHER
-# (the launcher's style: its fill), CARD, BORDER, HOVER (#rrggbbaa), FONT_UI, FONT_MONO, FONT_ICONS, FONT_SIZE, RADIUS,
-# LOCK_WALLPAPER (a picture's path, or empty), FACE_VERSION (changes with the profile picture).
+# ACCENT_FG, ACCENT_NAMED (libadwaita's nearest named accent), BG, FG (#rrggbb), FONT_UI, FONT_MONO,
+# FONT_SIZE, LOCK_WALLPAPER (a picture's path, or empty), FACE_VERSION (changes with the profile picture).
 
 set -euo pipefail
 
 mode=$OBLIO_MODE accent=$OBLIO_ACCENT accent_fg=$OBLIO_ACCENT_FG named=$OBLIO_ACCENT_NAMED
-bg=$OBLIO_BG fg=$OBLIO_FG ui=$OBLIO_FONT_UI mono=$OBLIO_FONT_MONO size=$OBLIO_FONT_SIZE radius=$OBLIO_RADIUS
+bg=$OBLIO_BG fg=$OBLIO_FG ui=$OBLIO_FONT_UI mono=$OBLIO_FONT_MONO size=$OBLIO_FONT_SIZE
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
 themes="${XDG_DATA_HOME:-$HOME/.local/share}/themes"
@@ -113,19 +112,6 @@ names=(black red green yellow blue magenta cyan white)
     printf '[colors.normal]\n'; for i in "${!names[@]}"; do printf '%s = "%s"\n' "${names[$i]}" "${normal[$i]}"; done
     printf '\n[colors.bright]\n'; for i in "${!names[@]}"; do printf '%s = "%s"\n' "${names[$i]}" "${bright[$i]}"; done
 } | put "$cfg/alacritty/oblio-theme.toml" || true
-
-# app launcher: rofi's config.rasi imports this (rofi colors are #rrggbbaa)
-{
-    printf '/* written by Oblio'"'"'s settings (SUPER+I > Appearance), edits here get overwritten */\n'
-    printf 'configuration { icon-theme: "%s"; }\n' "$(quote "$icon")"
-    printf '* {\n'
-    printf '    bg: %s;\n    fg: %s;\n    card: %s;\n    line: %s;\n    subtle: %s;\n    selected: %s;\n' \
-        "$OBLIO_LAUNCHER" "$fg" "$OBLIO_CARD" "$OBLIO_BORDER" "$OBLIO_SUBTEXT" "$OBLIO_HOVER"
-    # the shell's card corners (Theme.radius); rows sit 8 px in, on the same curve
-    printf '    radius: %spx;\n    inner-radius: %spx;\n' "$radius" "$(( radius > 12 ? radius - 8 : 4 ))"
-    printf '    ui-font: "%s 12";\n    search-font: "%s 15";\n    icon-font: "%s 15";\n}\n' \
-        "$(quote "$ui")" "$(quote "$ui")" "$(quote "$OBLIO_FONT_ICONS")"
-} | put "$cfg/rofi/oblio-theme.rasi" || true
 
 # the login screen: it can't read home folders, so it gets this user's lock screen wallpaper,
 # profile picture and look in a folder of their own that desktop/setup makes

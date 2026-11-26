@@ -19,6 +19,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.services
+import qs.controls
 
 Scope {
     id: root
@@ -51,6 +52,13 @@ Scope {
     function rounded(thick) { return Theme.rounded(o[prefix + "Roundness"], thick) }
     readonly property real radius: shape === "full" ? 0 : rounded(thickness)
     readonly property real fillet: shape === "attached" ? radius : 0
+    // its glass (GlassShape): rounded all round floating, square full, attached only away from the edge
+    readonly property var glassRadii: {
+        if (shape === "floating") return radius
+        if (shape === "full") return 0
+        const r = radius
+        return edge === "bottom" ? [r, r, 0, 0] : edge === "top" ? [0, 0, r, r] : edge === "left" ? [0, r, r, 0] : [r, 0, 0, r]
+    }
 
     // along the edge: side panels fit between the top and bottom ones
     readonly property real startInset: vertical ? Space.occupied(screen.name, "top") : 0
@@ -181,8 +189,16 @@ Scope {
                 shape: root.shape
                 fill: root.look.fill
                 line: root.look.line
+                lineWidth: root.look.lineWidth
                 radius: root.radius
                 fillet: root.fillet
+            }
+            GlassShape {
+                visible: root.drawSurface
+                anchors.fill: parent
+                namespace: "oblio-" + root.prefix
+                part: root.prefix
+                radius: root.glassRadii
             }
 
             Item {

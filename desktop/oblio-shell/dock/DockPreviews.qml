@@ -93,8 +93,10 @@ Scope {
 
         Item { id: nothing }
 
-        Rectangle {
+        Card {
             id: card
+            part: "menus"
+            namespace: "oblio-previews"
 
             readonly property rect icon: root.dock.previewItem ? root.dock.screenRect(root.dock.previewItem) : Qt.rect(0, 0, 0, 0)
             onIconChanged: if (root.open && root.dock.previewItem) root.shownIcon = icon
@@ -118,11 +120,6 @@ Scope {
             y: root.vertical ? start : (root.edge === "top" ? root.away : win.height - root.away - depth)
             width: root.vertical ? depth : length
             height: root.vertical ? length : depth
-            readonly property var look: Styles.look("menus")
-            radius: Theme.radius
-            color: look.fill
-            border.width: 1
-            border.color: look.line
             opacity: root.open ? 1 : 0
 
             Behavior on opacity { Anim { duration: Theme.motionQuick } }

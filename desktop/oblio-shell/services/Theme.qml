@@ -42,6 +42,7 @@ Singleton {
     readonly property int textLabel: 12
     readonly property int textBody: 13
     readonly property int textTitle: 14
+    readonly property int textLarge: 16
     readonly property int textHeading: 22
 
     // edge panels' corners: roundness 0..100 % of fully round ends, for a thickness
@@ -50,7 +51,7 @@ Singleton {
     // the settings' cards of rows (SettingGroup)
     readonly property int groupRadius: 14
 
-    // corners of the shell's cards (settings, popovers, notifications, the launcher); something
+    // corners of the shell's cards (settings, popovers, notifications, search); something
     // inside a card, padding away from its edge, follows the same curve with inner(padding)
     readonly property int radius: 22
     function inner(padding) { return Math.max(4, radius - padding) }
@@ -59,7 +60,9 @@ Singleton {
     // surfaces (bar, dock, menus ...) take theirs from their style (Styles.qml), in solid's color
     // unless the style has a tint of its own; popup is for lists and labels drawn inside them
     readonly property color background: dark ? "#141417" : "#f4f4f6"
-    readonly property color solid: dark ? "#1c1c20" : "#f2f2f4"
+    readonly property color solidDark: "#1c1c20"
+    readonly property color solidLight: "#f2f2f4"
+    readonly property color solid: dark ? solidDark : solidLight
     readonly property color popup: dark ? "#f4161619" : "#f8fbfbfc"
     readonly property color card: dark ? "#0dffffff" : "#b3ffffff"
     readonly property color hover: dark ? "#0fffffff" : "#0c000000"

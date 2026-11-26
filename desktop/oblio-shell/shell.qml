@@ -12,6 +12,7 @@ import qs.dock
 import qs.settings
 import qs.notifications
 import qs.wallpaper
+import qs.search
 
 ShellRoot {
     // starting it applies the theme to GTK, icons, fonts and the terminal
@@ -51,6 +52,9 @@ ShellRoot {
     }
 
     SettingsPanel {}
+
+    // SUPER+R: apps by name
+    Search {}
 
     // new notifications, as cards (the server is services/Notifications.qml)
     Toasts {}

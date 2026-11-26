@@ -110,9 +110,8 @@ hl.window_rule({
 hl.window_rule({ name = "oblio-still", match = { tag = "oblio-still" }, no_anim = true })
 
 -- Oblio's shell animates its own layers (the wallpaper fades by itself; windows flying into and
--- out of the dock show at once, exactly over the window). Blur behind the shell's parts and the
--- look of apps come from Settings > Appearance > Styles, as named rules in settings.lua
-for _, name in ipairs({ "oblio-bar", "oblio-dock", "oblio-wallpaper", "oblio-notifications", "oblio-settings",
-                        "oblio-popup", "oblio-previews", "oblio-fx" }) do
+-- out of the dock show at once, exactly over the window). The shell's parts get theirs, with blur,
+-- from Settings > Appearance > Styles, as named rules in settings.lua; these two have no style
+for _, name in ipairs({ "oblio-wallpaper", "oblio-fx" }) do
     hl.layer_rule({ match = { namespace = "^(" .. name .. ")$" }, no_anim = true })
 end

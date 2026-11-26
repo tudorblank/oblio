@@ -13,11 +13,10 @@ import qs.settings.pages
 Scope {
     id: root
 
-    property bool shown: false
+    property alias shown: overlay.shown
     property int page: 0
     // a page opens at its top
     onPageChanged: flick.contentY = 0
-    property var screen: Quickshell.screens[0]
 
     readonly property var pages: [
         { title: "Display", icon: Icons.display, subtitle: "Resolution, refresh rate, scale and arrangement", content: displayPage },
@@ -28,13 +27,11 @@ Scope {
         { title: "Wallpaper", icon: Icons.wallpaper, subtitle: "Pictures for the desktop and the lock screen", content: wallpaperPage },
         { title: "Input", icon: Icons.input, subtitle: "Mouse, touchpad and keyboard", content: inputPage },
         { title: "Battery", icon: Icons.battery[8], subtitle: "Its state and the low and charged alerts", content: batteryPage },
-    ]
+    ].concat(Parts.list.filter(p => p.options).map(p => ({ title: p.name, icon: p.icon, subtitle: p.subtitle ?? "", content: partPage, part: p.id })))
 
     function open() {
-        const name = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : ""
-        screen = Quickshell.screens.find(s => s.name === name) ?? Quickshell.screens[0]
         Displays.refresh()
-        shown = true
+        overlay.open()
     }
     function close() { shown = false }
     function openPage(title) {
@@ -44,19 +41,18 @@ Scope {
     }
     Connections {
         target: Menus
-        function onSettingsRequested(page) { root.openPage(page) }
+        function onRequested(part, action, arg) {
+            if (part !== "settings") return
+            if (action === "toggle") root.shown ? root.close() : root.open()
+            else root.openPage(arg)
+        }
     }
 
-    onShownChanged: {
-        if (shown) {
-            Menus.add(root)
-        } else {
-            Menus.remove(root)
-            // closing the panel doesn't keep a display change nobody confirmed
-            Displays.revert()
-            Displays.discard()
-            Wallpaper.discard()
-        }
+    // closing the panel doesn't keep a display change nobody confirmed
+    onShownChanged: if (!shown) {
+        Displays.revert()
+        Displays.discard()
+        Wallpaper.discard()
     }
 
     // edges and corners resize: hx/hy say which side moves (-1 left/top, 1 right/bottom)
@@ -75,14 +71,14 @@ Scope {
         cursorShape: hx === 0 ? Qt.SizeVerCursor : hy === 0 ? Qt.SizeHorCursor
                    : hx === hy ? Qt.SizeFDiagCursor : Qt.SizeBDiagCursor
         onPressed: m => {
-            start = mapToItem(win.contentItem, m.x, m.y)
+            start = mapToItem(overlay.window.contentItem, m.x, m.y)
             from = Qt.rect(card.x, card.y, card.width, card.height)
         }
         onPositionChanged: m => {
-            const p = mapToItem(win.contentItem, m.x, m.y)
+            const p = mapToItem(overlay.window.contentItem, m.x, m.y)
             const dx = p.x - start.x, dy = p.y - start.y
-            if (hx > 0) card.width = Math.max(card.minWidth, Math.min(from.width + dx, win.width - from.x - 8))
-            if (hy > 0) card.height = Math.max(card.minHeight, Math.min(from.height + dy, win.height - from.y - 8))
+            if (hx > 0) card.width = Math.max(card.minWidth, Math.min(from.width + dx, overlay.window.width - from.x - 8))
+            if (hy > 0) card.height = Math.max(card.minHeight, Math.min(from.height + dy, overlay.window.height - from.y - 8))
             if (hx < 0) {
                 const w = Math.max(card.minWidth, Math.min(from.width - dx, from.x + from.width - 8))
                 card.x = from.x + from.width - w
@@ -147,54 +143,32 @@ Scope {
         function set(key: string, value: string): void { Settings.set(key, JSON.parse(value)) }
     }
 
-    PanelWindow {
-        id: win
+    Overlay {
+        id: overlay
+        part: "settings"
+        dim: 0.3
+        fading: card
         // steps aside while a file picker (a normal window) is open
-        visible: (root.shown || dim.opacity > 0) && !Wallpaper.picking && !User.picking
-        screen: root.screen
-        anchors { top: true; bottom: true; left: true; right: true }
-        exclusionMode: ExclusionMode.Ignore
-        color: "transparent"
-        WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: root.shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-        WlrLayershell.namespace: "oblio-settings"
+        hidden: Wallpaper.picking || User.picking
 
-        Rectangle {
-            id: dim
-            anchors.fill: parent
-            color: Theme.scrim
-            opacity: root.shown ? 0.3 : 0
-
-            Behavior on opacity { NumberAnimation { duration: Theme.ms(180); easing.type: Easing.OutCubic } }
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: root.shown = false
-            }
-        }
-
-        Rectangle {
+        Card {
             id: card
+            part: "settings"
             // dragged by its top strip, resized from any edge; keeps its place while the shell runs
             readonly property int minWidth: 640
             readonly property int minHeight: 480
             property bool placed: false
             function fit() {
                 // a hidden window's size is meaningless
-                if (!win.visible || win.width < minWidth || win.height < minHeight) return
-                width = Math.max(Math.min(width, win.width - 16), Math.min(minWidth, win.width - 16))
-                height = Math.max(Math.min(height, win.height - 16), Math.min(minHeight, win.height - 16))
-                if (!placed) { x = (win.width - width) / 2; y = (win.height - height) / 2; placed = true }
-                x = Math.max(8, Math.min(x, win.width - width - 8))
-                y = Math.max(8, Math.min(y, win.height - height - 8))
+                if (!overlay.window.visible || overlay.window.width < minWidth || overlay.window.height < minHeight) return
+                width = Math.max(Math.min(width, overlay.window.width - 16), Math.min(minWidth, overlay.window.width - 16))
+                height = Math.max(Math.min(height, overlay.window.height - 16), Math.min(minHeight, overlay.window.height - 16))
+                if (!placed) { x = (overlay.window.width - width) / 2; y = (overlay.window.height - height) / 2; placed = true }
+                x = Math.max(8, Math.min(x, overlay.window.width - width - 8))
+                y = Math.max(8, Math.min(y, overlay.window.height - height - 8))
             }
             width: 880
             height: 600
-            readonly property var look: Styles.look("settings")
-            radius: Theme.radius
-            color: look.fill
-            border.width: 1
-            border.color: look.line
             opacity: root.shown ? 1 : 0
             scale: root.shown ? 1 : 0.97
             focus: true
@@ -205,7 +179,7 @@ Scope {
             Keys.onEscapePressed: root.shown = false
             onVisibleChanged: if (visible) { fit(); forceActiveFocus() }
             Connections {
-                target: win
+                target: overlay.window
                 function onWidthChanged() { card.fit() }
                 function onHeightChanged() { card.fit() }
             }
@@ -221,9 +195,9 @@ Scope {
                     target: card
                     cursorShape: active ? Qt.ClosedHandCursor : Qt.ArrowCursor
                     xAxis.minimum: 8
-                    xAxis.maximum: win.width - card.width - 8
+                    xAxis.maximum: overlay.window.width - card.width - 8
                     yAxis.minimum: 8
-                    yAxis.maximum: win.height - card.height - 8
+                    yAxis.maximum: overlay.window.height - card.height - 8
                 }
             }
 
@@ -455,16 +429,63 @@ Scope {
                     }
                 }
 
-                // scroll bar, when the page is taller than the panel
-                Rectangle {
-                    visible: flick.contentHeight > flick.height
+                // scroll bar, when the page is taller than the panel: drag its handle (or click the
+                // track) like in a browser. The handle fades in while the page moves or the pointer is
+                // on the bar's strip, out a second after; the strip itself always takes the pointer
+                Item {
+                    id: scrollBar
+                    readonly property real range: flick.contentHeight - flick.height
+                    readonly property bool busy: barArea.containsMouse || barArea.pressed || flick.moving
+                    property bool shown: false
+                    visible: range > 0
                     anchors.right: flick.right
-                    anchors.rightMargin: 8
-                    y: flick.y + flick.visibleArea.yPosition * flick.height
-                    width: 4
-                    height: flick.visibleArea.heightRatio * flick.height
-                    radius: 2
-                    color: Theme.tint(Theme.text, 0.25)
+                    anchors.rightMargin: 4
+                    y: flick.y + 4
+                    width: 14
+                    height: flick.height - 8
+                    function show() { shown = true; hideTimer.restart() }
+                    onBusyChanged: show()
+                    Connections {
+                        target: flick
+                        function onContentYChanged() { scrollBar.show() }
+                    }
+                    Timer {
+                        id: hideTimer
+                        interval: 1000
+                        onTriggered: if (scrollBar.busy) restart(); else scrollBar.shown = false
+                    }
+
+                    Rectangle {
+                        id: handle
+                        readonly property real travel: scrollBar.height - height
+                        anchors.right: parent.right
+                        anchors.rightMargin: 4
+                        width: barArea.containsMouse || barArea.pressed ? 6 : 4
+                        height: Math.max(28, flick.height / Math.max(flick.contentHeight, 1) * scrollBar.height)
+                        y: scrollBar.range > 0 ? flick.contentY / scrollBar.range * travel : 0
+                        radius: width / 2
+                        color: Theme.tint(Theme.text, barArea.pressed ? 0.5 : barArea.containsMouse ? 0.38 : 0.25)
+                        opacity: scrollBar.shown ? 1 : 0
+                        Behavior on opacity { Anim {} }
+                        Behavior on width { Anim { duration: Theme.motionQuick } }
+                    }
+                    MouseArea {
+                        id: barArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        preventStealing: true
+                        property real grab: 0
+                        function scrollTo(y) {
+                            const f = Math.max(0, Math.min(1, (y - grab) / Math.max(1, handle.travel)))
+                            flick.contentY = f * scrollBar.range
+                        }
+                        onPressed: m => {
+                            // on the handle: keep where it was grabbed; on the track: centre it there
+                            grab = m.y >= handle.y && m.y <= handle.y + handle.height ? m.y - handle.y : handle.height / 2
+                            scrollTo(m.y)
+                        }
+                        onPositionChanged: m => { if (pressed) scrollTo(m.y) }
+                    }
                 }
             }
 
@@ -517,4 +538,6 @@ Scope {
     Component { id: batteryPage; BatteryPage {} }
 
     Component { id: wallpaperPage; WallpaperPage {} }
+    // a part's page, built from its options (services/Parts.qml)
+    Component { id: partPage; PartPage { part: root.pages[root.page].part } }
 }

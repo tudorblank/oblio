@@ -25,7 +25,7 @@ Singleton {
         return best
     }
 
-    // #rrggbbaa: rofi's order (Qt's is #aarrggbb)
+    // #rrggbbaa (Qt's is #aarrggbb)
     function alphaLast(c) {
         const h = v => Math.round(v * 255).toString(16).padStart(2, "0")
         return "#" + h(c.r) + h(c.g) + h(c.b) + h(c.a)
@@ -39,16 +39,9 @@ Singleton {
         OBLIO_ACCENT_NAMED: nearestNamed(Theme.accent),
         OBLIO_BG: alphaLast(Theme.background).slice(0, 7),
         OBLIO_FG: alphaLast(Theme.text).slice(0, 7),
-        OBLIO_SUBTEXT: alphaLast(Theme.subtext).slice(0, 7),
-        OBLIO_LAUNCHER: alphaLast(Styles.look("launcher").fill),
-        OBLIO_CARD: alphaLast(Theme.card),
-        OBLIO_BORDER: alphaLast(Theme.border),
-        OBLIO_HOVER: alphaLast(Theme.hover),
         OBLIO_FONT_UI: Theme.fontUi,
         OBLIO_FONT_MONO: Theme.fontMono,
-        OBLIO_FONT_ICONS: Theme.iconFont,
         OBLIO_FONT_SIZE: String(Theme.fontSize),
-        OBLIO_RADIUS: String(Theme.radius),
         OBLIO_LOCK_WALLPAPER: Wallpaper.lock,
         // a new profile picture (~/.face) runs it again
         OBLIO_FACE_VERSION: String(User.version),

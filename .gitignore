@@ -1,6 +1,6 @@
 # makepkg build output
-src/
-pkg/
+**/packages/*/src/
+**/packages/*/pkg/
 *.pkg.tar.*
 *.log
 

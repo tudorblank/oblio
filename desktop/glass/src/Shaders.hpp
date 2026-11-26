@@ -591,6 +591,9 @@ void main() {
         float tailWindow = 1.0 - smoothstep(1.5 * bezelWidthPx, 3.0 * bezelWidthPx, depth);
         lensFalloff = mix(lensFalloff * tailWindow, lensFalloff, refractionSpread);
     }
+    // the bend from opposite edges meets along the shape's middle line, where its direction flips:
+    // it fades out before there, or a thin shape (a pill, a bar) shows a hard crease down its middle
+    lensFalloff *= 1.0 - smoothstep(0.35 * shortHalf, shortHalf, -refrSdf);
     float refractionMag = lensFalloff * refractionPx;
     vec2 dir = -refrOutward;
 #ifndef OBLIO_GLASS_FEATURE_CONTOUR

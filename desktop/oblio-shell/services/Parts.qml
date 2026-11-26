@@ -24,7 +24,7 @@ Singleton {
         // menus, the dock's window previews, notification cards, the color picker
         { id: "menus", name: "Menus", icon: Icons.menu, namespaces: ["oblio-popup", "oblio-previews", "oblio-notifications"] },
         { id: "settings", name: "Settings", icon: Icons.settings, namespaces: ["oblio-settings"], floor: 0.12 },
-        { id: "search", name: "Search", icon: Icons.search, namespaces: ["oblio-search"],
+        { id: "search", name: "Search Tool", icon: Icons.search, namespaces: ["oblio-search"],
           subtitle: "Apps by name, description or keyword (SUPER+R)",
           options: [
             { key: "width", label: "Width", about: "While you type; it starts narrower", kind: "number",

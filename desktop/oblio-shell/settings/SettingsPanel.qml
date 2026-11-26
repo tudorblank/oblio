@@ -201,18 +201,18 @@ Scope {
                 }
             }
 
-            // sidebar
-            Column {
+            // sidebar: who's logged in, then the pages, scrolling when the panel is too short for them
+            Item {
                 id: sidebar
                 anchors.left: parent.left
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 anchors.margins: 14
                 width: 200
-                spacing: 4
 
                 // who's logged in; hovering the picture offers to change it
                 Column {
+                    id: profile
                     width: parent.width
                     topPadding: 10
                     bottomPadding: 14
@@ -298,50 +298,66 @@ Scope {
                     }
                 }
 
-                Repeater {
-                    model: root.pages
+                Flickable {
+                    anchors.top: profile.bottom
+                    anchors.bottom: parent.bottom
+                    width: parent.width
+                    clip: true
+                    contentHeight: pageList.height
+                    interactive: contentHeight > height
+                    boundsBehavior: Flickable.StopAtBounds
 
-                    Rectangle {
-                        required property var modelData
-                        required property int index
-                        readonly property bool selected: root.page === index
-                        width: sidebar.width
-                        height: 40
-                        radius: 12
-                        color: selected ? Theme.tint(Theme.accent, 0.16) : area.containsMouse ? Theme.hover : "transparent"
+                    Column {
+                        id: pageList
+                        width: parent.width
+                        spacing: 4
 
-                        Behavior on color { ColorAnimation { duration: Theme.ms(140) } }
+                        Repeater {
+                            model: root.pages
 
-                        Text {
-                            id: icon
-                            anchors.left: parent.left
-                            anchors.leftMargin: 14
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 20
-                            horizontalAlignment: Text.AlignHCenter
-                            text: parent.modelData.icon
-                            color: parent.selected ? Theme.accent : Theme.subtext
-                            font.family: Theme.iconFont
-                            font.pixelSize: 15
-                        }
+                            Rectangle {
+                                required property var modelData
+                                required property int index
+                                readonly property bool selected: root.page === index
+                                width: sidebar.width
+                                height: 40
+                                radius: 12
+                                color: selected ? Theme.tint(Theme.accent, 0.16) : area.containsMouse ? Theme.hover : "transparent"
 
-                        Text {
-                            font.family: Theme.fontUi
-                            anchors.left: icon.right
-                            anchors.leftMargin: 12
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: parent.modelData.title
-                            color: parent.selected ? Theme.accent : Theme.text
-                            font.pixelSize: Theme.textTitle
-                            font.weight: parent.selected ? Font.DemiBold : Font.Normal
-                        }
+                                Behavior on color { ColorAnimation { duration: Theme.ms(140) } }
 
-                        MouseArea {
-                            id: area
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.page = parent.index
+                                Text {
+                                    id: icon
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 14
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 20
+                                    horizontalAlignment: Text.AlignHCenter
+                                    text: parent.modelData.icon
+                                    color: parent.selected ? Theme.accent : Theme.subtext
+                                    font.family: Theme.iconFont
+                                    font.pixelSize: 15
+                                }
+
+                                Text {
+                                    font.family: Theme.fontUi
+                                    anchors.left: icon.right
+                                    anchors.leftMargin: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: parent.modelData.title
+                                    color: parent.selected ? Theme.accent : Theme.text
+                                    font.pixelSize: Theme.textTitle
+                                    font.weight: parent.selected ? Font.DemiBold : Font.Normal
+                                }
+
+                                MouseArea {
+                                    id: area
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.page = parent.index
+                                }
+                            }
                         }
                     }
                 }

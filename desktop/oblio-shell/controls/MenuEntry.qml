@@ -10,6 +10,8 @@ Rectangle {
     property string text
     property bool danger: false
     property bool dim: false
+    // keeps the icon's room when there's none, so rows line up in a menu where only some have one
+    property bool iconColumn: false
     property real inset: 8
     signal clicked()
 
@@ -20,7 +22,7 @@ Rectangle {
 
     Text {
         id: glyph
-        visible: e.icon !== ""
+        visible: e.icon !== "" || e.iconColumn
         anchors.left: parent.left
         anchors.leftMargin: 12
         anchors.verticalCenter: parent.verticalCenter

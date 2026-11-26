@@ -13,6 +13,7 @@ import qs.settings
 import qs.notifications
 import qs.wallpaper
 import qs.search
+import qs.desktop
 
 ShellRoot {
     // starting it applies the theme to GTK, icons, fonts and the terminal
@@ -28,6 +29,16 @@ ShellRoot {
         model: Quickshell.screens
 
         WallpaperWindow {
+            required property var modelData
+            screen: modelData
+        }
+    }
+
+    // the Desktop folder's files
+    Variants {
+        model: Parts.option("desktop", "enabled") ? Quickshell.screens : []
+
+        DesktopWindow {
             required property var modelData
             screen: modelData
         }
@@ -55,6 +66,9 @@ ShellRoot {
 
     // SUPER+R: apps by name
     Search {}
+
+    // the desktop's right-click menus and questions
+    DesktopMenu {}
 
     // new notifications, as cards (the server is services/Notifications.qml)
     Toasts {}

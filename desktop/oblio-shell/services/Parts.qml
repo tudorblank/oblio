@@ -20,6 +20,23 @@ Singleton {
     readonly property var list: [
         { id: "bar", name: "Bar", icon: Icons.bar, namespaces: ["oblio-bar"] },
         { id: "dock", name: "Dock", icon: Icons.dock, namespaces: ["oblio-dock"] },
+        // the Desktop folder's files over the wallpaper (services/Desktop.qml)
+        { id: "desktop", name: "Desktop", icon: Icons.desktop, namespaces: ["oblio-desktop"],
+          subtitle: "Files in your Desktop folder, over the wallpaper",
+          options: [
+            { key: "enabled", label: "Desktop icons", kind: "toggle", default: true },
+            { key: "placement", label: "Placement", about: "Where an icon stays when you move it", kind: "choice",
+              default: "free", choices: [{ value: "free", label: "Anywhere" }, { value: "grid", label: "Grid" }] },
+            { key: "arrange", label: "Keep arranged by", about: "Sorted into the grid as files come and go",
+              kind: "list", default: "none",
+              choices: [{ value: "none", label: "None" }, { value: "name", label: "Name" }, { value: "kind", label: "Kind" },
+                        { value: "modified", label: "Date modified" }, { value: "size", label: "Size" }] },
+            { key: "iconSize", label: "Icon size", kind: "number", default: 64, from: 32, to: 128, step: 8, unit: " px" },
+            { key: "spacing", label: "Spacing", about: "Room around each icon", kind: "number",
+              default: 8, from: 0, to: 32, step: 2, unit: " px" },
+            { key: "labelLines", label: "Name lines", about: "Longer names end in …", kind: "number", default: 2, from: 1, to: 3 },
+            { key: "hidden", label: "Hidden files", about: "Names starting with a dot", kind: "toggle", default: false },
+          ] },
         // everything the shell opens over the desktop for a moment: the bar's popups, right-click
         // menus, the dock's window previews, notification cards, the color picker
         { id: "menus", name: "Menus", icon: Icons.menu, namespaces: ["oblio-popup", "oblio-previews", "oblio-notifications"] },

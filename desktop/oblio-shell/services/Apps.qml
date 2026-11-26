@@ -27,6 +27,14 @@ Singleton {
         }
         return fallback ? Quickshell.iconPath(fallback, true) : ""
     }
+    // the first of some icon names the theme has (a file type's names, most specific first)
+    function themed(names, fallback) {
+        for (const n of names ?? []) {
+            const p = Quickshell.iconPath(n, true)
+            if (p) return p
+        }
+        return fallback ? Quickshell.iconPath(fallback, true) : ""
+    }
     // an app's own icon, by its desktop entry first
     function appIcon(id, fallback) {
         const e = entry(id)

@@ -493,6 +493,22 @@ hl.on("window.move_to_workspace", function(w, ws)
     save()
 end)
 
+-- The desktop (the shell's desktop icons, a layer under the windows) takes the keyboard when it's
+-- clicked. A click on another window takes it back, but Hyprland skips refocusing the window it still
+-- counts as active, so the keys would stay on the desktop: while the desktop has them (the shell
+-- says so), a left click inside the active window focuses it again. Not saved: a reload starts
+-- with the windows having the keys.
+local desktop_keys = false
+function oblio.desktop_keys(on) desktop_keys = on end
+hl.bind("mouse:272", function()
+    if not desktop_keys then return end
+    local w, c = hl.get_active_window(), hl.get_cursor_pos()
+    if w and c and w.workspace and w.workspace.visible
+        and c.x >= w.at.x and c.x < w.at.x + w.size.x and c.y >= w.at.y and c.y < w.at.y + w.size.y then
+        focus_quietly(w.address)
+    end
+end, { non_consuming = true })
+
 -- a reload drops the timers: anything still animated finishes now
 finish_running()
 -- and nothing on screen stays concealed

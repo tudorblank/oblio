@@ -41,6 +41,9 @@ Singleton {
     function focus(t) { call("focus", `"${address(t)}"`) }
     function restore(t) { call("restore", `"${address(t)}"`) }
     function close(toplevels) { call("close", list(toplevels)) }
+    // whether the desktop (desktop/DesktopWindow.qml) has the keyboard: a click on the active window
+    // then gives it back
+    function desktopKeys(on) { call("desktop_keys", on) }
 
     function ready(address, way) { call("ready", `"${address}", "${way}"`) }
     function done(address, way) { call("done", `"${address}", "${way}"`) }

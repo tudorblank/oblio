@@ -2,6 +2,18 @@
 
 ## Next: the desktop
 
+- [ ] Desktop icons, a part of the shell: the Desktop folder over the wallpaper, on by default (off in
+      Settings); free placement (freeform or snapped to a grid) and Arrange by; double-click opens;
+      select, rename, trash, copy/paste and drag with Files and other apps; right-click menus
+- [ ] Desktop icons, next: look and polish (labels readable on any wallpaper, selection, animations,
+      empty states, light and dark)
+- [ ] Desktop icons, untested: dragging files out of an X11 app (Xwayland, e.g. `GDK_BACKEND=x11
+      nautilus`) onto the desktop; Zen running under X11; real multi-monitor (tested only with
+      virtual screens); a real hand's drags (tested with a virtual pointer)
+- [ ] Desktop icons: progress for big copies and moves (files just appear when done)
+- [ ] Bar/dock: a screen that goes away logs a TypeError in EdgePanel.qml (screen is null while
+      it's torn down)
+- [ ] Desktop icons: special icons (Home, Trash, mounted drives, maybe Settings)
 - [x] Search (SUPER+R): Oblio's own app search in the shell, replacing rofi
 - [ ] Search: more than apps (files, settings pages, calculations, commands)
 - [ ] A calendar app that syncs with the bar's clock widget (its calendar popup)

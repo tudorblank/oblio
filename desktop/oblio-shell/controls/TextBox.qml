@@ -19,6 +19,7 @@ Rectangle {
     function submit() { input.apply() }
     function focusInput() { input.forceActiveFocus() }
     function reset() { input.text = box.value }
+    function select(from, to) { input.select(from, to) }
 
     implicitWidth: 250
     implicitHeight: Theme.controlHeight

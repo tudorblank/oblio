@@ -18,6 +18,7 @@ Singleton {
     readonly property string appearance: "\u{f03d8}"
     readonly property string input: "\u{f030c}"
     readonly property string wallpaper: "\u{f0e09}"
+    readonly property string desktop: "\u{f01c4}"
     readonly property string power: "\u{f0425}"
     readonly property string sleep: "\u{f0904}"
     readonly property string logout: "\u{f0343}"
